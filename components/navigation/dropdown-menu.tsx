@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import Link from "next/link";
 import { useClickOutside } from "@/hooks/use-click-outside";
 import { cn } from "@/utils";
+import { Bell, User, LogOut, Settings, Shield, Ticket, Compass } from "lucide-react";
 
 export interface DropdownMenuItem {
   id: string;
@@ -103,7 +105,8 @@ export function ProfileMenu({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-[#161F2E] transition-colors focus:outline-none"
+        className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-[#161F2E] transition-colors focus:outline-none cursor-pointer"
+        aria-label="Profile navigation menu"
       >
         <div className="h-8 w-8 rounded-full bg-[#161F2E] border border-[#2A3445] flex items-center justify-center text-[#FBBF24] font-bold text-xs">
           {user.name.charAt(0)}
@@ -123,24 +126,40 @@ export function ProfileMenu({
           </div>
 
           <div className="py-1 space-y-0.5 text-xs text-[#CBD5E1]">
-            <a
+            <Link
               href="/dashboard"
-              className="flex items-center px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
             >
-              Control Panel
-            </a>
-            <a
-              href="/customer/bookings"
-              className="flex items-center px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
+              <Shield className="h-3.5 w-3.5 text-[#FBBF24]" />
+              <span>Super Admin HQ</span>
+            </Link>
+            <Link
+              href="/theatre"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
             >
-              My Bookings
-            </a>
-            <a
+              <Compass className="h-3.5 w-3.5 text-[#38BDF8]" />
+              <span>Theatre Portal</span>
+            </Link>
+            <Link
+              href="/profile"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
+            >
+              <User className="h-3.5 w-3.5 text-emerald-400" />
+              <span>Patron Account</span>
+            </Link>
+            <Link
               href="/design-system"
-              className="flex items-center px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
             >
-              Design System Showcase
-            </a>
+              <span className="text-[10px] font-mono font-bold px-1 rounded bg-[#161F2E] text-[#FBBF24] border border-[#2A3445]">
+                UI
+              </span>
+              <span>Design System</span>
+            </Link>
           </div>
 
           <div className="pt-1 border-t border-[#2A3445]">
@@ -150,9 +169,10 @@ export function ProfileMenu({
                 onSignOut?.();
                 setIsOpen(false);
               }}
-              className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors"
+              className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
             >
-              Sign Out
+              <LogOut className="h-3.5 w-3.5" />
+              <span>Sign Out</span>
             </button>
           </div>
         </div>
@@ -183,9 +203,10 @@ export function NotificationMenu({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative h-9 w-9 rounded-xl bg-[#111827] border border-[#2A3445] flex items-center justify-center text-[#94A3B8] hover:text-white hover:border-[#FBBF24]/50 transition-colors"
+        className="relative h-9 w-9 rounded-xl bg-[#111827] border border-[#2A3445] flex items-center justify-center text-[#94A3B8] hover:text-white hover:border-[#FBBF24]/50 transition-colors cursor-pointer"
+        aria-label="Notification center"
       >
-        <span className="text-sm">🔔</span>
+        <Bell className="h-4 w-4" />
         <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#FBBF24] ring-2 ring-[#070B12]" />
       </button>
 
@@ -193,7 +214,7 @@ export function NotificationMenu({
         <div className="absolute right-0 top-full mt-2 w-80 rounded-xl bg-[#111827] border border-[#2A3445] shadow-[0_12px_40px_rgb(0,0,0,0.5)] p-2 z-50 animate-in fade-in zoom-in-95">
           <div className="p-2 border-b border-[#2A3445] flex items-center justify-between text-xs">
             <span className="font-bold text-white">Notifications</span>
-            <span className="text-[10px] text-[#FBBF24]">Mark all read</span>
+            <span className="text-[10px] text-[#FBBF24] cursor-pointer">Mark all read</span>
           </div>
 
           <div className="py-1 divide-y divide-[#2A3445]/40 max-h-64 overflow-y-auto">

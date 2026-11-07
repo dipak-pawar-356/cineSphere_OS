@@ -2,8 +2,6 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { siteConfig } from "@/config/site";
 import { GlobalProviders } from "@/components/providers";
-import { Navbar } from "@/components/layout/navbar";
-import { Footer } from "@/components/layout/footer";
 
 export const viewport: Viewport = {
   themeColor: "#070B12",
@@ -59,12 +57,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark scroll-smooth" suppressHydrationWarning>
-      <body className="antialiased min-h-screen flex flex-col bg-[#070B12] text-[#F9FAFB] selection:bg-amber-400 selection:text-black">
-        <GlobalProviders>
-          <Navbar />
-          <main className="flex-1 w-full">{children}</main>
-          <Footer />
-        </GlobalProviders>
+      <body className="antialiased min-h-screen flex flex-col bg-[#070B12] text-[#F9FAFB] selection:bg-[#FBBF24] selection:text-black font-sans">
+        {/* Skip to Main Content Link for Keyboard Accessibility */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 z-50 px-4 py-2 bg-[#FBBF24] text-[#070B12] font-bold rounded-xl shadow-2xl focus:outline-none"
+        >
+          Skip to main content
+        </a>
+        <GlobalProviders>{children}</GlobalProviders>
       </body>
     </html>
   );

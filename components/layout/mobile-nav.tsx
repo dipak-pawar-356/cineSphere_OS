@@ -3,11 +3,12 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X, Sparkles, Building2, Film, Ticket, LayoutDashboard, Tag, Calendar } from "lucide-react";
-import { MAIN_NAV_ITEMS } from "@/lib/constants/navigation";
+import { X, Sparkles, Building2, Film, Ticket, LayoutDashboard, Tag, Calendar, Compass, Search } from "lucide-react";
+import { PUBLIC_NAV_ITEMS } from "@/config/navigation";
+import { ROUTES } from "@/config/routes";
 import { LocationSelector } from "@/components/navigation/location-selector";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 interface MobileNavProps {
   isOpen: boolean;
@@ -15,88 +16,98 @@ interface MobileNavProps {
   onOpenSearch: () => void;
 }
 
-const ICON_MAP: Record<string, React.ReactNode> = {
-  Home: <Sparkles className="h-4 w-4" />,
-  Movies: <Film className="h-4 w-4" />,
-  Theatres: <Building2 className="h-4 w-4" />,
-  Events: <Calendar className="h-4 w-4" />,
-  Offers: <Tag className="h-4 w-4" />,
-  Dashboard: <LayoutDashboard className="h-4 w-4" />,
-};
-
 export function MobileNav({ isOpen, onClose, onOpenSearch }: MobileNavProps) {
   const pathname = usePathname();
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 md:hidden flex flex-col justify-between bg-[#070B12]/95 backdrop-blur-2xl">
+    <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-between bg-[#070B12]/95 backdrop-blur-2xl animate-in fade-in-0 duration-200">
       {/* Top Header */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#2A3445]">
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center font-black text-black text-sm shadow-md shadow-amber-500/20">
+          <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#FBBF24] to-[#F59E0B] flex items-center justify-center font-black text-[#070B12] text-sm shadow-md shadow-[#FBBF24]/20">
             CS
           </div>
           <span className="font-bold text-white text-base tracking-tight">
-            CineSphere <span className="text-amber-400 font-mono text-xs">OS</span>
+            CineSphere <span className="text-[#FBBF24] font-mono text-xs">OS</span>
           </span>
         </div>
 
         <button
           onClick={onClose}
-          className="p-2 rounded-lg text-[#9CA3AF] hover:text-white hover:bg-white/5 transition-colors"
+          className="p-2 rounded-xl text-[#94A3B8] hover:text-white hover:bg-[#161F2E] border border-transparent hover:border-[#2A3445] transition-colors"
           aria-label="Close menu"
         >
-          <X className="h-6 w-6" />
+          <X className="h-5 w-5" />
         </button>
       </div>
 
       {/* Main navigation list */}
-      <div className="px-6 py-6 flex-1 overflow-y-auto space-y-2">
-        <div className="mb-4 pb-4 border-b border-white/5">
+      <div className="px-6 py-6 flex-1 overflow-y-auto space-y-4">
+        {/* Quick Search trigger in drawer */}
+        <button
+          type="button"
+          onClick={onOpenSearch}
+          className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-[#94A3B8]"
+        >
+          <span className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-[#FBBF24]" />
+            Search movies, theatres, events...
+          </span>
+          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#161F2E] border border-[#2A3445]">
+            ⌘K
+          </span>
+        </button>
+
+        {/* Location Selector */}
+        <div className="py-2 border-b border-[#2A3445]/60">
           <LocationSelector />
         </div>
 
-        {MAIN_NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className={cn(
-                "flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-colors",
-                isActive
-                  ? "bg-amber-400/15 text-amber-400 border border-amber-400/20"
-                  : "text-[#9CA3AF] hover:text-white hover:bg-white/5"
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <span className={isActive ? "text-amber-400" : "text-[#9CA3AF]"}>
-                  {ICON_MAP[item.label]}
-                </span>
+        {/* Nav Links */}
+        <div className="space-y-1 pt-1">
+          {PUBLIC_NAV_ITEMS.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className={cn(
+                  "flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-colors",
+                  isActive
+                    ? "bg-[#FBBF24]/15 text-[#FBBF24] border border-[#FBBF24]/30"
+                    : "text-[#94A3B8] hover:text-white hover:bg-[#161F2E]"
+                )}
+              >
                 <span>{item.label}</span>
-              </div>
 
-              {item.badge && (
-                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-400 text-black">
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+                {item.badge && (
+                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#161F2E] text-[#FBBF24] border border-[#2A3445]">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
       {/* Mobile Footer actions */}
-      <div className="p-6 border-t border-white/10 space-y-3 bg-[#111827]/60">
-        <div className="text-xs text-[#9CA3AF] text-center">
+      <div className="p-6 border-t border-[#2A3445] space-y-3 bg-[#111827]/80">
+        <div className="text-xs text-[#94A3B8] text-center">
           The Operating System for Modern Cinemas
         </div>
-        <div className="flex gap-2">
-          <Link href="/dashboard" onClick={onClose} className="w-full">
-            <Button variant="primary" className="w-full text-xs">
-              Open Admin Console
+        <div className="grid grid-cols-2 gap-2">
+          <Link href={ROUTES.SUPER_ADMIN.ROOT} onClick={onClose}>
+            <Button variant="primary" size="sm" className="w-full text-xs">
+              Super Admin
+            </Button>
+          </Link>
+          <Link href={ROUTES.THEATRE_ADMIN.ROOT} onClick={onClose}>
+            <Button variant="outline" size="sm" className="w-full text-xs">
+              Theatre Portal
             </Button>
           </Link>
         </div>

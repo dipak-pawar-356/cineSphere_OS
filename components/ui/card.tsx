@@ -84,11 +84,3 @@ export function CardFooter({ className, children, ...props }: React.HTMLAttribut
     </div>
   );
 }
-
-export const HoverCard = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, ...props }, ref) => {
-    return <Card ref={ref} variant="interactive" hoverEffect className={className} {...props} />;
-  }
-);
-
-HoverCard.displayName = "HoverCard";

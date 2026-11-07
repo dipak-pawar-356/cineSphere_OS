@@ -125,57 +125,6 @@ export function SystemStatusCard({
   );
 }
 
-export interface RevenueCardProps {
-  amount: string;
-  period?: string;
-  changePercent?: string;
-  isPositive?: boolean;
-  breakdown?: { label: string; amount: string }[];
-  className?: string;
-}
-
-export function RevenueCard({
-  amount,
-  period = "This Month",
-  changePercent = "+24.8%",
-  isPositive = true,
-  breakdown = [
-    { label: "Box Office", amount: "72%" },
-    { label: "F&B Concessions", amount: "21%" },
-    { label: "Add-ons", amount: "7%" },
-  ],
-  className,
-}: RevenueCardProps) {
-  return (
-    <Card variant="elevated" className={cn("p-5 space-y-4", className)}>
-      <div className="flex items-center justify-between text-xs text-[#94A3B8]">
-        <span className="font-semibold uppercase tracking-wider">Gross Revenue</span>
-        <span className="text-[11px]">{period}</span>
-      </div>
-
-      <div className="flex items-baseline justify-between">
-        <div className="text-3xl font-extrabold font-mono text-white tracking-tight">
-          {amount}
-        </div>
-        <Badge variant={isPositive ? "success" : "danger"} size="sm">
-          {changePercent}
-        </Badge>
-      </div>
-
-      {breakdown && breakdown.length > 0 && (
-        <div className="pt-3 border-t border-[#2A3445] space-y-2">
-          {breakdown.map((item, idx) => (
-            <div key={idx} className="flex justify-between text-xs">
-              <span className="text-[#94A3B8]">{item.label}</span>
-              <span className="font-mono font-semibold text-white">{item.amount}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
-  );
-}
-
 export interface MetricCardProps {
   label: string;
   value: string;
@@ -227,6 +176,57 @@ export function MetricCard({
             </span>
           )}
           {subtitle && <span className="text-[#94A3B8]">{subtitle}</span>}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+export interface RevenueCardProps {
+  amount: string;
+  period?: string;
+  changePercent?: string;
+  isPositive?: boolean;
+  breakdown?: { label: string; amount: string }[];
+  className?: string;
+}
+
+export function RevenueCard({
+  amount,
+  period = "This Month",
+  changePercent = "+24.8%",
+  isPositive = true,
+  breakdown = [
+    { label: "Box Office", amount: "72%" },
+    { label: "F&B Concessions", amount: "21%" },
+    { label: "Add-ons", amount: "7%" },
+  ],
+  className,
+}: RevenueCardProps) {
+  return (
+    <Card variant="elevated" className={cn("p-5 space-y-4", className)}>
+      <div className="flex items-center justify-between text-xs text-[#94A3B8]">
+        <span className="font-semibold uppercase tracking-wider">Gross Revenue</span>
+        <span className="text-[11px]">{period}</span>
+      </div>
+
+      <div className="flex items-baseline justify-between">
+        <div className="text-3xl font-extrabold font-mono text-white tracking-tight">
+          {amount}
+        </div>
+        <Badge variant={isPositive ? "success" : "danger"} size="sm">
+          {changePercent}
+        </Badge>
+      </div>
+
+      {breakdown && breakdown.length > 0 && (
+        <div className="pt-3 border-t border-[#2A3445] space-y-2">
+          {breakdown.map((item, idx) => (
+            <div key={idx} className="flex justify-between text-xs">
+              <span className="text-[#94A3B8]">{item.label}</span>
+              <span className="font-mono font-semibold text-white">{item.amount}</span>
+            </div>
+          ))}
         </div>
       )}
     </Card>
