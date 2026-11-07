@@ -1,0 +1,16 @@
+{
+  "name": "CineSphere OS",
+  "short_name": "CineSphere",
+  "description": "The Operating System for Modern Cinemas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070B12",
+  "theme_color": "#FBBF24",
+  "icons": [
+    {
+      "src": "/logos/cinesphere-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,214 +1,202 @@
 # 🎬 CineSphere OS
 > **The Operating System for Modern Cinemas**  
-> *An enterprise-grade, luxury platform engineered to orchestrate cinema chains, 3D hall acoustics, automated scheduling, and omnichannel ticketing.*
+> *An enterprise-grade, Multi-Tenant SaaS platform engineered for global cinema circuits, multiplex chains, and boutique auditoriums.*
 
 ---
 
-## 🌟 Executive Vision
-
-**CineSphere OS** is designed from the ground up as a mission-critical operating system for modern cinema exhibition circuits. Whether operating flagship metropolitan IMAX megaplexes, boutique cocktail cinema lounges, historic 70mm screening halls, or drive-in festivals, CineSphere OS unifies physical hardware telemetry, auditorium spatial ergonomics, distributor manifests, and high-concurrency ticket reservations into a single, cohesive interface.
-
-This repository represents **Commit #1 (Phase 1: Architecture & Design System Foundation)**. It establishes an enterprise-grade UI/UX foundation, modular layout engine, typed design system, and realistic local datasets—ready for seamless scaling into backend services and 3D WebGL hall visualization in Phase 2.
-
----
-
-## 🎨 Design Philosophy & Aesthetics
-
-CineSphere OS embodies an original design language inspired by the precision of **Apple**, the minimal ergonomics of **Linear**, the financial typography of **Stripe**, and the sleek dark aesthetics of **Vercel** and **Framer**, fused with cinema-grade entertainment patterns from **BookMyShow** and **Cineverse**.
-
-### Color Palette & Design Tokens
-
-| Token | Hex Value | Role |
-| :--- | :--- | :--- |
-| **Background** | `#070B12` | Deep cinema void background |
-| **Surface** | `#111827` | Structural panels & floating navigation |
-| **Card** | `#161F2E` | High-contrast glassmorphic card containers |
-| **Primary** | `#FBBF24` | Luxury amber gold accent (highlights, ratings, CTA glows) |
-| **Secondary** | `#2563EB` | Enterprise cobalt blue (analytics & technical badges) |
-| **Success** | `#22C55E` | Optimal system health & confirmed status telemetry |
-| **Danger** | `#EF4444` | Alerts, attention metrics & cancellations |
-| **Text Primary**| `#F9FAFB` | Crisp, legible headings & critical data |
-| **Text Muted** | `#9CA3AF` | Secondary metadata, subtitles & timestamps |
-
-### Typography & Spacing
-- **Typography**: Geometric Sans (Geist & system fallback hierarchy) with high contrast tracking and tabular numbers for financial telemetry.
-- **Micro-interactions**: Subtle hover lifts (`-translate-y-1`), ambient radial backlights, glassmorphism (`backdrop-blur-md`), and non-distracting spring transitions.
+## 📌 Project Overview
+**CineSphere OS** is a modern, scalable Multi-Tenant SaaS platform built from the ground up to orchestrate cinema operations at enterprise scale. Rather than a simple consumer ticket-booking website, CineSphere OS serves as the foundational operating system connecting:
+- **Super Administrators**: Overseeing global tenant organizations, hardware fleets, and platform billing.
+- **Theatre Administrators**: Managing venue circuits, distributor split contracts, and concession revenues.
+- **Hall Managers**: Controlling daily auditorium environments, projection calibrations, and turnarounds.
+- **Operational Staff**: Processing rapid barcode admissions, POS concessions, and incident reports.
+- **Patrons & Guests**: Reserving tickets through high-velocity omnichannel storefronts.
 
 ---
 
-## 🛠️ Tech Stack (Phase 1 Foundation)
+## 🌟 Strategic Vision
+Modern cinema complexes require real-time synchronization between spatial hall acoustics, projection hardware telemetry, distributor box office reporting, and millions of concurrent seat reservations. CineSphere OS eliminates fragmented legacy POS systems by providing a unified, sub-second reactive architecture designed to scale seamlessly over the next decade.
 
-- **Framework**: [Next.js 15.5](https://nextjs.org/) (App Router, React Server & Client Components)
+---
+
+## ⚡ Current Phase: Foundation (Phase 0 -> Phase 1)
+> **Notice**: In this phase, **no business features, databases, APIs, or authentication logic have been built**. This release strictly establishes the enterprise architectural blueprint, typed contracts, modular route groups, design tokens, security abstractions, and developer tooling.
+
+---
+
+## 🛠️ Technology Stack
+
+### Frontend & Core
+- **Framework**: [Next.js 15.5](https://nextjs.org/) (App Router, Server & Client Components)
 - **Library**: [React 19](https://react.dev/)
-- **Language**: [TypeScript 5.9](https://www.typescriptlang.org/) (Strict typing across all models and props)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) with custom `@layer base` tokens and luxury utilities
-- **Motion & Physics**: `motion` & `framer-motion` v12
-- **Animation Orchestration**: `gsap` (installed & ready for Phase 2 timelines)
-- **Smooth Inertial Scrolling**: `lenis` (installed & ready for Phase 2 spatial canvases)
-- **State Store**: `zustand` (installed for Phase 2 booking state)
+- **Language**: [TypeScript 5.9](https://www.typescriptlang.org/) (Strict mode enabled)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) with enterprise design tokens
+- **State Management**: [Zustand](https://github.com/pmndrs/zustand) (Abstracted store blueprints)
+- **Form Architecture & Validation**: [React Hook Form](https://react-hook-form.com/) & [Zod](https://zod.dev/)
 - **Icons**: [Lucide React](https://lucide.dev/) & [React Icons](https://react-icons.github.io/react-icons/)
-- **Code Quality**: ESLint 9 & Prettier
+- **Animation Orchestration (Future-Ready)**: `motion`, `gsap`, `lenis`
+
+### Tooling & Quality Assurance
+- **Linting & Formatting**: ESLint 9, Prettier
+- **Git Hooks & Commits**: Husky, lint-staged, Commitlint (Conventional Commits)
+- **Editor Standards**: EditorConfig, VS Code Workspace Recommended Settings
+
+### Future Infrastructure (Reserved)
+- **Database & Persistence**: PostgreSQL, Prisma ORM
+- **Cache & Message Broker**: Redis
+- **Cloud Storage**: AWS S3, Cloudinary
+- **Payment Orchestration**: Razorpay, Stripe
+- **Microservice Backend**: Spring Boot / Node.js
 
 ---
 
-## 📂 Project Structure
+## 📂 Project Folder Structure
 
 ```
 cineSphere_OS/
 ├── app/
-│   ├── (Home)                   # page.tsx - Landing page & ecosystem showcase
-│   ├── movies/                  # page.tsx - 10-movie grid with multi-filter sidebar
-│   ├── theatres/                # page.tsx - 8-theatre complex index with city chips & search
-│   ├── offers/                  # page.tsx - 6 promotional vouchers, coupons & passes
-│   ├── events/                  # page.tsx - 6 live sports, concert & stand-up simulcasts
-│   ├── dashboard/               # page.tsx - Super Admin control center (Stats, Charts, Tables)
-│   ├── layout.tsx               # Root layout with sticky navbar, footer & theme
+│   ├── (auth)/                  # Identity & SSO route group (login, register)
+│   ├── (public)/                # Public discovery storefront (home, movies, theatres, offers, events)
+│   ├── (admin)/                 # Central executive command (dashboard)
+│   ├── (super-admin)/           # Platform multi-tenancy & organization orchestration
+│   ├── (theatre-admin)/         # Venue screen calibrations & scheduling
+│   ├── (customer)/              # Patron bookings & pass wallet
+│   ├── layout.tsx               # Root layout with providers & theme
 │   ├── loading.tsx              # Luxury CS pulsating loader
-│   ├── not-found.tsx            # Cinematic 404 screen
-│   └── globals.css              # Tailwind v4 configuration, CSS variables & glassmorphism
+│   ├── error.tsx                # Client error boundary
+│   ├── global-error.tsx         # Root error boundary
+│   ├── not-found.tsx            # Cinematic 404 page
+│   ├── robots.ts                # SEO crawler rules
+│   ├── sitemap.ts               # Automated dynamic sitemap
+│   ├── manifest.ts              # Web application manifest
+│   └── globals.css              # Tailwind v4 theme, CSS variables & glassmorphism
 │
 ├── components/
-│   ├── badges/                  # StatusBadge, FormatBadge (IMAX, 4DX, Atmos, 70mm)
-│   ├── buttons/                 # Button, ActionButton, ComingSoonButton
-│   ├── cards/                   # MovieCard, TheatreCard, OfferCard, EventCard, DashboardMetricCard
-│   ├── charts/                  # RevenueChartPreview, OccupancyChartPreview
-│   ├── empty-states/            # EmptyState for search and filter fallbacks
-│   ├── layout/                  # Navbar, Footer, MobileNav, DashboardSidebar, DashboardHeader
-│   ├── modals/                  # ComingSoonModal (Phase 2 preview & newsletter capture)
-│   ├── navigation/              # LocationSelector, SearchDialog (⌘K Spotlight)
-│   ├── sections/                # HeroSection, StatsStrip, FeaturedMovies, PopularTheatres,
-│   │                            # PlatformFeatures, UpcomingEvents, CtaBanner
-│   ├── tables/                  # RecentBookingsTable, RecentTheatresTable, RecentMoviesTable
-│   └── ui/                      # Button, Card, Badge, SearchBar, FilterChip, StatCard,
-│                                # FeatureCard, SectionHeading, Skeleton
+│   ├── ui/                      # Base buttons, cards, badges, chips, skeletons
+│   ├── layout/                  # Navbar, footer, sidebars, mobile drawers
+│   ├── cards/                   # Domain card representations
+│   ├── forms/                   # Form field wrappers & input controls
+│   ├── tables/                  # Telemetry & activity tables
+│   ├── navigation/              # Region selectors, spotlight search dialogs
+│   ├── feedback/                # Enterprise alerts & notifications
+│   ├── charts/                  # Analytics & occupancy preview visualizers
+│   ├── placeholders/            # Standardized page placeholder scaffolds
+│   ├── loaders/                 # Spinners & loading states
+│   └── providers/               # Theme, Toast, and Modal context providers
 │
+├── config/                      # Site metadata, tenant settings, and role definitions
+├── constants/                   # Static data catalogs and circuit metrics
+├── hooks/                       # Reusable React hooks (media query, click outside)
 ├── lib/
-│   ├── constants/               # Local typed mock data (10 Movies, 8 Theatres, 6 Offers,
-│   │                            # 6 Events, 9 Platform Features, Dashboard Telemetry)
-│   ├── hooks/                   # useMediaQuery, useClickOutside
-│   ├── types/                   # Movie, Theatre, Offer, Event, Metric, Booking interfaces
-│   └── utils.ts                 # cn (clsx + twMerge), formatCurrency, formatDuration
+│   ├── security/                # Auth, RBAC, tenant isolation, API client abstractions
+│   └── types/                   # TypeScript interfaces & domain models
 │
-├── public/
-│   ├── images/                  # High-res cinematic backgrounds & illustrations
-│   ├── logos/                   # CineSphere OS SVG vector marks & badges
-│   └── posters/                 # High-definition movie posters & event graphics
-│
-├── next.config.ts               # Next.js configuration (remote image optimization)
-├── postcss.config.mjs           # PostCSS for Tailwind v4
-├── tsconfig.json                # TypeScript strict configuration
-└── package.json                 # Core dependencies and scripts
+├── services/                    # Typed API contract blueprints (Theatre, Movie, Booking)
+├── store/                       # Zustand store blueprints (Auth, Tenant, UI, Booking)
+├── styles/                      # Design system tokens and styling constants
+├── types/                       # Global type re-exports
+├── utils/                       # Modular utilities (Date, Currency, Formatter, Validator, Storage)
+├── public/                      # Static assets (images, logos, icons, posters, illustrations)
+├── middleware.ts                # Next.js request & tenant resolution middleware
+└── tsconfig.json                # TypeScript paths & compiler configuration
 ```
 
 ---
 
-## 🚀 Current Implementation Scope (Phase 1)
+## 🧭 Path Aliases Configuration
 
-### 1. Unified Navigation & Sticky Blur Header
-- **Dynamic Brand Mark**: Gold glowing orbital logo badge with responsive subtitle.
-- **Live Location Selector**: Switch across 8 major metropolitan regions (NYC, LA, SF, Chicago, Atlanta, Boston, Dallas, Seattle).
-- **Global Search Spotlight (⌘K)**: Instant dialog search indexing movies, theatres, and venues.
-- **Notification & Profile Drawers**: Preview popovers explaining Phase 2 SSO and real-time operations.
-- **Responsive Mobile Drawer**: Off-canvas menu tailored for touch devices.
+All project imports are configured via clean path aliases defined in `tsconfig.json`:
 
-### 2. Immersive Home Page
-- **Hero Section**: Architectural headline, subtitle, dual CTAs, and a detailed Spatial Hall simulation dashboard preview.
-- **Circuit Telemetry Strip**: 150+ Theatres, 650+ Screens, 240K+ Bookings, 25+ Cities.
-- **Featured Horizontal Movie Cards**: Curated theatrical releases with format badges, runtime, certification, and ratings.
-- **Popular Multiplex Complexes**: Highlighting flagship locations with screen counts, sound systems, and VIP amenities.
-- **9 Core Platform Features**: Multi-Theatre, 3D Hall Designer, Yield Analytics, Booking Engine, Seat Management, Scheduling Matrix, Payments, Patron CRM, and AI Hall Acoustics.
-- **Live Stage & Simulcasts**: Concerts, championship boxing, and theatre feeds.
-- **Enterprise Conversion Banner & Footer**: Global status beacon (99.99% Uptime) and comprehensive architecture sitemap.
-
-### 3. Movie Exploration Hub (`/movies`)
-- Grid of 10 curated films featuring high-resolution cinematic artwork.
-- Interactive filter sidebar: Genre, Experience Format (IMAX, 4DX, Dolby, 3D), Language, and Critic Rating thresholds.
-- Dynamic search bar with realtime title/cast matching and zero-result empty state.
-
-### 4. Theatre Complex Explorer (`/theatres`)
-- 8 detailed multiplex complexes across the United States.
-- Large search input with metropolitan filter chips.
-- Facility checklists (Laser 4K, 128-channel Atmos, Recliner Lounges, Dine-in Concierge).
-
-### 5. Promotional & Membership Hub (`/offers`)
-- 6 luxury vouchers spanning coupons, wallet cashbacks, annual gold passes, and festival promos.
-- One-click copy-to-clipboard functionality with feedback states.
-- Terms & conditions and expiration trackers.
-
-### 6. Stage & Event Broadcasts (`/events`)
-- 6 live entertainment events (Orchestras, Championship Boxing, Stand-up Comedy tours, Shakespeare simulcasts, Formula 1 Grand Prix).
-- Ticket tier starting prices, venue mapping, and calendar badges.
-
-### 7. Super Admin Executive Command Console (`/dashboard`)
-- **Executive Sidebar**: 8 management routes (Dashboard, Theatres, Halls, Movies, Bookings, Users, Reports, Settings).
-- **Telemetry Cards**: Active Theatres, Current Releases, Monthly Admissions, and Gross Box Office revenue.
-- **Interactive Chart Previews**:
-  - 12-month revenue bar visualizer with breakdown tooltips and ticket vs. F&B distribution.
-  - Screen format occupancy fill gauges (IMAX 94.2%, 4DX 88.5%, Dolby 91.0%).
-- **Circuit Operations Tables**:
-  - Live Bookings Table with booking references, seat codes, and transaction status pills.
-  - Connected Theatres Table with screen counts, occupancy meters, and health indicators.
-  - Top Performing Releases Table with show allocations and box office trends.
+| Alias | Target Path | Description |
+| :--- | :--- | :--- |
+| `@/*` | `./*` | Root workspace alias |
+| `@/components/*` | `./components/*` | Reusable design system components |
+| `@/hooks/*` | `./hooks/*` | Custom React hooks |
+| `@/lib/*` | `./lib/*` | Security, types, and core infrastructure |
+| `@/utils/*` | `./utils/*` | Date, currency, formatting, and storage helpers |
+| `@/config/*` | `./config/*` | Application and site configuration |
+| `@/constants/*` | `./constants/*` | Mock constants and system fixtures |
+| `@/types/*` | `./types/*` | Domain data models and TypeScript definitions |
+| `@/store/*` | `./store/*` | Zustand state management stores |
+| `@/services/*` | `./services/*` | API client service layer contracts |
+| `@/assets/*` | `./assets/*` | Internal graphical assets |
+| `@/styles/*` | `./styles/*` | Design system tokens |
 
 ---
 
-## 🔮 Phase 2 Roadmap (Future Commits)
-
-- [ ] **Interactive 3D WebGL Hall Designer**: Three.js viewport to arrange screen curvature, row risers, and Dolby Atmos audio cones.
-- [ ] **High-Velocity Booking Engine**: Sub-second seat selection with distributed locking via Redis.
-- [ ] **Box Office POS & Concession Synchronization**: Real-time kitchen display and counter barcode scanning.
-- [ ] **Multi-Currency Payment Orchestration**: Stripe, Apple Pay, Google Pay, and localized digital wallets.
-- [ ] **Enterprise SSO & RBAC**: Okta, SAML 2.0, and granular roles for theatre managers, projectionists, and cashiers.
-
----
-
-## 📸 Screenshots & UI Previews
-
-*(Visual placeholders for deployment documentation)*
-
-| Landing Page & Hero Section | Executive Admin Console |
-| :---: | :---: |
-| `[ Hero Section Preview Placeholder ]` | `[ Super Admin Dashboard Preview Placeholder ]` |
-
-| Movies Catalogue & Filter Engine | Theatre Circuit Explorer |
-| :---: | :---: |
-| `[ Movies Grid Preview Placeholder ]` | `[ Theatres Directory Preview Placeholder ]` |
-
----
-
-## ⚡ Getting Started
+## 💻 Development Setup
 
 ### Prerequisites
 - Node.js `v20.x` or higher
 - `pnpm` (recommended), `npm`, or `yarn`
 
-### Installation
+### Setup Instructions
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/cineSphere_OS.git
+# 1. Clone the repository
+git clone https://github.com/dipak-pawar-356/cineSphere_OS.git
 cd cineSphere_OS
 
-# Install dependencies
+# 2. Configure environment variables
+cp .env.example .env.local
+
+# 3. Install dependencies
 pnpm install
 
-# Start local development server
+# 4. Start local development server
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to experience **CineSphere OS**.
+Open [http://localhost:3000](http://localhost:3000) to inspect the platform.
 
-### Quality Assurance
+### Developer Commands
 
 ```bash
-# Verify TypeScript & Production Build
-pnpm run build
+# Type-check TypeScript codebase
+pnpm run type-check
 
-# Run Code Linter
+# Run ESLint validation
 pnpm run lint
+
+# Format code with Prettier
+pnpm run format
+
+# Verify production build compilation
+pnpm run build
 ```
 
 ---
 
-## 📄 License
-Internal Enterprise Architecture — Copyright © 2026 CineSphere OS Inc. All rights reserved.
+## 📐 Coding Standards & Guidelines
+
+- **Strict TypeScript**: No implicit `any` types; all payloads and props must be strongly typed.
+- **Server Components by Default**: Utilize React Server Components (`RSC`) wherever possible. Apply `"use client"` exclusively for interactive components with local state or event listeners.
+- **Semantic & Accessible Markup**: Ensure proper heading order (`h1` -> `h2` -> `h3`), ARIA labels on icon buttons, and high-contrast color standards.
+- **Zero Inline Styles**: All styling must adhere to Tailwind CSS utility classes and design system tokens.
+- **Deterministic Imports**: Leverage the configured path aliases rather than brittle relative paths (`../../`).
+
+---
+
+## 🔮 Future Roadmap
+
+- [ ] **Phase 2 (Identity & Multi-Tenancy)**: Connect NextAuth / Supabase / Okta SSO with tenant subdomain routing and RBAC permission checks.
+- [ ] **Phase 3 (Spatial 3D Hall Designer)**: Three.js WebGL canvas for interactive screen curvature, seating risers, and Dolby Atmos audio cones.
+- [ ] **Phase 4 (Ticketing & Reservation Engine)**: High-concurrency seat locking with Redis and sub-second checkout.
+- [ ] **Phase 5 (Box Office POS & Concessions)**: Counter register barcode scanning and kitchen display system sync.
+- [ ] **Phase 6 (Payment Gateways & Ledgers)**: Multi-currency payment processing (Razorpay, Stripe) with automated distributor split settlements.
+
+---
+
+## 🤝 Contributing Guidelines
+
+1. Create a feature branch: `git checkout -b feat/tenant-isolation-spec`.
+2. Follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `refactor:`).
+3. Ensure all tests and linters pass: `pnpm run type-check && pnpm run lint`.
+4. Submit a Pull Request targeting the `main` branch.
+
+---
+
+## 🔖 Version & License
+
+- **Version**: `1.0.0-foundation`
+- **License**: [MIT License](LICENSE) — Copyright © 2026 CineSphere OS Inc.

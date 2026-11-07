@@ -5,12 +5,15 @@
     --background: #070B12;
     --surface: #111827;
     --card: #161F2E;
+    --border: #2A3445;
     --primary: #FBBF24;
     --secondary: #2563EB;
+    --info: #2563EB;
     --success: #22C55E;
+    --warning: #F59E0B;
     --danger: #EF4444;
     --text-primary: #F9FAFB;
-    --muted: #9CA3AF;
+    --text-secondary: #9CA3AF;
   }
 
   body {
@@ -31,7 +34,7 @@
     background: #070B12;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1F2937;
+    background: #2A3445;
     border-radius: 4px;
     border: 2px solid #070B12;
   }
@@ -45,14 +48,14 @@
   background: rgba(17, 24, 39, 0.75);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(42, 52, 69, 0.6);
 }
 
 .glass-card {
   background: rgba(22, 31, 46, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(42, 52, 69, 0.5);
 }
 
 .glass-card-hover {
@@ -60,7 +63,7 @@
 }
 .glass-card-hover:hover {
   background: rgba(26, 38, 57, 0.95);
-  border-color: rgba(251, 191, 36, 0.25);
+  border-color: rgba(251, 191, 36, 0.3);
   transform: translateY(-2px);
   box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px -5px rgba(251, 191, 36, 0.1);
 }
