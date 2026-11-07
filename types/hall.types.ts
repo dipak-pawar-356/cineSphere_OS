@@ -47,3 +47,4 @@ export interface Hall {
   status: "Active" | "Maintenance" | "Cleaning" | "Show Running";
   image?: string;
 }
+

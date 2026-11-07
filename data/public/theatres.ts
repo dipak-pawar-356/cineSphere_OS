@@ -437,3 +437,4 @@ export const MOCK_THEATRES: Theatre[] = [
     isFeatured: false,
   },
 ];
+

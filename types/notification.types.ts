@@ -23,3 +23,4 @@ export interface SystemNotification {
   severity: NotificationSeverity;
   theatreId?: ID;
 }
+

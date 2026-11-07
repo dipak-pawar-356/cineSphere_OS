@@ -51,3 +51,4 @@ export const PUBLIC_FOOTER_SECTIONS: NavigationSection[] = [
     ],
   },
 ];
+

@@ -74,3 +74,4 @@ Phase 1 establishes the complete static foundation without premature backend cou
 - Mobile (320px) to Ultrawide (2560px) responsive layout system.
 - Accessible motion framework with `prefers-reduced-motion` compliance.
 - Realistic, localized Indian cinema mock data layer (INR `₹`, `en-IN`, `Asia/Kolkata`).
+

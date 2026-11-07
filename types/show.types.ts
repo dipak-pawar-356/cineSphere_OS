@@ -21,3 +21,4 @@ export interface Show {
   totalSeats: number;
   status: ShowStatus;
 }
+

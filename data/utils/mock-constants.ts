@@ -37,3 +37,4 @@ export const SCREEN_TYPES = [
   "Prime Club",
   "Royal Suite",
 ] as const;
+

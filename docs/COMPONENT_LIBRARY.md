@@ -64,3 +64,4 @@ All components in CineSphere OS adhere to strict engineering standards:
   - "Housefull" / "Cancelled" / "Failed" -> `danger`
   - "Pending" / "Maintenance" / "Filling Fast" -> `warning`
   - "Running" / "Tickets Open" -> `primary`
+

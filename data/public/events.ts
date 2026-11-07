@@ -147,3 +147,4 @@ export const MOCK_EVENTS: LiveEvent[] = [
     tags: ["Cricket", "Final", "Live Screening", "Mega Stadium Sound"],
   },
 ];
+

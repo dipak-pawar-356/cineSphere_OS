@@ -172,3 +172,4 @@ export const MOCK_OFFERS: Offer[] = [
     accentColor: "from-cyan-500/20 to-blue-600/20 border-cyan-500/40 text-cyan-300",
   },
 ];
+

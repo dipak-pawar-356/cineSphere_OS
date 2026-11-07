@@ -14,3 +14,4 @@ export const MOCK_CITIES: CityLocation[] = [
   { id: "city-11", name: "Kochi", state: "Kerala", theatreCount: 3, screenCount: 12, isPopular: false },
   { id: "city-12", name: "Goa", state: "Goa", theatreCount: 2, screenCount: 8, isPopular: false },
 ];
+

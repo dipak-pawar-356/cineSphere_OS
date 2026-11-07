@@ -92,3 +92,4 @@ export const THEATRE_CUSTOMERS: Customer[] = [
     city: "Pune",
   },
 ];
+

@@ -34,3 +34,4 @@ export interface Testimonial {
   comment: string;
   rating: number;
 }
+

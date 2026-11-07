@@ -47,3 +47,4 @@ export const THEATRE_OFFERS: Offer[] = [
     badgeText: "Royal Exclusive",
   },
 ];
+

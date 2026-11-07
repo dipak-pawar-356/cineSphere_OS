@@ -65,3 +65,4 @@ Phase 7: Mobile Kiosk Native PWA & Turnstile► [ PLANNED ]
 - [ ] Turnstile optical barcode/facial scanner driver integration.
 - [ ] Offline-capable progressive web application (PWA) for ticket ushers and floor staff.
 - [ ] High-volume self-service box office kiosk touch interface.
+

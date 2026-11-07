@@ -62,3 +62,4 @@ export const THEATRE_REVENUE: TheatreRevenueData = {
     { day: "Sun", tickets: 590000, concessions: 220000, total: 810000 },
   ],
 };
+

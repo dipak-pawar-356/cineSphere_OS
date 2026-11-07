@@ -148,3 +148,4 @@ export const THEATRE_HALLS: Hall[] = [
     image: "https://images.unsplash.com/photo-1595769816263-9b910be24d5f?w=800&auto=format&fit=crop&q=80",
   },
 ];
+

@@ -82,3 +82,4 @@ export const MOCK_PARTNERS: Partner[] = [
     description: "DDoS mitigation, ultra-fast edge CDN caching, and automated TLS encryption for high-traffic movie release days.",
   },
 ];
+

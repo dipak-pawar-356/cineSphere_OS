@@ -314,3 +314,4 @@ export const PUBLIC_MOVIES: Movie[] = [
     cast: ["Ryan Gosling", "Harrison Ford", "Ana de Armas", "Sylvia Hoeks"],
   },
 ];
+

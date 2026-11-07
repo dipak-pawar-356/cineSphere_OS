@@ -82,3 +82,4 @@ export const SUPER_ADMIN_DASHBOARD: SuperAdminDashboardData = {
     { label: "Average Response Time", value: "18 ms", subtext: "Cloudflare Edge network" },
   ],
 };
+

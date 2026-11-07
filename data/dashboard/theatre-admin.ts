@@ -62,3 +62,4 @@ export const THEATRE_ADMIN_DASHBOARD: TheatreAdminDashboardData = {
     { hallName: "Hall 8", screenType: "Royal Suite", currentMovie: "Corporate Event", occupancy: 100 },
   ],
 };
+

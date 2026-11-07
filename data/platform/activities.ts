@@ -87,3 +87,4 @@ export const PLATFORM_AUDIT_ACTIVITIES: AuditActivity[] = [
     status: "Flagged",
   },
 ];
+

@@ -56,3 +56,4 @@ export const THEATRE_EVENTS: LiveEvent[] = [
     tags: ["Cricket", "Final", "Live Screening", "Mega Stadium Sound"],
   },
 ];
+

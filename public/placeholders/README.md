@@ -18,3 +18,4 @@ public/placeholders/
 ├── icons/                # System vector badges and format insignias
 └── illustrations/        # Empty state illustrations, error vectors, 404 banners
 ```
+

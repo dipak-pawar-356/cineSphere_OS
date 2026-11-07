@@ -32,3 +32,4 @@ export interface Staff {
   shift: StaffShift;
   status: StaffStatus;
 }
+

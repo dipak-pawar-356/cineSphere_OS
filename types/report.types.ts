@@ -19,3 +19,4 @@ export interface Report {
   status: "Ready" | "Processing" | "Archived";
   theatreId?: ID;
 }
+

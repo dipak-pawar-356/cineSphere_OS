@@ -204,3 +204,4 @@ export const RECENT_BOOKINGS: RecentBooking[] = [
     status: "Refunded",
   },
 ];
+

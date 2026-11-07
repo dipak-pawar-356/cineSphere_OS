@@ -42,3 +42,4 @@ export const THEATRE_NOTIFICATIONS: SystemNotification[] = [
     theatreId: "th-pun-001",
   },
 ];
+

@@ -19,3 +19,4 @@ export interface Customer {
   preferredGenre?: string;
   city?: string;
 }
+

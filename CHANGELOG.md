@@ -94,3 +94,4 @@ This release marks the successful completion of **Phase 1** of CineSphere OS —
   - Clean vector SVG templates and directory hierarchy for posters, backdrops, logos, avatars, and empty states.
 - **Developer Documentation Suite** (`docs/`):
   - 8 architecture and operational manuals covering project structure, design system, component APIs, data schemas, and future roadmap.
+

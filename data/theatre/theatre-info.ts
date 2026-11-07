@@ -51,3 +51,4 @@ export const CURRENT_THEATRE: Theatre = {
   closingTime: "01:30 AM",
   isFeatured: true,
 };
+

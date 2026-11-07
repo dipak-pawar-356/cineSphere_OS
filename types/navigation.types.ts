@@ -31,3 +31,4 @@ export interface NavigationSection {
   title?: string;
   items: NavigationItem[];
 }
+

@@ -93,3 +93,4 @@ CineSphere OS enforces a strict tenant boundary. In Phase 1:
 - The default tenant is assigned ID `th-pun-001` (*CineSphere Grand Cinemas*, Phoenix Marketcity, Pune).
 - All halls, shows, bookings, revenue streams, staff shifts, and audit logs cross-reference this foreign key.
 - In future phases, tenant contexts will be resolved dynamically via custom domain routing (`subdomain.cinesphere.os`) or request headers.
+

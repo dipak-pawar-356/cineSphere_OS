@@ -43,3 +43,4 @@ export const FORMAT_DISTRIBUTION: FormatDistributionPoint[] = [
   { format: "ScreenX 270° Panorama", screens: 10, revenueSharePercent: 8.4 },
   { format: "Standard Laser 4K", screens: 20, revenueSharePercent: 6.0 },
 ];
+

@@ -62,3 +62,4 @@ The design system standardizes seating colors across all booking flows:
 - **Page Transitions:** 400ms - 600ms smooth fade and slide.
 - **Easing Curve:** `cubic-bezier(0.16, 1, 0.3, 1)` (Power4 Out equivalent) for buttery deceleration.
 - **Reduced Motion:** Fully integrated with CSS `@media (prefers-reduced-motion: reduce)` and Lenis disable hooks.
+

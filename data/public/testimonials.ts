@@ -62,3 +62,4 @@ export const MOCK_TESTIMONIALS: Testimonial[] = [
     rating: 5,
   },
 ];
+
