@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" fill="none">
+  <rect width="1280" height="720" fill="#0A0B10"/>
+  <rect x="24" y="24" width="1232" height="672" rx="20" stroke="#262626" stroke-width="2"/>
+  <circle cx="640" cy="320" r="70" fill="#27272A"/>
+  <path d="M600 370C600 340 620 320 640 320C660 320 680 340 680 370H600Z" fill="#E50914"/>
+  <circle cx="640" cy="300" r="24" fill="#E50914"/>
+  <text x="640" y="440" text-anchor="middle" fill="#A1A1AA" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="600">Multiplex Auditorium Banner</text>
+  <text x="640" y="475" text-anchor="middle" fill="#71717A" font-family="system-ui, -apple-system, sans-serif" font-size="16">1600 x 900</text>
+</svg>

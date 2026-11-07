@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="none">
+  <circle cx="200" cy="130" r="70" fill="#18181B" stroke="#27272A" stroke-width="2"/>
+  <rect x="175" y="105" width="50" height="50" rx="8" stroke="#71717A" stroke-width="2"/>
+  <line x1="175" y1="125" x2="225" y2="125" stroke="#71717A" stroke-width="2"/>
+  <circle cx="200" cy="140" r="4" fill="#E50914"/>
+  <text x="200" y="235" text-anchor="middle" fill="#A1A1AA" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600">No Records Found</text>
+  <text x="200" y="260" text-anchor="middle" fill="#71717A" font-family="system-ui, -apple-system, sans-serif" font-size="13">Try adjusting your filters or date range</text>
+</svg>

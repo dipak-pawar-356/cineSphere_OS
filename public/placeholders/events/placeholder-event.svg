@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450" fill="none">
+  <rect width="800" height="450" fill="#0A0B10"/>
+  <rect x="16" y="16" width="768" height="418" rx="16" stroke="#27272A" stroke-width="2"/>
+  <circle cx="400" cy="190" r="50" fill="#E50914" fill-opacity="0.15"/>
+  <path d="M385 165L425 190L385 215V165Z" fill="#E50914"/>
+  <text x="400" y="270" text-anchor="middle" fill="#A1A1AA" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="600">Live Event Placeholder</text>
+  <text x="400" y="300" text-anchor="middle" fill="#71717A" font-family="system-ui, -apple-system, sans-serif" font-size="14">800 x 450 (16:9)</text>
+</svg>

@@ -84,7 +84,7 @@ export function OfferCard({ offer, className }: OfferCardProps) {
             Terms & Criteria
           </div>
           <ul className="space-y-1 text-[11px] text-[#9CA3AF]">
-            {offer.terms.map((t, idx) => (
+            {(offer.terms ?? []).map((t, idx) => (
               <li key={idx} className="flex items-start gap-1.5 line-clamp-1">
                 <span className="text-amber-400 font-bold">•</span>
                 <span className="truncate">{t}</span>

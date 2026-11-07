@@ -25,9 +25,9 @@ export default function EventsPage() {
   const filteredEvents = DUMMY_EVENTS.filter((evt) => {
     const matchesSearch =
       evt.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      evt.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      evt.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      evt.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+      (evt.city?.toLowerCase() ?? "").includes(searchQuery.toLowerCase()) ||
+      (evt.venue?.toLowerCase() ?? "").includes(searchQuery.toLowerCase()) ||
+      (evt.tags ?? []).some((t: string) => t.toLowerCase().includes(searchQuery.toLowerCase()));
 
     if (!matchesSearch) return false;
 

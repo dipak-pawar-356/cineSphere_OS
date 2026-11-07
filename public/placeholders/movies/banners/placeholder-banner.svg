@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" fill="none">
+  <rect width="1280" height="720" fill="#0A0B10"/>
+  <rect x="24" y="24" width="1232" height="672" rx="20" stroke="#262626" stroke-width="2" stroke-dasharray="10 10"/>
+  <circle cx="640" cy="320" r="72" fill="#18181B"/>
+  <path d="M620 290L675 320L620 350V290Z" fill="#E50914"/>
+  <text x="640" y="430" text-anchor="middle" fill="#A1A1AA" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="600">CineSphere Backdrop Banner</text>
+  <text x="640" y="465" text-anchor="middle" fill="#71717A" font-family="system-ui, -apple-system, sans-serif" font-size="16">1920 x 1080 (16:9)</text>
+</svg>
