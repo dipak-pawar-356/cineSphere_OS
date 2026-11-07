@@ -1,5 +1,6 @@
-import { ID, Address, ContactInformation, MediaAsset } from "./common.types";
+import { ID, ContactInformation, MediaAsset } from "./common.types";
 import { MovieFormat } from "./movie.types";
+import { UPIConfiguration } from "./payment.types";
 
 export type TheatreStatus = "Active" | "Maintenance" | "Renovating" | "Pending Approval";
 
@@ -29,6 +30,11 @@ export type TheatreFacility =
   | "ATM & Cash Dispenser"
   | "Prayer Room";
 
+/**
+ * Multi-Tenant Independent Theatre Model
+ * Each Theatre operates independently inside CineSphere OS.
+ * No theatre can affect or access another theatre's data.
+ */
 export interface Theatre {
   id: ID;
   slug: string;
@@ -60,4 +66,19 @@ export interface Theatre {
   closingTime?: string;
   isFeatured?: boolean;
   gallery?: MediaAsset[];
+
+  // Multi-Tenant Governance & Operational Settings
+  admins?: string[];
+  upiDetails?: UPIConfiguration;
+  gstNumber?: string;
+  currency?: string;
+  timezone?: string;
+  bookingTerms?: string[];
+  cancellationRules?: string[];
+  refundRules?: string[];
+  brandColors?: {
+    primary: string;
+    secondary: string;
+    accent: string;
+  };
 }

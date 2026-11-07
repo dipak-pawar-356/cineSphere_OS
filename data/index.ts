@@ -42,7 +42,11 @@ export * from "./theatre/notifications";
 export * from "./theatre/reports";
 export * from "./theatre/support-tickets";
 
+// Multi-Tenant Hall Layouts & Dynamic Shows Engine Datasets
+export * from "./halls/reusable-layouts";
+export * from "./theatres/multi-tenant-theatres";
+export * from "./shows/dynamic-shows";
+
 // Dashboards
 export * from "./dashboard/super-admin";
 export * from "./dashboard/theatre-admin";
-

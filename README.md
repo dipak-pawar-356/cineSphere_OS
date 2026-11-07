@@ -64,6 +64,37 @@ Phase 1 establishes the complete frontend architecture, design system, layout hi
 - ✅ **Part 7: Multi-Tenant Theatre Admin Console:** Flagship console for *CineSphere Grand Cinemas* (Phoenix Marketcity, Pune - `th-pun-001`) with 25+ operational routes, mobile-to-ultrawide (320px to 2560px) responsive layout primitives, and Lenis/GSAP motion engine.
 - ✅ **Part 8: Centralized Mock Data & Documentation:** Fully typed TypeScript domain models (`types/`), comprehensive Indian cinema mock data layer (`data/`), placeholder asset tree (`public/placeholders/`), and 8 detailed architecture guides (`docs/`).
 
+---
+
+## 🏛️ 2.1 Multi-Tenant Domain Hierarchy: Why the Show is the Central Entity
+
+```
+Platform (Super Admin)
+   ↓
+Multiple Independent Theatres (Tenants)
+   ↓
+Each Theatre has multiple Halls
+   ↓
+Each Hall has one reusable Hall Layout (Designed Once, Reused by Future Shows)
+   ↓
+Each Show belongs to one Movie + one Hall + Date & Time
+   ↓
+Each Show generates its own Seat Inventory & Section-Based Pricing
+   ↓
+Bookings belong to Shows
+   ↓
+Payments belong to the Theatre hosting the Show (Tenant Isolated UPI / Gateway)
+   ↓
+Tickets belong to Bookings
+```
+
+> **Architectural Law:** In CineSphere OS, **Movies never own seat pricing, and Hall Layouts never permanently store seat prices**. Instead, **The Show is the central connector** of the entire platform. Pricing belongs to the Show (e.g. Morning Show Section A = ₹200 vs. Night Show Section A = ₹250). Seat availability belongs to the Show. This allows unlimited theatres, unlimited halls, and reusable layouts without code changes.
+
+### Dynamic Hall Design & Automatic Seat Generation Engine
+- **No Manual Seat Placement:** Theatre Admin defines sections (e.g., Section A: 20 seats, Section B: 30 seats, Section C: 50 seats).
+- **Automatic Matrix Calculation:** The engine in `lib/engine/seat-generator.ts` automatically generates `A1..A20`, `B1..B30`, `C1..C50` with coordinates, rows, walkways, and exit markers.
+- **Dynamic Seating Visualization:** [`components/cinema-engine/`](./components/cinema-engine) dynamically renders any hall capacity (50, 100, 240, 400+ seats) with live seat selection, tooltips, price calculations, and tenant-isolated UPI details.
+
 > [!NOTE]
 > **Strict Phase 1 Scope Boundary**: Phase 1 contains **zero backend, zero database, zero external APIs, zero authentication logic, zero CRUD mutations, zero booking state logic, and zero Three.js code**. Everything is static, local, deterministic, and type-safe.
 
@@ -257,6 +288,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🏢 [`docs/MULTI_TENANT_ARCHITECTURE.md`](./docs/MULTI_TENANT_ARCHITECTURE.md) — Comprehensive Multi-Tenant Cinema OS Specification & Layout Engine.
 - 📖 [`docs/PROJECT_OVERVIEW.md`](./docs/PROJECT_OVERVIEW.md) — Strategic vision and core personas.
 - 🏗️ [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — Codebase architecture and directory map.
 - 🎨 [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md) — Complete tokens, colors, and typography guide.

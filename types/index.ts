@@ -1,4 +1,5 @@
 export * from "./common.types";
+export * from "./platform.types";
 export * from "./movie.types";
 export * from "./theatre.types";
 export * from "./hall.types";
