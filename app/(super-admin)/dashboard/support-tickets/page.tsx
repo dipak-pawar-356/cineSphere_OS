@@ -113,3 +113,4 @@ export default function SuperAdminSupportTicketsPage() {
     </div>
   );
 }
+

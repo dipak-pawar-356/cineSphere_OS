@@ -1,5 +1,5 @@
 import React from "react";
-import { TrendingUp, Activity, Zap, CheckCircle2, AlertTriangle, ArrowUpRight } from "lucide-react";
+import { TrendingUp, Activity, Zap, CheckCircle2, AlertTriangle, ArrowUpRight, Cpu, Clock, BarChart3 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,7 @@ export interface QuickActionCardProps {
   title: string;
   description: string;
   icon: React.ReactNode;
-  actionLabel: string;
+  actionLabel?: string;
   onAction?: () => void;
   className?: string;
 }
@@ -58,7 +58,7 @@ export function QuickActionCard({
   title,
   description,
   icon,
-  actionLabel,
+  actionLabel = "Trigger Action",
   onAction,
   className,
 }: QuickActionCardProps) {
@@ -72,7 +72,10 @@ export function QuickActionCard({
         <p className="text-xs text-[#94A3B8] leading-relaxed">{description}</p>
       </div>
 
-      <div className="pt-4 mt-4 border-t border-[#2A3445] flex items-center justify-between text-xs font-semibold text-[#FBBF24] group">
+      <div
+        onClick={onAction}
+        className="pt-4 mt-4 border-t border-[#2A3445] flex items-center justify-between text-xs font-semibold text-[#FBBF24] group cursor-pointer"
+      >
         <span>{actionLabel}</span>
         <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
       </div>
@@ -102,9 +105,7 @@ export function SystemStatusCard({
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="font-bold text-white text-xs">{clusterName}</span>
         </div>
-        <Badge variant="success" size="sm">
-          Healthy
-        </Badge>
+        <Badge variant="success" size="sm">Healthy</Badge>
       </div>
 
       <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-[#2A3445]/60 text-xs">
@@ -181,6 +182,8 @@ export function MetricCard({
     </Card>
   );
 }
+
+export const StatsCard = MetricCard;
 
 export interface RevenueCardProps {
   amount: string;
@@ -264,6 +267,62 @@ export function ActivityCard({
           </div>
         ))}
       </div>
+    </Card>
+  );
+}
+
+export const TimelineCard = ActivityCard;
+
+// 7. HEALTH CARD
+export function HealthCard({
+  metric,
+  value,
+  percentage,
+  detail,
+  className,
+}: {
+  metric: string;
+  value: string;
+  percentage: number;
+  detail?: string;
+  className?: string;
+}) {
+  return (
+    <Card variant="elevated" className={cn("p-4 space-y-2", className)}>
+      <div className="flex justify-between items-center text-xs">
+        <span className="font-medium text-[#CBD5E1]">{metric}</span>
+        <span className="font-mono font-bold text-white">{value}</span>
+      </div>
+      <div className="h-2 w-full rounded-full bg-[#111827] overflow-hidden">
+        <div style={{ width: `${percentage}%` }} className="h-full rounded-full bg-emerald-400" />
+      </div>
+      {detail && <div className="text-[10px] text-[#64748B] font-mono">{detail}</div>}
+    </Card>
+  );
+}
+
+// 8. DASHBOARD ANALYTICS CARD
+export function DashboardAnalyticsCard({
+  title,
+  value,
+  change,
+  description,
+  className,
+}: {
+  title: string;
+  value: string;
+  change: string;
+  description?: string;
+  className?: string;
+}) {
+  return (
+    <Card variant="elevated" className={cn("p-5 space-y-2", className)}>
+      <div className="flex items-center justify-between text-xs text-[#94A3B8]">
+        <span className="font-semibold uppercase tracking-wider">{title}</span>
+        <span className="text-emerald-400 font-bold">{change}</span>
+      </div>
+      <div className="text-2xl font-black font-mono text-white">{value}</div>
+      {description && <p className="text-xs text-[#94A3B8]">{description}</p>}
     </Card>
   );
 }

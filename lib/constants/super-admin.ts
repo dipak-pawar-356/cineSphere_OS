@@ -1074,3 +1074,4 @@ export const NOTIFICATIONS_CENTER_DATA: NotificationItem[] = [
     isRead: true,
   },
 ];
+

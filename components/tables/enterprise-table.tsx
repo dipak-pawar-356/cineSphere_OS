@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ArrowUpDown, ChevronLeft, ChevronRight, Search, Filter } from "lucide-react";
+import { ArrowUpDown, ChevronLeft, ChevronRight, Search, Filter, CheckSquare, Square } from "lucide-react";
 import { cn } from "@/utils";
 import { Spinner } from "@/components/loaders/spinner";
 
@@ -24,6 +24,11 @@ export interface EnterpriseTableProps<T> {
   stickyHeader?: boolean;
   searchable?: boolean;
   filterActions?: React.ReactNode;
+  selectable?: boolean;
+  selectedIds?: string[];
+  onSelectRow?: (id: string, isSelected: boolean) => void;
+  onSelectAll?: (isSelected: boolean) => void;
+  bulkActions?: React.ReactNode;
   totalItems?: number;
   currentPage?: number;
   pageSize?: number;
@@ -41,6 +46,11 @@ export function EnterpriseTable<T>({
   stickyHeader = true,
   searchable = true,
   filterActions,
+  selectable = false,
+  selectedIds = [],
+  onSelectRow,
+  onSelectAll,
+  bulkActions,
   totalItems = 0,
   currentPage = 1,
   pageSize = 10,
@@ -61,6 +71,7 @@ export function EnterpriseTable<T>({
   };
 
   const totalPages = Math.ceil((totalItems || data.length) / pageSize) || 1;
+  const isAllSelected = data.length > 0 && selectedIds.length === data.length;
 
   return (
     <div
@@ -70,9 +81,16 @@ export function EnterpriseTable<T>({
       )}
     >
       {/* Search & Action Bar Placeholder */}
-      {(searchable || filterActions) && (
+      {(searchable || filterActions || (selectable && selectedIds.length > 0)) && (
         <div className="p-4 border-b border-[#2A3445] flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#111827]/60">
-          {searchable ? (
+          {selectable && selectedIds.length > 0 ? (
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-[#FBBF24]">
+                {selectedIds.length} {selectedIds.length === 1 ? "item" : "items"} selected
+              </span>
+              {bulkActions}
+            </div>
+          ) : searchable ? (
             <div className="relative w-full sm:w-72 flex items-center">
               <Search className="absolute left-3 h-3.5 w-3.5 text-[#94A3B8]" />
               <input
@@ -112,6 +130,22 @@ export function EnterpriseTable<T>({
               )}
             >
               <tr>
+                {selectable && (
+                  <th className="py-3.5 px-4 w-10">
+                    <button
+                      type="button"
+                      onClick={() => onSelectAll?.(!isAllSelected)}
+                      className="text-[#94A3B8] hover:text-white"
+                      aria-label="Select all rows"
+                    >
+                      {isAllSelected ? (
+                        <CheckSquare className="h-4 w-4 text-[#FBBF24]" />
+                      ) : (
+                        <Square className="h-4 w-4" />
+                      )}
+                    </button>
+                  </th>
+                )}
                 {columns.map((col) => (
                   <th
                     key={col.key}
@@ -146,25 +180,49 @@ export function EnterpriseTable<T>({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#2A3445]/60 text-[#CBD5E1]">
-              {data.map((row) => (
-                <tr
-                  key={keyExtractor(row)}
-                  className="hover:bg-[#111827]/50 transition-colors"
-                >
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={cn(
-                        "py-3 px-4",
-                        col.align === "right" && "text-right",
-                        col.align === "center" && "text-center"
-                      )}
-                    >
-                      {col.render ? col.render(row) : (row as any)[col.key]}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              {data.map((row) => {
+                const id = keyExtractor(row);
+                const isSelected = selectedIds.includes(id);
+
+                return (
+                  <tr
+                    key={id}
+                    className={cn(
+                      "transition-colors",
+                      isSelected ? "bg-[#111827]/80" : "hover:bg-[#111827]/40"
+                    )}
+                  >
+                    {selectable && (
+                      <td className="py-3 px-4">
+                        <button
+                          type="button"
+                          onClick={() => onSelectRow?.(id, !isSelected)}
+                          className="text-[#94A3B8] hover:text-white"
+                          aria-label={`Select row ${id}`}
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="h-4 w-4 text-[#FBBF24]" />
+                          ) : (
+                            <Square className="h-4 w-4" />
+                          )}
+                        </button>
+                      </td>
+                    )}
+                    {columns.map((col) => (
+                      <td
+                        key={col.key}
+                        className={cn(
+                          "py-3 px-4",
+                          col.align === "right" && "text-right",
+                          col.align === "center" && "text-center"
+                        )}
+                      >
+                        {col.render ? col.render(row) : (row as any)[col.key]}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -201,4 +259,3 @@ export function EnterpriseTable<T>({
     </div>
   );
 }
-
