@@ -116,7 +116,7 @@ export const ROUTES = {
     UNAUTHORIZED: "/unauthorized",
     FORBIDDEN: "/forbidden",
     MAINTENANCE: "/maintenance",
-    SERVER_ERROR: "/500",
+    SERVER_ERROR: "/server-error",
   },
 } as const;
 
