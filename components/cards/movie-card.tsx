@@ -2,7 +2,8 @@
 
 import React from "react";
 import Image from "next/image";
-import { Star, Clock, Calendar, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Star, Clock, Calendar, Sparkles, Eye, Ticket } from "lucide-react";
 import { Movie } from "@/lib/types";
 import { formatDuration } from "@/lib/utils";
 import { FormatBadge } from "@/components/badges/format-badge";
@@ -20,12 +21,12 @@ export function MovieCard({ movie, variant = "vertical", className }: MovieCardP
     return (
       <div
         className={cn(
-          "group relative flex flex-col sm:flex-row overflow-hidden rounded-2xl bg-[#161F2E]/90 border border-white/5 hover:border-amber-400/30 transition-all duration-300 shadow-xl hover:-translate-y-1 hover:shadow-2xl hover:shadow-amber-500/5",
+          "group relative flex flex-col sm:flex-row overflow-hidden rounded-2xl bg-[#161F2E]/90 border border-white/5 hover:border-[#FBBF24]/40 transition-all duration-300 shadow-xl hover:-translate-y-1 hover:shadow-2xl hover:shadow-amber-500/5",
           className
         )}
       >
         {/* Poster side */}
-        <div className="relative w-full sm:w-48 h-64 sm:h-auto shrink-0 overflow-hidden bg-[#070B12]">
+        <Link href={`/movie/${movie.slug}`} className="relative w-full sm:w-48 h-64 sm:h-auto shrink-0 overflow-hidden bg-[#070B12] block">
           <Image
             src={movie.poster}
             alt={movie.title}
@@ -46,7 +47,7 @@ export function MovieCard({ movie, variant = "vertical", className }: MovieCardP
               Coming Soon
             </div>
           )}
-        </div>
+        </Link>
 
         {/* Content side */}
         <div className="flex flex-1 flex-col justify-between p-5 sm:p-6">
@@ -60,45 +61,47 @@ export function MovieCard({ movie, variant = "vertical", className }: MovieCardP
               </span>
             </div>
 
-            <h3 className="text-lg sm:text-xl font-bold text-white group-hover:text-amber-400 transition-colors line-clamp-1">
-              {movie.title}
-            </h3>
+            <Link href={`/movie/${movie.slug}`}>
+              <h3 className="font-bold text-lg sm:text-xl text-white group-hover:text-amber-400 transition-colors line-clamp-1">
+                {movie.title}
+              </h3>
+            </Link>
 
-            <p className="mt-1 text-xs text-amber-400/80 font-medium line-clamp-1 italic">
-              &ldquo;{movie.tagline}&rdquo;
-            </p>
+            <div className="mt-1 flex items-center gap-3 text-xs text-[#9CA3AF]">
+              <span>{movie.genre.join(", ")}</span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5 text-amber-400/80" />
+                {formatDuration(movie.durationMinutes)}
+              </span>
+            </div>
 
-            <p className="mt-2 text-xs text-[#9CA3AF] line-clamp-2 leading-relaxed">
+            <p className="mt-3 text-xs sm:text-sm text-[#9CA3AF] line-clamp-2 leading-relaxed">
               {movie.description}
             </p>
-
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-[#9CA3AF]">
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-amber-400/70" />
-                <span>{formatDuration(movie.durationMinutes)}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5 text-amber-400/70" />
-                <span>{movie.releaseDate}</span>
-              </div>
-              <div className="text-white/80 font-medium">
-                {movie.languages.slice(0, 2).join(", ")}
-              </div>
-            </div>
           </div>
 
-          <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
-            <span className="text-xs text-[#9CA3AF]">
+          <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between gap-3">
+            <span className="text-xs text-[#9CA3AF] truncate">
               Dir: <span className="text-white font-medium">{movie.director}</span>
             </span>
 
-            <ComingSoonButton
-              featureName={`Ticket Booking: ${movie.title}`}
-              description={`The live booking pipeline and 3D seat picker for "${movie.title}" will unlock in Phase 2.`}
-              size="sm"
-              variant={movie.isComingSoon ? "outline" : "primary"}
-              label={movie.isComingSoon ? "Notify Release" : "Book Now"}
-            />
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href={`/movie/${movie.slug}`}
+                className="px-3 py-1.5 rounded-xl bg-[#111827] hover:bg-[#161F2E] border border-[#2A3445] text-xs font-semibold text-white transition-colors flex items-center gap-1"
+              >
+                <Eye className="h-3.5 w-3.5 text-[#FBBF24]" />
+                <span>Details</span>
+              </Link>
+              <ComingSoonButton
+                featureName={`Ticket Booking: ${movie.title}`}
+                description={`The live booking pipeline and 3D seat picker for "${movie.title}" will unlock in Phase 2.`}
+                size="sm"
+                variant={movie.isComingSoon ? "outline" : "primary"}
+                label={movie.isComingSoon ? "Preview" : "Book Now"}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -114,7 +117,7 @@ export function MovieCard({ movie, variant = "vertical", className }: MovieCardP
       )}
     >
       {/* Poster */}
-      <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#070B12]">
+      <Link href={`/movie/${movie.slug}`} className="relative aspect-[2/3] w-full overflow-hidden bg-[#070B12] block">
         <Image
           src={movie.poster}
           alt={movie.title}
@@ -153,7 +156,7 @@ export function MovieCard({ movie, variant = "vertical", className }: MovieCardP
             </span>
           )}
         </div>
-      </div>
+      </Link>
 
       {/* Content */}
       <div className="flex flex-1 flex-col justify-between p-5">
@@ -166,9 +169,11 @@ export function MovieCard({ movie, variant = "vertical", className }: MovieCardP
             </span>
           </div>
 
-          <h3 className="font-bold text-base text-white group-hover:text-amber-400 transition-colors line-clamp-1">
-            {movie.title}
-          </h3>
+          <Link href={`/movie/${movie.slug}`}>
+            <h3 className="font-bold text-base text-white group-hover:text-amber-400 transition-colors line-clamp-1">
+              {movie.title}
+            </h3>
+          </Link>
 
           <p className="mt-1 text-xs text-[#9CA3AF] line-clamp-1">
             {movie.languages.join(", ")}
@@ -176,16 +181,19 @@ export function MovieCard({ movie, variant = "vertical", className }: MovieCardP
         </div>
 
         <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between gap-2">
-          <div className="text-[11px] text-[#9CA3AF] truncate">
-            {movie.releaseDate}
-          </div>
+          <Link
+            href={`/movie/${movie.slug}`}
+            className="text-[11px] font-semibold text-[#9CA3AF] hover:text-[#FBBF24] transition-colors flex items-center gap-1"
+          >
+            <Eye className="h-3 w-3" /> Details
+          </Link>
 
           <ComingSoonButton
             featureName={`Booking Engine: ${movie.title}`}
             description={`Seats and showtimes for ${movie.title} will be active when booking logic connects in Phase 2.`}
             size="sm"
             variant={movie.isComingSoon ? "outline" : "primary"}
-            className="w-full max-w-[110px]"
+            className="w-full max-w-[100px]"
             label={movie.isComingSoon ? "Preview" : "Book"}
           />
         </div>

@@ -98,3 +98,4 @@ export const ROUTES = {
 } as const;
 
 export type AppRoutes = typeof ROUTES;
+

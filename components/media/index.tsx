@@ -135,3 +135,79 @@ export function Avatar({ name, src, size = "md", className }: AvatarProps) {
   );
 }
 
+export interface LogoPlaceholderProps {
+  name?: string;
+  size?: "sm" | "md" | "lg";
+  className?: string;
+}
+
+export function LogoPlaceholder({
+  name = "CineSphere OS",
+  size = "md",
+  className,
+}: LogoPlaceholderProps) {
+  const sizeMap = {
+    sm: "h-8 px-2.5 text-xs gap-1.5",
+    md: "h-10 px-3 text-sm gap-2",
+    lg: "h-12 px-4 text-base gap-2.5",
+  };
+
+  return (
+    <div
+      className={cn(
+        "inline-flex items-center rounded-xl bg-[#111827] border border-[#2A3445] font-bold text-white select-none",
+        sizeMap[size],
+        className
+      )}
+    >
+      <div className="h-5 w-5 rounded-md bg-[#FBBF24] flex items-center justify-center text-[#070B12] font-black text-xs">
+        C
+      </div>
+      <span>{name}</span>
+    </div>
+  );
+}
+
+export interface ImagePlaceholderProps {
+  label?: string;
+  className?: string;
+}
+
+export function ImagePlaceholder({
+  label = "Image Asset Placeholder",
+  className,
+}: ImagePlaceholderProps) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl bg-[#111827] border border-[#2A3445] flex flex-col items-center justify-center p-6 text-center text-xs text-[#94A3B8]",
+        className
+      )}
+    >
+      <ImageIcon className="h-8 w-8 text-[#64748B] mb-2" />
+      <span className="font-medium text-[#CBD5E1]">{label}</span>
+      <span className="text-[10px] text-[#64748B]">16:9 / 4:3 Responsive Frame</span>
+    </div>
+  );
+}
+
+export interface GalleryPlaceholderProps {
+  count?: number;
+  className?: string;
+}
+
+export function GalleryPlaceholder({ count = 4, className }: GalleryPlaceholderProps) {
+  return (
+    <div className={cn("grid grid-cols-2 sm:grid-cols-4 gap-3", className)}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="aspect-square rounded-xl bg-[#111827] border border-[#2A3445] flex flex-col items-center justify-center p-3 text-center group hover:border-[#FBBF24]/50 transition-colors"
+        >
+          <ImageIcon className="h-6 w-6 text-[#94A3B8] group-hover:text-[#FBBF24] transition-colors mb-1.5" />
+          <span className="text-[11px] font-medium text-[#CBD5E1]">Asset #{i + 1}</span>
+        </div>
+      ))}
+    </div>
+  );
+}

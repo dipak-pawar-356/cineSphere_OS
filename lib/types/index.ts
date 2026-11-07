@@ -1,31 +1,10 @@
-export type MovieFormat =
-  | "2D"
-  | "3D"
-  | "IMAX"
-  | "4DX"
-  | "Dolby Atmos"
-  | "ScreenX"
-  | "70mm Film";
+export type MovieFormat = "2D" | "3D" | "IMAX" | "4DX" | "Dolby Atmos" | "ScreenX" | "70mm Film";
 
-export type MovieGenre =
-  | "Action"
-  | "Sci-Fi"
-  | "Thriller"
-  | "Drama"
-  | "Adventure"
-  | "Animation"
-  | "Comedy"
-  | "Horror"
-  | "Fantasy";
-
-export type MovieLanguage =
-  | "English"
-  | "Spanish"
-  | "Hindi"
-  | "French"
-  | "Japanese"
-  | "Korean"
-  | "German";
+export interface SystemStat {
+  label: string;
+  value: string;
+  subtext?: string;
+}
 
 export interface Movie {
   id: string;
@@ -35,12 +14,12 @@ export interface Movie {
   description: string;
   poster: string;
   banner: string;
-  genre: MovieGenre[];
-  languages: MovieLanguage[];
+  genre: string[];
+  languages: string[];
   durationMinutes: number;
   rating: number;
   releaseDate: string;
-  certification: "U" | "UA 13+" | "UA 16+" | "A" | "PG-13" | "R";
+  certification: string;
   formats: MovieFormat[];
   isFeatured?: boolean;
   isComingSoon?: boolean;
@@ -48,19 +27,13 @@ export interface Movie {
   cast: string[];
 }
 
-export interface TheatreFacility {
-  id: string;
-  name: string;
-  icon: string;
-}
-
 export interface Theatre {
   id: string;
   name: string;
   slug: string;
   chain: string;
-  banner: string;
   logo: string;
+  banner: string;
   address: string;
   city: string;
   state: string;
@@ -74,7 +47,14 @@ export interface Theatre {
   pricingTier: "Luxury" | "Premium" | "Standard";
 }
 
-export type OfferCategory = "Coupons" | "Cashback" | "Membership" | "Festival Offers";
+export type OfferCategory =
+  | "Coupons"
+  | "Cashback"
+  | "Membership"
+  | "Festival Offers"
+  | "Food Offers"
+  | "Combo Offers"
+  | "Student Discount";
 
 export interface Offer {
   id: string;
@@ -90,7 +70,13 @@ export interface Offer {
   accentColor: string;
 }
 
-export type EventCategory = "Concerts" | "Sports" | "Stand-up" | "Theatre";
+export type EventCategory =
+  | "Concerts"
+  | "Sports"
+  | "Stand-up"
+  | "Theatre"
+  | "Festival"
+  | "Live Shows";
 
 export interface LiveEvent {
   id: string;
@@ -126,10 +112,4 @@ export interface RecentBooking {
   amount: string;
   timestamp: string;
   status: "Confirmed" | "Processing" | "Refunded";
-}
-
-export interface SystemStat {
-  label: string;
-  value: string;
-  subtext: string;
 }

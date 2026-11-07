@@ -35,3 +35,4 @@ export default function SuperAdminSettingsPage() {
     </div>
   );
 }
+

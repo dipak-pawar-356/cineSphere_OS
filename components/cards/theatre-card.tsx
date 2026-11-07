@@ -2,10 +2,10 @@
 
 import React from "react";
 import Image from "next/image";
-import { Star, MapPin, Monitor, CheckCircle, Shield } from "lucide-react";
+import Link from "next/link";
+import { Star, MapPin, Monitor, CheckCircle, Shield, ArrowRight } from "lucide-react";
 import { Theatre } from "@/lib/types";
 import { FormatBadge } from "@/components/badges/format-badge";
-import { ComingSoonButton } from "@/components/buttons/coming-soon-button";
 import { cn } from "@/lib/utils";
 
 export interface TheatreCardProps {
@@ -22,7 +22,7 @@ export function TheatreCard({ theatre, className }: TheatreCardProps) {
       )}
     >
       {/* Banner */}
-      <div className="relative h-48 w-full overflow-hidden bg-[#070B12]">
+      <Link href={`/theatre/${theatre.slug}`} className="relative h-48 w-full overflow-hidden bg-[#070B12] block">
         <Image
           src={theatre.banner}
           alt={theatre.name}
@@ -56,14 +56,16 @@ export function TheatreCard({ theatre, className }: TheatreCardProps) {
             {theatre.chain}
           </span>
         </div>
-      </div>
+      </Link>
 
       {/* Content */}
       <div className="flex flex-1 flex-col justify-between p-5 pt-7">
         <div>
-          <h3 className="text-lg font-bold text-white group-hover:text-amber-400 transition-colors">
-            {theatre.name}
-          </h3>
+          <Link href={`/theatre/${theatre.slug}`}>
+            <h3 className="text-lg font-bold text-white group-hover:text-amber-400 transition-colors">
+              {theatre.name}
+            </h3>
+          </Link>
 
           <div className="mt-2 flex items-start gap-1.5 text-xs text-[#9CA3AF]">
             <MapPin className="h-3.5 w-3.5 text-amber-400/80 shrink-0 mt-0.5" />
@@ -111,13 +113,13 @@ export function TheatreCard({ theatre, className }: TheatreCardProps) {
             )}
           </div>
 
-          <ComingSoonButton
-            featureName={`Showtimes at ${theatre.name}`}
-            description={`Viewing live schedule and hall layout for ${theatre.name} is scheduled for Phase 2.`}
-            size="sm"
-            variant="primary"
-            label="View Shows"
-          />
+          <Link
+            href={`/theatre/${theatre.slug}`}
+            className="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs flex items-center gap-1.5 transition-colors shadow-md shadow-amber-500/20"
+          >
+            <span>View Theatre</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
       </div>
     </div>

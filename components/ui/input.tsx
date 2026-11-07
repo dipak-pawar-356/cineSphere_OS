@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import { cn } from "@/utils";
 import { Eye, EyeOff, Search, X, CheckCircle2, AlertCircle } from "lucide-react";

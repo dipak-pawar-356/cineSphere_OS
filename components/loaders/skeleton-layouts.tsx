@@ -55,3 +55,4 @@ export function DashboardSkeleton({ className }: { className?: string }) {
     </div>
   );
 }
+

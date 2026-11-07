@@ -320,3 +320,4 @@ export const FOOTER_SECTIONS = [
     ],
   },
 ];
+

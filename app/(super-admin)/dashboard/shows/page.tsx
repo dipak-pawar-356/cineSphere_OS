@@ -35,3 +35,4 @@ export default function SuperAdminShowsPage() {
     </div>
   );
 }
+

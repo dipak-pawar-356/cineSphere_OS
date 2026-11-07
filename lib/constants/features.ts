@@ -100,3 +100,5 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
     metric: "THX & IMAX Certified",
   },
 ];
+
+export const DUMMY_FEATURES = PLATFORM_FEATURES;
