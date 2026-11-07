@@ -241,64 +241,192 @@ export const SUPER_ADMIN_NAV_SECTIONS: NavSectionConfig[] = [
  */
 export const THEATRE_ADMIN_NAV_SECTIONS: NavSectionConfig[] = [
   {
-    title: "Theatre Control",
+    title: "Overview",
     items: [
       {
-        label: "Theatre Dashboard",
+        label: "Dashboard",
         href: ROUTES.THEATRE_ADMIN.DASHBOARD,
         icon: LayoutDashboard,
-        badge: "Active",
+        badge: "Live",
         badgeVariant: "success",
-      },
-      {
-        label: "My Halls & Screens",
-        href: ROUTES.THEATRE_ADMIN.HALLS,
-        icon: Layers,
       },
     ],
   },
   {
-    title: "Daily Operations",
+    title: "Theatre Management",
     items: [
       {
-        label: "Current Movies",
-        href: ROUTES.THEATRE_ADMIN.MOVIES,
-        icon: Film,
+        label: "Theatre Profile",
+        href: ROUTES.THEATRE_ADMIN.PROFILE,
+        icon: Building2,
       },
       {
-        label: "Show Schedules",
+        label: "Information & Legal",
+        href: ROUTES.THEATRE_ADMIN.INFORMATION,
+        icon: FileText,
+      },
+      {
+        label: "Photo Gallery",
+        href: ROUTES.THEATRE_ADMIN.GALLERY,
+        icon: ImageIcon,
+      },
+      {
+        label: "Amenities & Food",
+        href: ROUTES.THEATRE_ADMIN.AMENITIES,
+        icon: Coffee,
+      },
+    ],
+  },
+  {
+    title: "Hall Management",
+    items: [
+      {
+        label: "All Halls & Screens",
+        href: ROUTES.THEATRE_ADMIN.HALLS,
+        icon: Layers,
+        badge: "5 Screens",
+      },
+      {
+        label: "Hall Designer",
+        href: ROUTES.THEATRE_ADMIN.HALL_DESIGNER,
+        icon: Sparkles,
+        badge: "Soon",
+        badgeVariant: "warning",
+      },
+    ],
+  },
+  {
+    title: "Movie & Show Ops",
+    items: [
+      {
+        label: "Movies Catalog",
+        href: ROUTES.THEATRE_ADMIN.MOVIES,
+        icon: Film,
+        badge: "12 Films",
+      },
+      {
+        label: "All Shows",
         href: ROUTES.THEATRE_ADMIN.SHOWS,
         icon: Calendar,
       },
       {
-        label: "Ticket Bookings",
+        label: "Show Calendar",
+        href: ROUTES.THEATRE_ADMIN.SHOW_CALENDAR,
+        icon: CalendarDays,
+      },
+    ],
+  },
+  {
+    title: "Booking Management",
+    items: [
+      {
+        label: "All Bookings",
         href: ROUTES.THEATRE_ADMIN.BOOKINGS,
         icon: Ticket,
+      },
+      {
+        label: "Today's Bookings",
+        href: ROUTES.THEATRE_ADMIN.BOOKINGS_TODAY,
+        icon: Clock,
         badge: "Today",
         badgeVariant: "primary",
       },
+      {
+        label: "Upcoming Bookings",
+        href: ROUTES.THEATRE_ADMIN.BOOKINGS_UPCOMING,
+        icon: Calendar,
+      },
+    ],
+  },
+  {
+    title: "Customers & Staff",
+    items: [
       {
         label: "Theatre Patrons",
         href: ROUTES.THEATRE_ADMIN.CUSTOMERS,
         icon: Users,
       },
-    ],
-  },
-  {
-    title: "Management & Staff",
-    items: [
       {
-        label: "Hall Staff Roster",
+        label: "Staff Roster",
         href: ROUTES.THEATRE_ADMIN.STAFF,
         icon: UserCheck,
       },
       {
-        label: "Daily Box Office Reports",
+        label: "Hall Managers",
+        href: ROUTES.THEATRE_ADMIN.STAFF_MANAGERS,
+        icon: ShieldCheck,
+      },
+    ],
+  },
+  {
+    title: "Financials & Yield",
+    items: [
+      {
+        label: "Revenue Overview",
+        href: ROUTES.THEATRE_ADMIN.REVENUE,
+        icon: TrendingUp,
+        badge: "₹4.8L",
+        badgeVariant: "success",
+      },
+      {
+        label: "Payment Reconciliation",
+        href: ROUTES.THEATRE_ADMIN.PAYMENTS,
+        icon: CreditCard,
+      },
+      {
+        label: "Transactions Ledger",
+        href: ROUTES.THEATRE_ADMIN.TRANSACTIONS,
+        icon: History,
+      },
+    ],
+  },
+  {
+    title: "Marketing & Community",
+    items: [
+      {
+        label: "Offers & Coupons",
+        href: ROUTES.THEATRE_ADMIN.OFFERS,
+        icon: Tag,
+      },
+      {
+        label: "Special Events",
+        href: ROUTES.THEATRE_ADMIN.EVENTS,
+        icon: Sparkles,
+      },
+    ],
+  },
+  {
+    title: "Analytics & Intelligence",
+    items: [
+      {
+        label: "Theatre Analytics",
+        href: ROUTES.THEATRE_ADMIN.ANALYTICS,
+        icon: BarChart3,
+      },
+      {
+        label: "Audit Reports",
         href: ROUTES.THEATRE_ADMIN.REPORTS,
         icon: FileText,
       },
+    ],
+  },
+  {
+    title: "Support & Config",
+    items: [
       {
-        label: "Theatre Configuration",
+        label: "Notifications",
+        href: ROUTES.THEATRE_ADMIN.NOTIFICATIONS,
+        icon: Bell,
+        badge: "3 New",
+        badgeVariant: "danger",
+      },
+      {
+        label: "Hardware Support",
+        href: ROUTES.THEATRE_ADMIN.SUPPORT,
+        icon: Headphones,
+      },
+      {
+        label: "Theatre Settings",
         href: ROUTES.THEATRE_ADMIN.SETTINGS,
         icon: Settings,
       },

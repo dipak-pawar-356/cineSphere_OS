@@ -40,3 +40,6 @@ export * from "./dropdowns";
 // Dashboard Widgets
 export * from "./dashboard";
 
+// Motion & Responsive System
+export * from "./motion";
+
