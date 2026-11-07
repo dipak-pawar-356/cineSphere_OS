@@ -12,6 +12,7 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
   { label: "Events", href: "/events" },
   { label: "Offers", href: "/offers", badge: "Hot" },
   { label: "Dashboard", href: "/dashboard", badge: "Admin" },
+  { label: "Design System", href: "/design-system", badge: "UI" },
 ];
 
 export const AVAILABLE_CITIES = [

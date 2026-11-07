@@ -28,3 +28,4 @@ export async function validateToken(token: string): Promise<boolean> {
   // Placeholder - token validation logic to be connected in Phase 2
   return Boolean(token);
 }
+

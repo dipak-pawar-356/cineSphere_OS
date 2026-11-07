@@ -25,3 +25,4 @@ export function handleApiError(error: unknown): { code: string; message: string 
   }
   return { code: "UNKNOWN_ERROR", message: "An unexpected error occurred" };
 }
+

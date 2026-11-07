@@ -23,3 +23,4 @@ export function formatRelativeTime(date: Date | string): string {
   if (diffInHours < 24) return `${diffInHours}h ago`;
   return formatDate(d);
 }
+

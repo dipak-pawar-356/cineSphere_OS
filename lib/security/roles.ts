@@ -13,3 +13,4 @@ export const ROLE_HIERARCHY: Record<Role, number> = {
   [Role.STAFF]: 40,
   [Role.CUSTOMER]: 10,
 };
+

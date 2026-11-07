@@ -21,3 +21,4 @@ export const useTenantStore = create<TenantState>((set) => ({
   },
   setCurrentTenant: (currentTenant) => set({ currentTenant }),
 }));
+

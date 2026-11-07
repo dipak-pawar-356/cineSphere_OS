@@ -17,3 +17,4 @@ export function formatCurrency(
     return `$${amount.toFixed(2)}`;
   }
 }
+

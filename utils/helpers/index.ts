@@ -14,3 +14,4 @@ export function cn(...inputs: ClassValue[]) {
 export function generateId(prefix = "cs"): string {
   return `${prefix}_${Math.random().toString(36).substr(2, 9)}`;
 }
+

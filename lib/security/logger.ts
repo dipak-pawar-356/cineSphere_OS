@@ -20,3 +20,4 @@ export const logger = {
     console.error(`[ERROR] ${message}`, error, context || "");
   },
 };
+

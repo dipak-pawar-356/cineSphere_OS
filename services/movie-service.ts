@@ -11,3 +11,4 @@ export const movieService = {
     return { data: null, error: null };
   },
 };
+

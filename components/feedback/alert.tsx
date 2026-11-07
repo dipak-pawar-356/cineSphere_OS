@@ -40,3 +40,4 @@ export function Alert({ type = "info", title, children, className }: AlertProps)
     </div>
   );
 }
+

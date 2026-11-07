@@ -17,3 +17,4 @@ export const useUiStore = create<UiState>((set) => ({
   setSearchModalOpen: (isSearchModalOpen) => set({ isSearchModalOpen }),
   setActiveCityId: (activeCityId) => set({ activeCityId }),
 }));
+

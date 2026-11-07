@@ -2,23 +2,33 @@
 
 @layer base {
   :root {
-    --background: #070B12;
-    --surface: #111827;
-    --card: #161F2E;
-    --border: #2A3445;
+    --bg-main: #070B12;
+    --bg-secondary: #0F172A;
+    --bg-surface: #111827;
+    --bg-card: #161F2E;
+    --bg-sidebar: #0B1220;
+
     --primary: #FBBF24;
+    --primary-hover: #FACC15;
     --secondary: #2563EB;
-    --info: #2563EB;
-    --success: #22C55E;
-    --warning: #F59E0B;
-    --danger: #EF4444;
+
+    --state-success: #22C55E;
+    --state-warning: #F59E0B;
+    --state-danger: #EF4444;
+    --state-info: #38BDF8;
+
+    --border: #2A3445;
+    --divider: #1F2937;
+
     --text-primary: #F9FAFB;
-    --text-secondary: #9CA3AF;
+    --text-secondary: #CBD5E1;
+    --text-muted: #94A3B8;
+    --text-disabled: #64748B;
   }
 
   body {
-    background-color: #070B12;
-    color: #F9FAFB;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, "Geist", "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     overflow-x: hidden;
@@ -27,59 +37,55 @@
 
   /* Custom luxury scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
     background: #070B12;
   }
   ::-webkit-scrollbar-thumb {
     background: #2A3445;
-    border-radius: 4px;
-    border: 2px solid #070B12;
+    border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #374151;
+    background: #3B485E;
   }
 }
 
-/* Glassmorphism utility classes */
-.glass-panel {
-  background: rgba(17, 24, 39, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(42, 52, 69, 0.6);
+/* Subtle enterprise surfaces */
+.cs-surface {
+  background-color: #111827;
+  border: 1px solid #2A3445;
 }
 
-.glass-card {
-  background: rgba(22, 31, 46, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(42, 52, 69, 0.5);
+.cs-card {
+  background-color: #161F2E;
+  border: 1px solid #2A3445;
 }
 
-.glass-card-hover {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+.cs-card-subtle-glass {
+  background: rgba(22, 31, 46, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(42, 52, 69, 0.7);
 }
-.glass-card-hover:hover {
-  background: rgba(26, 38, 57, 0.95);
-  border-color: rgba(251, 191, 36, 0.3);
+
+.cs-card-interactive {
+  background-color: #161F2E;
+  border: 1px solid #2A3445;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cs-card-interactive:hover {
+  border-color: rgba(251, 191, 36, 0.35);
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px -5px rgba(251, 191, 36, 0.1);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
 }
 
-/* Luxury gold glow & accents */
-.gold-glow {
-  box-shadow: 0 0 35px -5px rgba(251, 191, 36, 0.25);
+/* Centralized subtle focus ring */
+.cs-focus {
+  outline: none;
 }
-
-.radial-gradient-hero {
-  background: radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.08) 0%, rgba(37, 99, 235, 0.04) 40%, transparent 70%);
-}
-
-.mesh-grid {
-  background-size: 40px 40px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+.cs-focus:focus-visible {
+  outline: 2px solid rgba(251, 191, 36, 0.5);
+  outline-offset: 1px;
 }

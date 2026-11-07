@@ -28,3 +28,4 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
 }
 
 export const useModal = () => useContext(ModalContext);
+

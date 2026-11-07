@@ -11,3 +11,4 @@ export const theatreService = {
     return { data: null, error: null };
   },
 };
+

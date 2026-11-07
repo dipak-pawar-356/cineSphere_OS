@@ -17,3 +17,4 @@ export function hasPermission(
 ): boolean {
   return context.permissions.includes(permission);
 }
+

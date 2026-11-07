@@ -40,3 +40,4 @@ export const APP_CONFIG = {
 } as const;
 
 export type UserRole = (typeof APP_CONFIG.roles)[keyof typeof APP_CONFIG.roles];
+

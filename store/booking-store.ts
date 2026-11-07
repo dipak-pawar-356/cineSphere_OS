@@ -30,3 +30,4 @@ export const useBookingStore = create<BookingState>((set) => ({
       draft: { movieId: null, theatreId: null, showtimeId: null, selectedSeats: [] },
     }),
 }));
+

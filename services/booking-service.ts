@@ -14,3 +14,4 @@ export const bookingService = {
     return { data: null, error: null };
   },
 };
+

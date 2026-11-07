@@ -16,3 +16,4 @@ export function GlobalProviders({ children }: { children: React.ReactNode }) {
     </ThemeProvider>
   );
 }
+

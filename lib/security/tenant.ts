@@ -20,3 +20,4 @@ export function resolveTenantFromHostname(hostname: string): string {
   }
   return "enterprise-hq";
 }
+
