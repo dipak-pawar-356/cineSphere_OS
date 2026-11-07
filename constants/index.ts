@@ -7,4 +7,5 @@ export * from "@/lib/constants/dashboard-stats";
 export * from "@/lib/constants/navigation";
 export * from "@/lib/constants/testimonials";
 export * from "@/lib/constants/partners";
+export * from "@/lib/constants/super-admin";
 

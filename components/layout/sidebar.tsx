@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Zap,
   Sparkles,
+  LogOut,
 } from "lucide-react";
 import { NavSectionConfig, NavItemConfig } from "@/config/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -203,8 +204,21 @@ export function Sidebar({
         })}
       </div>
 
-      {/* Footer System Telemetry Status */}
-      <div className="p-3 border-t border-[#2A3445]/80 bg-[#070B12]/60">
+      {/* Footer System Telemetry Status & Logout Placeholder */}
+      <div className="p-3 border-t border-[#2A3445]/80 bg-[#070B12]/60 space-y-2">
+        <button
+          type="button"
+          onClick={() => alert("Session logout is a placeholder in this phase.")}
+          className={cn(
+            "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#94A3B8] hover:text-rose-400 hover:bg-[#EF4444]/10 transition-colors",
+            isCollapsed && "justify-center px-0"
+          )}
+          title="Sign Out / Disconnect Session"
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          {!isCollapsed && <span>Logout (Placeholder)</span>}
+        </button>
+
         {!isCollapsed ? (
           <div className="flex items-center justify-between p-2 rounded-xl bg-[#111827] border border-[#2A3445] text-xs">
             <div className="flex items-center gap-2">

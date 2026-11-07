@@ -18,3 +18,4 @@ export const DUMMY_PARTNERS: Partner[] = [
   { id: "part-9", name: "Apple Wallet & Pay", category: "Digital Passes", tagline: "Dynamic NFC Turnstile Verification", logoText: "APPLE PAY" },
   { id: "part-10", name: "Comscore Movies", category: "Box Office EDI", tagline: "Certified Rentrak Reporting Endpoint", logoText: "COMSCORE" },
 ];
+
