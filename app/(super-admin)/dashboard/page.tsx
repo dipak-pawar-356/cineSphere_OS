@@ -49,12 +49,16 @@ import {
   ShieldAlert,
   ArrowRight,
   ExternalLink,
+  UserCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { usePlatformStore } from "@/store/platform-store";
 
 export default function SuperAdminDashboardPage() {
+  const { theatres } = usePlatformStore();
+
   const [activeTableTab, setActiveTableTab] = useState<
     "theatres" | "movies" | "bookings" | "events" | "admins" | "tickets"
   >("theatres");
@@ -62,6 +66,160 @@ export default function SuperAdminDashboardPage() {
   const [activeAnalyticsMetric, setActiveAnalyticsMetric] = useState<
     "revenue" | "bookings" | "occupancy"
   >("revenue");
+
+  // Dynamic metrics computed from platform store
+  const totalTheatres = theatres.length;
+  const activeTheatres = theatres.filter((t) => t.status === "Active").length;
+  const pendingTheatres = theatres.filter((t) => t.status === "Pending Approval").length;
+  const suspendedTheatres = theatres.filter((t) => t.status === "Suspended").length;
+  const totalHalls = theatres.reduce((acc, t) => acc + (t.hallCount || 0), 0) || 110;
+
+  const dashboardMetrics = [
+    {
+      id: "stat-health",
+      label: "Platform Health",
+      value: "99.98%",
+      subtext: "Zero critical incidents",
+      delta: "Optimal",
+      isPositive: true,
+      iconName: "Zap",
+    },
+    {
+      id: "stat-theatres",
+      label: "Total Theatres",
+      value: totalTheatres.toString(),
+      subtext: "Connected circuits",
+      delta: "+3 this quarter",
+      isPositive: true,
+      iconName: "Building2",
+    },
+    {
+      id: "stat-active-theatres",
+      label: "Active Theatres",
+      value: activeTheatres.toString(),
+      subtext: "Live booking enabled",
+      delta: "Verified",
+      isPositive: true,
+      iconName: "CheckCircle2",
+    },
+    {
+      id: "stat-pending-approvals",
+      label: "Pending Approvals",
+      value: pendingTheatres.toString(),
+      subtext: "Awaiting KYC review",
+      delta: pendingTheatres > 0 ? "Review Needed" : "All Clear",
+      isPositive: pendingTheatres === 0,
+      iconName: "AlertTriangle",
+    },
+    {
+      id: "stat-suspended-theatres",
+      label: "Suspended Theatres",
+      value: suspendedTheatres.toString(),
+      subtext: "Temporarily frozen",
+      delta: suspendedTheatres > 0 ? "Under Review" : "Zero",
+      isPositive: suspendedTheatres === 0,
+      iconName: "ShieldAlert",
+    },
+    {
+      id: "stat-movies",
+      label: "Total Movies",
+      value: "48",
+      subtext: "Active DCI distribution",
+      delta: "+6 new releases",
+      isPositive: true,
+      iconName: "Film",
+    },
+    {
+      id: "stat-halls",
+      label: "Total Halls",
+      value: totalHalls.toString(),
+      subtext: "IMAX, 4DX, Atmos",
+      delta: "100% online",
+      isPositive: true,
+      iconName: "Layers",
+    },
+    {
+      id: "stat-shows",
+      label: "Total Shows",
+      value: "320+",
+      subtext: "Daily timetables",
+      delta: "Daily",
+      isPositive: true,
+      iconName: "Clock",
+    },
+    {
+      id: "stat-today-bookings",
+      label: "Today's Bookings",
+      value: "4,820",
+      subtext: "Live ticket locks",
+      delta: "+14.2% vs yesterday",
+      isPositive: true,
+      iconName: "Ticket",
+    },
+    {
+      id: "stat-monthly-revenue",
+      label: "Monthly Revenue",
+      value: "₹8.64 Cr",
+      subtext: "Gross box office sales",
+      delta: "+24.5% MoM",
+      isPositive: true,
+      iconName: "TrendingUp",
+    },
+    {
+      id: "stat-platform-revenue",
+      label: "Platform Revenue",
+      value: "₹69.12 L",
+      subtext: "Platform commission (8%)",
+      delta: "+18.2% MoM",
+      isPositive: true,
+      iconName: "CreditCard",
+    },
+    {
+      id: "stat-customers",
+      label: "Customers",
+      value: "385,000",
+      subtext: "Registered patrons",
+      delta: "+12.4K new",
+      isPositive: true,
+      iconName: "Users",
+    },
+    {
+      id: "stat-theatre-admins",
+      label: "Theatre Admins",
+      value: (theatres.filter((t) => t.adminName).length || 24).toString(),
+      subtext: "Multiplex managers",
+      delta: "100% 2FA",
+      isPositive: true,
+      iconName: "ShieldCheck",
+    },
+    {
+      id: "stat-hall-managers",
+      label: "Hall Managers",
+      value: "48",
+      subtext: "Projection engineers",
+      delta: "Assigned",
+      isPositive: true,
+      iconName: "UserCheck",
+    },
+    {
+      id: "stat-staff",
+      label: "Staff",
+      value: "192",
+      subtext: "Concessions & gates",
+      delta: "Active roster",
+      isPositive: true,
+      iconName: "Users",
+    },
+    {
+      id: "stat-system-status",
+      label: "System Status",
+      value: "Operational",
+      subtext: "All 5 edge clusters up",
+      delta: "100%",
+      isPositive: true,
+      iconName: "Server",
+    },
+  ];
 
   // Dynamic greeting based on current local hour
   const currentHour = new Date().getHours();
@@ -187,7 +345,7 @@ export default function SuperAdminDashboardPage() {
       </div>
 
       {/* =========================================================
-          3. COMPREHENSIVE STATISTICS SECTION (15 METRICS)
+          3. COMPREHENSIVE STATISTICS SECTION (16 METRICS)
          ========================================================= */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -196,13 +354,13 @@ export default function SuperAdminDashboardPage() {
               <TrendingUp className="h-5 w-5 text-emerald-400" />
               <span>Global Circuit Telemetry & KPIs</span>
             </h2>
-            <p className="text-xs text-[#94A3B8]">Real-time operational metrics across all connected cinema chains.</p>
+            <p className="text-xs text-[#94A3B8]">Real-time operational metrics across all connected cinema chains powered by live platform state.</p>
           </div>
           <div className="text-xs font-mono text-[#64748B]">Updated: Just now</div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-          {SUPER_ADMIN_STATS.map((stat) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3.5">
+          {dashboardMetrics.map((stat) => (
             <div
               key={stat.id}
               className="p-4 rounded-2xl bg-[#161F2E] border border-[#2A3445] space-y-2 hover:border-[#FBBF24]/30 transition-colors"
@@ -601,21 +759,36 @@ export default function SuperAdminDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#2A3445]/60 text-[#CBD5E1]">
-                {LATEST_THEATRES_DATA.map((row) => (
+                {theatres.slice(0, 5).map((row) => (
                   <tr key={row.id} className="hover:bg-[#111827]/40 transition-colors">
                     <td className="py-3 px-4 font-bold text-white flex items-center gap-2">
                       <Building2 className="h-3.5 w-3.5 text-[#FBBF24]" />
-                      <span>{row.name}</span>
+                      <Link href={`/dashboard/theatres/${row.id}`} className="hover:text-[#FBBF24] transition-colors">
+                        {row.name}
+                      </Link>
                     </td>
                     <td className="py-3 px-4 text-[#94A3B8]">{row.chain}</td>
                     <td className="py-3 px-4">{row.city}</td>
-                    <td className="py-3 px-4 font-mono">{row.screens} Halls</td>
+                    <td className="py-3 px-4 font-mono">{row.hallCount} Halls</td>
                     <td className="py-3 px-4">
-                      <Badge variant="outline" size="sm">{row.tier}</Badge>
+                      <Badge variant="outline" size="sm">{row.pricingTier}</Badge>
                     </td>
-                    <td className="py-3 px-4 font-mono text-emerald-400 font-bold">{row.occupancy}</td>
+                    <td className="py-3 px-4 font-mono text-emerald-400 font-bold">84.2%</td>
                     <td className="py-3 px-4">
-                      <Badge variant="success" size="sm">{row.status}</Badge>
+                      <Badge
+                        variant={
+                          row.status === "Active"
+                            ? "success"
+                            : row.status === "Pending Approval"
+                            ? "warning"
+                            : row.status === "Suspended"
+                            ? "danger"
+                            : "secondary"
+                        }
+                        size="sm"
+                      >
+                        {row.status}
+                      </Badge>
                     </td>
                   </tr>
                 ))}
@@ -938,6 +1111,14 @@ function ActionIcon({ name, className = "h-5 w-5" }: { name: string; className?:
       return <Tag className={className} />;
     case "Settings":
       return <Settings className={className} />;
+    case "ShieldAlert":
+      return <ShieldAlert className={className} />;
+    case "CheckCircle2":
+      return <CheckCircle2 className={className} />;
+    case "Server":
+      return <Server className={className} />;
+    case "UserCheck":
+      return <UserCheck className={className} />;
     default:
       return <Zap className={className} />;
   }
