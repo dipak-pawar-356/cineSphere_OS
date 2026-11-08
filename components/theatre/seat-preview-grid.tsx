@@ -41,6 +41,10 @@ export function SeatPreviewGrid({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSectionFilter, setSelectedSectionFilter] = useState("ALL");
   const [selectedTypeFilter, setSelectedTypeFilter] = useState("ALL");
+  const [accessibilityOnly, setAccessibilityOnly] = useState(false);
+  const [vipOnly, setVipOnly] = useState(false);
+  const [reclinerOnly, setReclinerOnly] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedSeat, setSelectedSeat] = useState<GeneratedSeatTemplate | null>(null);
 
   // Group seats by section
@@ -66,13 +70,14 @@ export function SeatPreviewGrid({
   // Filtered Seats
   const filteredSeats = useMemo(() => {
     return template.seats.filter((seat) => {
-      // Search
+      // Search Seats, Sections, and Labels
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesLabel = seat.seatLabel.toLowerCase().includes(q);
         const matchesNumber = seat.seatNumber.toLowerCase().includes(q);
         const matchesSection = seat.sectionName.toLowerCase().includes(q);
-        if (!matchesLabel && !matchesNumber && !matchesSection) return false;
+        const matchesCategory = seat.seatCategory.toLowerCase().includes(q);
+        if (!matchesLabel && !matchesNumber && !matchesSection && !matchesCategory) return false;
       }
 
       // Section Filter
@@ -85,9 +90,25 @@ export function SeatPreviewGrid({
         return false;
       }
 
+      // Status Filter
+      if (statusFilter !== "ALL" && seat.status !== statusFilter) {
+        return false;
+      }
+
+      // Quick Attribute Flags
+      if (accessibilityOnly && !seat.accessibilityFlag && !seat.wheelchairFlag) {
+        return false;
+      }
+      if (vipOnly && !seat.vipFlag) {
+        return false;
+      }
+      if (reclinerOnly && !seat.reclinerFlag) {
+        return false;
+      }
+
       return true;
     });
-  }, [template, searchQuery, selectedSectionFilter, selectedTypeFilter]);
+  }, [template, searchQuery, selectedSectionFilter, selectedTypeFilter, statusFilter, accessibilityOnly, vipOnly, reclinerOnly]);
 
   // Aggregate Metrics
   const totalRecliners = template.seats.filter((s) => s.reclinerFlag).length;
@@ -180,7 +201,64 @@ export function SeatPreviewGrid({
             <option value="Wheelchair">Wheelchair</option>
           </select>
 
-          {(searchQuery || selectedSectionFilter !== "ALL" || selectedTypeFilter !== "ALL") && (
+          {/* Seat Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-8 px-2.5 rounded-lg bg-[#0B0F19] border border-[#2A3445] text-xs text-white focus:outline-none focus:border-amber-400"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="Available">Available</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Blocked">Blocked</option>
+            <option value="Disabled">Disabled</option>
+            <option value="Reserved">Reserved</option>
+          </select>
+
+          {/* Quick Attribute Toggles */}
+          <button
+            type="button"
+            onClick={() => setVipOnly(!vipOnly)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1 ${
+              vipOnly
+                ? "bg-purple-500/20 text-purple-300 border-purple-500/50"
+                : "bg-[#0B0F19] text-[#94A3B8] border-[#2A3445] hover:text-white"
+            }`}
+          >
+            <Crown className="h-3 w-3" /> VIP
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setReclinerOnly(!reclinerOnly)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1 ${
+              reclinerOnly
+                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
+                : "bg-[#0B0F19] text-[#94A3B8] border-[#2A3445] hover:text-white"
+            }`}
+          >
+            <Armchair className="h-3 w-3" /> Recliner
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAccessibilityOnly(!accessibilityOnly)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1 ${
+              accessibilityOnly
+                ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50"
+                : "bg-[#0B0F19] text-[#94A3B8] border-[#2A3445] hover:text-white"
+            }`}
+          >
+            <Accessibility className="h-3 w-3" /> Accessible
+          </button>
+
+          {(searchQuery ||
+            selectedSectionFilter !== "ALL" ||
+            selectedTypeFilter !== "ALL" ||
+            statusFilter !== "ALL" ||
+            accessibilityOnly ||
+            vipOnly ||
+            reclinerOnly) && (
             <Button
               type="button"
               variant="ghost"
@@ -189,6 +267,10 @@ export function SeatPreviewGrid({
                 setSearchQuery("");
                 setSelectedSectionFilter("ALL");
                 setSelectedTypeFilter("ALL");
+                setStatusFilter("ALL");
+                setAccessibilityOnly(false);
+                setVipOnly(false);
+                setReclinerOnly(false);
               }}
               className="text-[#94A3B8] hover:text-white gap-1"
             >
@@ -301,7 +383,16 @@ export function SeatPreviewGrid({
                                 key={seat.id}
                                 type="button"
                                 onClick={() => setSelectedSeat(seat)}
-                                className={`h-8 min-w-[34px] px-1.5 rounded-t-lg rounded-b border text-[11px] font-mono font-bold transition-all flex flex-col items-center justify-center ${
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    setSelectedSeat(seat);
+                                  }
+                                }}
+                                aria-label={`Seat ${seat.seatLabel}, Section ${seat.sectionName}, Category ${seat.seatCategory}, Status ${seat.status}`}
+                                aria-pressed={isSelected}
+                                tabIndex={isMatch ? 0 : -1}
+                                className={`h-8 min-w-[34px] px-1.5 rounded-t-lg rounded-b border text-[11px] font-mono font-bold transition-all flex flex-col items-center justify-center focus:outline-hidden focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 focus:ring-offset-[#080C14] ${
                                   !isMatch
                                     ? "opacity-20 pointer-events-none"
                                     : isSelected
@@ -312,7 +403,7 @@ export function SeatPreviewGrid({
                                   borderTopColor: isSelected ? undefined : tokens.color,
                                   borderTopWidth: isSelected ? "2px" : "3px",
                                 }}
-                                title={`${seat.seatLabel} • ${seat.sectionName} (${seat.seatCategory}) • Click to inspect metadata`}
+                                title={`${seat.seatLabel} • ${seat.sectionName} (${seat.seatCategory}) • Click or press Enter to inspect metadata`}
                               >
                                 {seat.wheelchairFlag ? (
                                   <Accessibility className="h-3 w-3 text-[#06B6D4]" />
@@ -427,3 +518,4 @@ export function SeatPreviewGrid({
     </div>
   );
 }
+

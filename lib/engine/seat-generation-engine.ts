@@ -117,7 +117,17 @@ export function generateAuditoriumSeatTemplate(input: GenerateSeatsInput): SeatT
     const seatType = deriveSeatTypeFromCategory(category);
     const tokens = getCategoryDesignTokens(category);
 
-    const sectionPrefix = getRowLetter(sIndex); // Section A -> 'A', Section B -> 'B', Section C -> 'C'
+    // Support custom prefixes (e.g., "AA", "AB", "VIP"), extract from section name, or fallback to sequential A, B, C...
+    let sectionPrefix = getRowLetter(sIndex);
+    if ((section as any).prefix && typeof (section as any).prefix === "string" && (section as any).prefix.trim()) {
+      sectionPrefix = (section as any).prefix.trim().toUpperCase();
+    } else {
+      const match = (section.name || "").match(/section\s+([a-z0-9]+)/i);
+      if (match && match[1]) {
+        sectionPrefix = match[1].toUpperCase();
+      }
+    }
+
     const sectionRowLabels: string[] = [];
     const sectionSeats: GeneratedSeatTemplate[] = [];
 
@@ -139,7 +149,7 @@ export function generateAuditoriumSeatTemplate(input: GenerateSeatsInput): SeatT
         // Section B: B1, B2... B30
         // Section C: C1, C2... C50
         const seatLabel = `${sectionPrefix}${currentSeatInSec}`;
-        const seatNumber = `${rowLetter}${col}`;
+        const seatNumber = String(currentSeatInSec);
         const immutableId = generateDeterministicSeatId(hallId, section.id, currentSeatInSec);
 
         // Calculate spatial 3D geometry coordinates
@@ -154,6 +164,32 @@ export function generateAuditoriumSeatTemplate(input: GenerateSeatsInput): SeatT
         // Viewing angles towards curved screen center [0, 2.5, 0]
         const pitchDegrees = -Math.atan2(y - 2.5, z) * (180 / Math.PI);
         const yawDegrees = -Math.atan2(x, z) * (180 / Math.PI);
+
+        const roundedX = Math.round(x * 100) / 100;
+        const roundedY = Math.round(y * 100) / 100;
+        const roundedZ = Math.round(z * 100) / 100;
+        const rotationObj = {
+          x: Math.round(pitchDegrees * 10) / 10,
+          y: Math.round(yawDegrees * 10) / 10,
+          z: 0,
+        };
+        const cameraAnchorObj = {
+          eyePosition: [
+            roundedX,
+            Math.round((y + 1.2) * 100) / 100,
+            roundedZ,
+          ] as [number, number, number],
+          lookAt: [0, 2.5, 0] as [number, number, number],
+          fov: 60,
+        };
+        const metadataObj = {
+          sectionColor: tokens.color,
+          isAisleSeat: col === 1 || col === seatsInThisRow,
+          sectionIndex: sIndex + 1,
+          seatInRow: col,
+          seatsInRow: seatsInThisRow,
+          sectionPrefix,
+        };
 
         const generatedSeat: GeneratedSeatTemplate = {
           id: immutableId,
@@ -176,31 +212,19 @@ export function generateAuditoriumSeatTemplate(input: GenerateSeatsInput): SeatT
           wheelchairFlag: isWheelchair,
           companionSeatFlag: isWheelchair && col === 2,
           coordinates: {
-            x: Math.round(x * 100) / 100,
-            y: Math.round(y * 100) / 100,
-            z: Math.round(z * 100) / 100,
+            x: roundedX,
+            y: roundedY,
+            z: roundedZ,
           },
-          rotation: {
-            x: Math.round(pitchDegrees * 10) / 10,
-            y: Math.round(yawDegrees * 10) / 10,
-            z: 0,
-          },
-          cameraAnchor: {
-            eyePosition: [
-              Math.round(x * 100) / 100,
-              Math.round((y + 1.2) * 100) / 100,
-              Math.round(z * 100) / 100,
-            ],
-            lookAt: [0, 2.5, 0],
-            fov: 60,
-          },
-          metadata: {
-            sectionColor: tokens.color,
-            isAisleSeat: col === 1 || col === seatsInThisRow,
-            sectionIndex: sIndex + 1,
-            seatInRow: col,
-            seatsInRow: seatsInThisRow,
-          },
+          rotation: rotationObj,
+          cameraAnchor: cameraAnchorObj,
+          futureXCoordinate: roundedX,
+          futureYCoordinate: roundedY,
+          futureZCoordinate: roundedZ,
+          futureRotation: rotationObj,
+          futureCameraAnchor: cameraAnchorObj,
+          futureMetadata: metadataObj,
+          metadata: metadataObj,
         };
 
         sectionSeats.push(generatedSeat);
@@ -272,3 +296,4 @@ export function generateShowInventoryFromTemplate(
     };
   });
 }
+

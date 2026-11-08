@@ -213,6 +213,8 @@ export interface TheatreState {
   duplicateHall: (id: string) => { success: boolean; newId?: string; error?: string };
   deleteHall: (id: string) => void;
   generateSeatsForHall: (hallId: string) => { success: boolean; template?: SeatTemplateContainer; error?: string };
+  regenerateSeatsForHall: (hallId: string) => { success: boolean; template?: SeatTemplateContainer; error?: string };
+  deleteSeatsForHall: (hallId: string) => { success: boolean; error?: string };
 
   // Movie CRUD (Catalog entry point)
   addMovie: (movie: Omit<ManagedMovie, "id">) => void;
@@ -1206,6 +1208,56 @@ export const useTheatreStore = create<TheatreState>()(
           } catch (err: any) {
             return { success: false, error: err.message || "Failed to generate seat matrix." };
           }
+        },
+
+        regenerateSeatsForHall: (hallId) => {
+          const current = get().halls.find((h) => h.id === hallId);
+          if (!current) return { success: false, error: "Auditorium not found." };
+
+          try {
+            const template = generateAuditoriumSeatTemplate({
+              hallId: current.id,
+              theatreId: current.theatreId || get().activeTheatreId,
+              capacity: current.capacity,
+              sections: current.sections,
+              name: `${current.name} Reusable Seat Template`,
+            });
+
+            set((state) => ({
+              halls: state.halls.map((h) =>
+                h.id === hallId ? { ...h, seatTemplate: template, updatedAt: new Date().toISOString() } : h
+              ),
+            }));
+
+            get().logTenantAudit(
+              "SEATS_REGENERATED",
+              "Halls",
+              `Regenerated deterministic seat template (${template.totalGeneratedSeats} seats) for "${current.name}" (${current.hallCode})`
+            );
+
+            return { success: true, template };
+          } catch (err: any) {
+            return { success: false, error: err.message || "Failed to regenerate seat matrix." };
+          }
+        },
+
+        deleteSeatsForHall: (hallId) => {
+          const current = get().halls.find((h) => h.id === hallId);
+          if (!current) return { success: false, error: "Auditorium not found." };
+
+          set((state) => ({
+            halls: state.halls.map((h) =>
+              h.id === hallId ? { ...h, seatTemplate: undefined, updatedAt: new Date().toISOString() } : h
+            ),
+          }));
+
+          get().logTenantAudit(
+            "SEATS_DELETED",
+            "Halls",
+            `Deleted seat template for auditorium "${current.name}" (${current.hallCode})`
+          );
+
+          return { success: true };
         },
 
         // ----------------------------------------------------------------------

@@ -56,6 +56,10 @@ export type SeatStatus =
   | "Reserved"
   | "Blocked"
   | "Maintenance"
+  | "Disabled"
+  | "Hidden"
+  | "Cleaning"
+  | "Emergency"
   | "Wheelchair"
   | "Couple Seat"
   | "Recliner"
@@ -66,11 +70,16 @@ export type SeatCategoryTier =
   | "Gold"
   | "Platinum"
   | "VIP"
+  | "Executive"
+  | "Premium"
+  | "Luxury"
+  | "Balcony"
   | "VIP Recliner"
   | "Recliner"
   | "Wheelchair"
   | "Royal Suite"
   | "Royal Suite Lounger"
+  | "Custom"
   | string;
 
 export interface SectionCategoryDesignToken {

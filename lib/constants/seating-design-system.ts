@@ -101,6 +101,61 @@ export const SECTION_CATEGORY_PALETTE: Record<string, SectionCategoryDesignToken
     defaultSeatsPerRow: 6,
     icon: "Gem",
   },
+  Executive: {
+    category: "Executive",
+    label: "Executive Prime",
+    color: "#F59E0B", // Warm Amber
+    bgClass: "bg-amber-500/15",
+    borderClass: "border-amber-500/40",
+    textClass: "text-amber-400",
+    badgeClass: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+    defaultSeatsPerRow: 10,
+    icon: "Sparkles",
+  },
+  Premium: {
+    category: "Premium",
+    label: "Premium Class",
+    color: "#6366F1", // Indigo
+    bgClass: "bg-indigo-500/15",
+    borderClass: "border-indigo-500/40",
+    textClass: "text-indigo-400",
+    badgeClass: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+    defaultSeatsPerRow: 10,
+    icon: "Crown",
+  },
+  Luxury: {
+    category: "Luxury",
+    label: "Luxury Tier",
+    color: "#D946EF", // Fuchsia
+    bgClass: "bg-fuchsia-500/15",
+    borderClass: "border-fuchsia-500/40",
+    textClass: "text-fuchsia-400",
+    badgeClass: "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/30",
+    defaultSeatsPerRow: 8,
+    icon: "Gem",
+  },
+  Balcony: {
+    category: "Balcony",
+    label: "Upper Balcony",
+    color: "#14B8A6", // Teal
+    bgClass: "bg-teal-500/15",
+    borderClass: "border-teal-500/40",
+    textClass: "text-teal-400",
+    badgeClass: "bg-teal-500/20 text-teal-300 border-teal-500/30",
+    defaultSeatsPerRow: 12,
+    icon: "Layers",
+  },
+  Custom: {
+    category: "Custom",
+    label: "Custom Section",
+    color: "#94A3B8", // Slate
+    bgClass: "bg-slate-500/15",
+    borderClass: "border-slate-500/40",
+    textClass: "text-slate-400",
+    badgeClass: "bg-slate-500/20 text-slate-300 border-slate-500/30",
+    defaultSeatsPerRow: 10,
+    icon: "Armchair",
+  },
 };
 
 export const DEFAULT_CATEGORY_FALLBACK: SectionCategoryDesignToken = {

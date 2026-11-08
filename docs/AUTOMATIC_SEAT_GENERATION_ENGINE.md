@@ -70,17 +70,17 @@ If the section counts do not sum to the hall's declared capacity, the engine rej
 ### 3.1. `GeneratedSeatTemplate`
 ```typescript
 export interface GeneratedSeatTemplate {
-  id: string;                      // Deterministic UUID
-  seatNumber: number;              // 1-based index within row
-  seatLabel: string;               // e.g. "A1", "B14"
+  id: string;                      // Deterministic Immutable UUID
+  seatNumber: string;              // 1-based index within section (e.g. "1", "20")
+  seatLabel: string;               // Display label (e.g. "A1", "B30", "VIP-12")
   row: string;                     // Row identifier ("A", "B", "AA")
   column: number;                  // Physical column position
   sectionId: string;               // Foreign key to HallSection
   sectionName: string;             // Human-readable section name
-  seatCategory: SeatCategoryTier;  // Silver, Gold, Platinum, VIP, Recliner, Wheelchair
+  seatCategory: SeatCategoryTier;  // Silver, Gold, Platinum, VIP, Executive, Premium, Luxury, Balcony, Recliner, Wheelchair, Custom
   displayOrder: number;            // Sequential sorting index (1..N)
-  seatType: SeatType;              // Standard, VIP, Recliner, Wheelchair, Couple
-  status: SeatStatus;              // Available, Maintenance, Reserved, Blocked
+  seatType: SeatType;              // Standard, VIP, Recliner, Wheelchair, Couple, Sofa
+  status: SeatStatus;              // Available, Booked, Reserved, Blocked, Maintenance, Disabled, Hidden, Cleaning, Emergency
   hallId: string;                  // Associated Hall UUID
   hallLayoutId: string;            // Layout specification ID
   templateId: string;              // Container template UUID
@@ -108,10 +108,18 @@ export interface GeneratedSeatTemplate {
 
   // Spectator View Anchor (For 3D View from Seat)
   cameraAnchor: {
-    eyeLevelOffset: number;        // Standard spectator eye height (1.2m)
-    focusPoint: [number, number, number]; // Screen center [0, 2.5, 0]
-    fov: number;                   // Field of view (60 degrees)
+    eyePosition: [number, number, number]; // [x, y + 1.2m, z]
+    lookAt: [number, number, number];      // Screen center [0, 2.5, 0]
+    fov: number;                           // Field of view (60 degrees)
   };
+
+  // Flat Future 3D Engine Direct Aliases
+  futureXCoordinate?: number;
+  futureYCoordinate?: number;
+  futureZCoordinate?: number;
+  futureRotation?: { x: number; y: number; z: number };
+  futureCameraAnchor?: { eyePosition: [number, number, number]; lookAt: [number, number, number]; fov: number };
+  futureMetadata?: Record<string, any>;
 
   metadata: Record<string, any>;
 }
@@ -159,14 +167,28 @@ The engine computes realistic 3D metric coordinates during template generation:
 
 ### 5.1. `SeatPreviewGrid` Component (`components/theatre/seat-preview-grid.tsx`)
 A production-ready seat preview interface featuring:
-- **Curved Screen Visualizer**: Architectural screen indicator at the auditorium front.
+- **Curved Screen Visualizer**: Architectural screen indicator at the auditorium front with beam gradient.
 - **Section Tier Containers**: Visual cards with category badges and seat totals.
-- **Interactive Seat Buttons**: Styled by tier design tokens (Silver, Gold, Platinum, VIP, Recliner, Wheelchair).
-- **Search & Filters**: Instant live filtering by seat label (e.g. "B12"), row, section, or hardware type.
-- **Seat Inspector Card**: Displays complete technical details for any clicked seat (UUID, display label, category, row/col, metric 3D position, camera eye anchor, and pricing status).
+- **Interactive Seat Buttons**: Styled by tier design tokens (Silver, Gold, Platinum, VIP, Executive, Premium, Luxury, Balcony, Recliner, Wheelchair, Custom).
+- **Comprehensive Search**: Instant live filtering across Seat Labels (e.g. `A1`, `B14`), Seat Numbers, Section Names, and Categories.
+- **Multi-Faceted Filters**:
+  - Filter by Section (All or specific Section ID)
+  - Filter by Hardware Seat Type (Standard, VIP, Recliner, Wheelchair)
+  - Filter by Operating Status (Available, Maintenance, Blocked, Disabled, Reserved)
+  - Quick-toggle pills: **VIP**, **Recliner**, and **Accessibility**.
+- **Keyboard Navigation & ARIA Compliance**: Full keyboard support (`Tab`, `Enter`, `Space`) with `aria-label`, `aria-pressed`, and high-contrast focus rings.
+- **Seat Inspector Card**: Displays complete technical details for any clicked seat (Immutable UUID, display label, category, row/col, metric 3D position, camera eye anchor, and dynamic show-assigned pricing status).
 
-### 5.2. Integration Points
-- **Hall Detail View** (`/theatre/halls/[id]`): Offers seamless toggling between the **Generated Seat Matrix Grid** and the **2D Floor Plan Schematic**, complete with a **Regenerate Seat Matrix** trigger.
-- **Dynamic Hall Designer** (`/theatre/halls/designer`): Live updates the seat matrix reactively as sections, rows, or capacities are adjusted.
-- **Zustand Multi-Tenant Store** (`store/theatre-store.ts`): Automatically generates and caches deterministic seat templates upon hall creation, modification, or duplication.
-- **Server Actions** (`actions/seat-generation-actions.ts`): Provides `'use server'` mutations with tenant verification and Next.js tag revalidation.
+### 5.2. Server Actions & Audit Trail (`actions/seat-generation-actions.ts`)
+- `generateSeatTemplateAction` / `generateSeatsAction`: Server action validating tenant isolation and generating deterministic seat templates.
+- `regenerateSeatTemplateAction` / `regenerateSeatsAction`: Recalculates seat labels while preserving immutable Seat IDs.
+- `validateLayoutCapacityAction` / `validateLayoutAction`: Validates $\text{Capacity} \equiv \sum \text{Section Seats}$.
+- `previewGeneratedSeatsAction` / `previewLayoutAction`: Generates an ephemeral template for live UI previews without committing state.
+- `deleteGeneratedSeatsAction`: Deletes a hall's seat template with path cache revalidation.
+- **Audit Logging**: Every action produces a typed `SeatAuditLogRecord` with action type (`GENERATED`, `REGENERATED`, `DELETED`), `hallId`, `theatreId`, `user`, `timestamp`, and `status`.
+
+### 5.3. Integration Points
+- **Hall Detail View** (`/theatre/halls/[id]`): Seamless toggling between **Generated Seat Matrix Grid** and **2D Floor Plan Schematic**, with live regeneration.
+- **Dynamic Hall Designer** (`/theatre/halls/designer`): Live updates the seat matrix reactively as sections, rows, or capacities are edited.
+- **Zustand Multi-Tenant Store** (`store/theatre-store.ts`): Manages `generateSeatsForHall`, `regenerateSeatsForHall`, and `deleteSeatsForHall` with persistent local storage sync and tenant audit logging.
+

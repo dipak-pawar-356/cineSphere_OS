@@ -90,6 +90,14 @@ export interface GeneratedSeatTemplate {
   rotation: SeatSpatialRotation;
   cameraAnchor: SeatCameraAnchor;
 
+  // Direct Future 3D Engine Aliases
+  futureXCoordinate?: number;
+  futureYCoordinate?: number;
+  futureZCoordinate?: number;
+  futureRotation?: SeatSpatialRotation;
+  futureCameraAnchor?: SeatCameraAnchor;
+  futureMetadata?: Record<string, any>;
+
   // Extensibility metadata (zero pricing)
   metadata: Record<string, any>;
 }
@@ -154,3 +162,4 @@ export interface ShowInventoryContract {
   };
   generatedAt: string;
 }
+
