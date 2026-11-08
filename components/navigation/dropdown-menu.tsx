@@ -4,7 +4,8 @@ import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { useClickOutside } from "@/hooks/use-click-outside";
 import { cn } from "@/utils";
-import { Bell, User, LogOut, Settings, Shield, Ticket, Compass } from "lucide-react";
+import { Bell, User, LogOut, Settings, Shield, Ticket, Compass, LogIn } from "lucide-react";
+import { useAuth } from "@/auth";
 
 export interface DropdownMenuItem {
   id: string;
@@ -100,6 +101,26 @@ export function ProfileMenu({
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, () => setIsOpen(false));
 
+  const auth = useAuth();
+  const effectiveUser = auth.user
+    ? {
+        name: auth.user.displayName,
+        email: auth.user.email,
+        role: auth.user.role,
+      }
+    : auth.isAuthenticated
+    ? user
+    : null;
+
+  const handleSignOut = () => {
+    if (onSignOut) {
+      onSignOut();
+    } else {
+      auth.signOut();
+    }
+    setIsOpen(false);
+  };
+
   return (
     <div className={cn("relative inline-block", className)} ref={ref}>
       <button
@@ -109,72 +130,89 @@ export function ProfileMenu({
         aria-label="Profile navigation menu"
       >
         <div className="h-8 w-8 rounded-full bg-[#161F2E] border border-[#2A3445] flex items-center justify-center text-[#FBBF24] font-bold text-xs">
-          {user.name.charAt(0)}
+          {effectiveUser ? effectiveUser.name.charAt(0) : <User className="h-4 w-4 text-[#94A3B8]" />}
         </div>
       </button>
 
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-64 rounded-xl bg-[#111827] border border-[#2A3445] shadow-[0_12px_40px_rgb(0,0,0,0.5)] p-2 z-50 animate-in fade-in zoom-in-95">
-          <div className="p-2 border-b border-[#2A3445] space-y-0.5">
-            <div className="font-bold text-white text-xs">{user.name}</div>
-            <div className="text-[11px] text-[#94A3B8] truncate">{user.email}</div>
-            {user.role && (
-              <span className="inline-block mt-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#161F2E] text-[#FBBF24] border border-[#2A3445]">
-                {user.role}
-              </span>
-            )}
-          </div>
+          {effectiveUser ? (
+            <>
+              <div className="p-2 border-b border-[#2A3445] space-y-0.5">
+                <div className="font-bold text-white text-xs">{effectiveUser.name}</div>
+                <div className="text-[11px] text-[#94A3B8] truncate">{effectiveUser.email}</div>
+                {effectiveUser.role && (
+                  <span className="inline-block mt-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#161F2E] text-[#FBBF24] border border-[#2A3445]">
+                    {effectiveUser.role}
+                  </span>
+                )}
+              </div>
 
-          <div className="py-1 space-y-0.5 text-xs text-[#CBD5E1]">
-            <Link
-              href="/dashboard"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
-            >
-              <Shield className="h-3.5 w-3.5 text-[#FBBF24]" />
-              <span>Super Admin HQ</span>
-            </Link>
-            <Link
-              href="/theatre"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
-            >
-              <Compass className="h-3.5 w-3.5 text-[#38BDF8]" />
-              <span>Theatre Portal</span>
-            </Link>
-            <Link
-              href="/profile"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
-            >
-              <User className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Patron Account</span>
-            </Link>
-            <Link
-              href="/design-system"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
-            >
-              <span className="text-[10px] font-mono font-bold px-1 rounded bg-[#161F2E] text-[#FBBF24] border border-[#2A3445]">
-                UI
-              </span>
-              <span>Design System</span>
-            </Link>
-          </div>
+              <div className="py-1 space-y-0.5 text-xs text-[#CBD5E1]">
+                <Link
+                  href="/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
+                >
+                  <Shield className="h-3.5 w-3.5 text-[#FBBF24]" />
+                  <span>Super Admin HQ</span>
+                </Link>
+                <Link
+                  href="/theatre"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
+                >
+                  <Compass className="h-3.5 w-3.5 text-[#38BDF8]" />
+                  <span>Theatre Portal</span>
+                </Link>
+                <Link
+                  href="/profile"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
+                >
+                  <User className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>Patron Account</span>
+                </Link>
+                <Link
+                  href="/design-system"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#161F2E] hover:text-white transition-colors"
+                >
+                  <span className="text-[10px] font-mono font-bold px-1 rounded bg-[#161F2E] text-[#FBBF24] border border-[#2A3445]">
+                    UI
+                  </span>
+                  <span>Design System</span>
+                </Link>
+              </div>
 
-          <div className="pt-1 border-t border-[#2A3445]">
-            <button
-              type="button"
-              onClick={() => {
-                onSignOut?.();
-                setIsOpen(false);
-              }}
-              className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              <span>Sign Out</span>
-            </button>
-          </div>
+              <div className="pt-1 border-t border-[#2A3445]">
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="p-3 text-center space-y-3">
+              <div className="space-y-1">
+                <div className="font-bold text-white text-xs">Guest Terminal</div>
+                <div className="text-[11px] text-[#94A3B8]">Sign in to access your bookings or cinema controls.</div>
+              </div>
+              <Link href="/login" onClick={() => setIsOpen(false)}>
+                <button
+                  type="button"
+                  className="w-full py-2 px-3 rounded-lg bg-[#FBBF24] text-black font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  <LogIn className="h-3.5 w-3.5" />
+                  <span>Sign In</span>
+                </button>
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </div>
