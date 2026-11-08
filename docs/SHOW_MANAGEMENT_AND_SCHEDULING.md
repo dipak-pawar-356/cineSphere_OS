@@ -158,3 +158,4 @@ When a Show is scheduled:
 - **Next.js Linting**: `pnpm run lint` $\rightarrow$ **0 errors**.
 - **Tenant Isolation**: All operations are strictly partitioned by `theatreId` (`th-pun-001`), guaranteeing zero cross-tenant data leakage.
 - **Zero Pricing Invariant**: Canonical movies remain 100% free of pricing, hall, and booking data.
+
