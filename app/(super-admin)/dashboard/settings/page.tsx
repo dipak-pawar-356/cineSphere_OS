@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
+import { usePlatformStore } from "@/store/platform-store";
 import {
   Settings,
   Shield,
@@ -13,7 +14,6 @@ import {
   HardDrive,
   Database,
   Terminal,
-  Wrench,
   Cpu,
   Save,
   CheckCircle2,
@@ -23,63 +23,100 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 type SettingsTab =
   | "general"
   | "branding"
-  | "platform"
   | "localization"
-  | "theme"
+  | "pricing"
+  | "security"
   | "email"
   | "sms"
-  | "security"
-  | "storage"
-  | "backup"
-  | "logs"
   | "maintenance"
   | "integrations";
 
 export default function SuperAdminSettingsPage() {
+  const { settings, updateSettings, logAuditEvent } = usePlatformStore();
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
+  const [savedNotice, setSavedNotice] = useState(false);
+
+  // Local form state initialized from store
+  const [appName, setAppName] = useState(settings.appName);
+  const [tagline, setTagline] = useState(settings.tagline);
+  const [logoUrl, setLogoUrl] = useState(settings.logoUrl);
+  const [maintenanceMode, setMaintenanceMode] = useState(settings.maintenanceMode);
+  const [defaultCurrency, setDefaultCurrency] = useState(settings.defaultCurrency);
+  const [currencySymbol, setCurrencySymbol] = useState(settings.currencySymbol);
+  const [timezone, setTimezone] = useState(settings.timezone);
+  const [convenienceFee, setConvenienceFee] = useState(settings.convenienceFeePerSeat.toString());
+  const [gstPercent, setGstPercent] = useState(settings.gstPercent.toString());
+  const [twoFactor, setTwoFactor] = useState(settings.twoFactorEnforced);
+  const [sessionTimeout, setSessionTimeout] = useState(settings.sessionTimeoutMinutes.toString());
+  const [smtpHost, setSmtpHost] = useState(settings.smtpHost);
+  const [smsGateway, setSmsGateway] = useState(settings.smsGateway);
+  const [apiKey, setApiKey] = useState(settings.apiKeyLive);
 
   const SETTINGS_TABS: { id: SettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: "general", label: "General", icon: Settings },
-    { id: "branding", label: "Branding", icon: Palette },
-    { id: "platform", label: "Platform", icon: Cpu },
-    { id: "localization", label: "Localization", icon: Globe },
-    { id: "theme", label: "Theme", icon: Moon },
-    { id: "email", label: "Email Dispatch", icon: Mail },
-    { id: "sms", label: "SMS & WhatsApp", icon: MessageSquare },
-    { id: "security", label: "Security & 2FA", icon: Shield },
-    { id: "storage", label: "Storage & NVMe", icon: HardDrive },
-    { id: "backup", label: "Database Backup", icon: Database },
-    { id: "logs", label: "Audit & Logs", icon: Terminal },
-    { id: "maintenance", label: "Maintenance", icon: Zap },
-    { id: "integrations", label: "Integrations", icon: Key },
+    { id: "general", label: "General & Branding", icon: Settings },
+    { id: "localization", label: "Localization & Currency", icon: Globe },
+    { id: "pricing", label: "Fee & Tax Slabs", icon: Key },
+    { id: "security", label: "Security & 2FA Auth", icon: Shield },
+    { id: "email", label: "Email Dispatch (SMTP)", icon: Mail },
+    { id: "sms", label: "SMS & WhatsApp Rails", icon: MessageSquare },
+    { id: "maintenance", label: "Maintenance Mode", icon: Zap },
+    { id: "integrations", label: "Hardware & Gateways", icon: Cpu },
   ];
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateSettings({
+      appName,
+      tagline,
+      logoUrl,
+      maintenanceMode,
+      defaultCurrency,
+      currencySymbol,
+      timezone,
+      convenienceFeePerSeat: parseFloat(convenienceFee) || 35.0,
+      gstPercent: parseFloat(gstPercent) || 18.0,
+      twoFactorEnforced: twoFactor,
+      sessionTimeoutMinutes: parseInt(sessionTimeout, 10) || 60,
+      smtpHost,
+      smsGateway,
+      apiKeyLive: apiKey,
+    });
+
+    logAuditEvent("PLATFORM_CONFIG_UPDATED", "Settings", "Updated global platform parameters and financial tariffs.");
+    setSavedNotice(true);
+    setTimeout(() => setSavedNotice(false), 4000);
+  };
 
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Platform & System Settings"
-        subtitle="Multi-Tenant Boundaries, Security Keys, Edge Policies & Integrations"
-        description="Fine-tune global parameters, distributor API keys, automated backup policies, and notification providers."
+        title="Global Platform Settings & Governance"
+        subtitle="Configure Multi-Tenant Parameters, Security Rails, Currency, Fee Slabs & Integrations"
         badge="HQ Settings"
         badgeVariant="primary"
         actions={
-          <Button variant="primary" size="sm" disabled className="gap-2 font-bold">
-            <Save className="h-4 w-4" /> Save Configuration (Disabled)
+          <Button onClick={handleSave} variant="primary" size="sm" className="gap-2 font-bold text-xs">
+            <Save className="h-4 w-4" /> Save Configuration
           </Button>
         }
       />
 
-      {/* Tabs Layout: Vertical Navigation on desktop + Content area */}
+      {savedNotice && (
+        <div className="p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+          <span>Configuration saved successfully! All edge partitions and database parameters updated.</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-        {/* Left Side: Navigation Tabs List */}
+        {/* Left Vertical Tabs List */}
         <div className="p-3 rounded-2xl bg-[#161F2E] border border-[#2A3445] space-y-1">
           <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
-            System Configuration
+            System Parameters
           </div>
           {SETTINGS_TABS.map((tab) => {
             const Icon = tab.icon;
@@ -101,273 +138,239 @@ export default function SuperAdminSettingsPage() {
           })}
         </div>
 
-        {/* Right Side: Tab Content Panels */}
-        <div className="lg:col-span-3 p-6 sm:p-8 rounded-3xl bg-[#161F2E] border border-[#2A3445] space-y-6">
-          {/* GENERAL TAB */}
+        {/* Right Content Area */}
+        <div className="lg:col-span-3 p-6 rounded-3xl bg-[#161F2E] border border-[#2A3445] space-y-6">
+          {/* TAB 1: General & Branding */}
           {activeTab === "general" && (
-            <div className="space-y-6">
-              <div className="border-b border-[#2A3445] pb-4">
-                <h3 className="text-lg font-bold text-white">General Platform Settings</h3>
-                <p className="text-xs text-[#94A3B8]">Central corporate identity, platform name, and primary contact addresses.</p>
+            <div className="space-y-4">
+              <div className="border-b border-[#2A3445] pb-3">
+                <h3 className="text-base font-bold text-white">General Platform Identity</h3>
+                <p className="text-xs text-[#94A3B8]">Application title, marketing tagline and visual assets</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input label="Platform Name" defaultValue="CineSphere OS" disabled />
-                <Input label="Global Tagline" defaultValue="The Operating System for Modern Cinemas" disabled />
-                <Input label="Central Support Email" defaultValue="concierge@cinesphere.io" disabled />
-                <Input label="HQ Helpline Phone" defaultValue="+1 (800) 555-CINE" disabled />
-              </div>
-
-              <div className="p-4 rounded-xl bg-[#111827] border border-[#2A3445] space-y-2 text-xs">
-                <div className="font-bold text-white">Multi-Tenant Routing Identifier</div>
-                <p className="text-[#94A3B8]">All cinema chains resolve dynamically via `tenant.cinesphere.io` or custom vanity domains with SSL.</p>
-              </div>
-            </div>
-          )}
-
-          {/* BRANDING TAB */}
-          {activeTab === "branding" && (
-            <div className="space-y-6">
-              <div className="border-b border-[#2A3445] pb-4">
-                <h3 className="text-lg font-bold text-white">Global Brand Assets</h3>
-                <p className="text-xs text-[#94A3B8]">Logotypes, favicons, watermarks, and cinema receipt headers.</p>
-              </div>
-
-              <div className="space-y-4">
-                <Input label="Corporate Logo URL" defaultValue="https://assets.cinesphere.io/brand/logo.svg" disabled />
-                <Input label="Light / Dark Favicon" defaultValue="https://assets.cinesphere.io/brand/favicon.ico" disabled />
-                <Input label="Digital Ticket Watermark Text" defaultValue="CineSphere Certified Secure QR Ticket" disabled />
-              </div>
-            </div>
-          )}
-
-          {/* PLATFORM TAB */}
-          {activeTab === "platform" && (
-            <div className="space-y-6">
-              <div className="border-b border-[#2A3445] pb-4">
-                <h3 className="text-lg font-bold text-white">Platform Tenant Rules</h3>
-                <p className="text-xs text-[#94A3B8]">Concurrency rate limits, seat hold timers, and booking limits.</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input label="Seat Lock Reservation TTL (Minutes)" defaultValue="10" disabled />
-                <Input label="Max Tickets Per Cart Transaction" defaultValue="10" disabled />
-                <Input label="API Rate Limit Per Tenant (Req / Min)" defaultValue="2500" disabled />
-                <Input label="Turnstile Scanner Offline Cache (Hours)" defaultValue="12" disabled />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block text-[#94A3B8] font-bold mb-1">Platform Application Name</label>
+                  <input
+                    type="text"
+                    value={appName}
+                    onChange={(e) => setAppName(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#111827] border border-[#2A3445] text-white focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#94A3B8] font-bold mb-1">Platform Brand Tagline</label>
+                  <input
+                    type="text"
+                    value={tagline}
+                    onChange={(e) => setTagline(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#111827] border border-[#2A3445] text-white focus:outline-none"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-[#94A3B8] font-bold mb-1">Vector Logo Asset URL</label>
+                  <input
+                    type="text"
+                    value={logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#111827] border border-[#2A3445] text-white focus:outline-none font-mono"
+                  />
+                </div>
               </div>
             </div>
           )}
 
-          {/* LOCALIZATION TAB */}
+          {/* TAB 2: Localization */}
           {activeTab === "localization" && (
-            <div className="space-y-6">
-              <div className="border-b border-[#2A3445] pb-4">
-                <h3 className="text-lg font-bold text-white">Localization & Multi-Currency</h3>
-                <p className="text-xs text-[#94A3B8]">Default currencies, timezones, and multilingual content settings.</p>
+            <div className="space-y-4">
+              <div className="border-b border-[#2A3445] pb-3">
+                <h3 className="text-base font-bold text-white">Localization & Currency Rails</h3>
+                <p className="text-xs text-[#94A3B8]">Default regional currency, symbol, and timezone</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input label="Default Circuit Currency" defaultValue="INR (₹)" disabled />
-                <Input label="Timezone Standard" defaultValue="Asia/Kolkata (IST +5:30)" disabled />
-                <Input label="Primary UI Language" defaultValue="English (US/UK/IN)" disabled />
-                <Input label="Number Formatting" defaultValue="Lakhs & Crores (South Asia)" disabled />
-              </div>
-            </div>
-          )}
-
-          {/* THEME TAB */}
-          {activeTab === "theme" && (
-            <div className="space-y-6">
-              <div className="border-b border-[#2A3445] pb-4">
-                <h3 className="text-lg font-bold text-white">Theme & Cinema Color Palette</h3>
-                <p className="text-xs text-[#94A3B8]">Strict enterprise dark luxury styling token assignments.</p>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label: "Background", color: "#070B12" },
-                  { label: "Surface", color: "#111827" },
-                  { label: "Card", color: "#161F2E" },
-                  { label: "Primary Amber", color: "#FBBF24" },
-                ].map((th, i) => (
-                  <div key={i} className="p-3 rounded-xl bg-[#111827] border border-[#2A3445] space-y-1.5">
-                    <div className="h-6 w-full rounded-lg" style={{ backgroundColor: th.color }} />
-                    <div className="text-xs font-bold text-white">{th.label}</div>
-                    <div className="text-[10px] font-mono text-[#64748B]">{th.color}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* EMAIL TAB */}
-          {activeTab === "email" && (
-            <div className="space-y-6">
-              <div className="border-b border-[#2A3445] pb-4">
-                <h3 className="text-lg font-bold text-white">Transactional Email Delivery</h3>
-                <p className="text-xs text-[#94A3B8]">Amazon SES, Resend, and SendGrid mail servers.</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input label="SMTP Provider" defaultValue="Amazon SES (us-east-1)" disabled />
-                <Input label="Sender Email Address" defaultValue="tickets@cinesphere.io" disabled />
-                <Input label="DKIM & SPF Authentication" defaultValue="Verified (100% Pass)" disabled />
-                <Input label="Daily Email Quota" defaultValue="500,000 Messages" disabled />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div>
+                  <label className="block text-[#94A3B8] font-bold mb-1">Default Currency Code</label>
+                  <input
+                    type="text"
+                    value={defaultCurrency}
+                    onChange={(e) => setDefaultCurrency(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#111827] border border-[#2A3445] text-white focus:outline-none font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#94A3B8] font-bold mb-1">Currency Symbol</label>
+                  <input
+                    type="text"
+                    value={currencySymbol}
+                    onChange={(e) => setCurrencySymbol(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#111827] border border-[#2A3445] text-white focus:outline-none font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#94A3B8] font-bold mb-1">Platform Timezone</label>
+                  <select
+                    value={timezone}
+                    onChange={(e) => setTimezone(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#111827] border border-[#2A3445] text-white focus:outline-none"
+                  >
+                    <option value="Asia/Kolkata">Asia/Kolkata (IST - UTC+05:30)</option>
+                    <option value="UTC">UTC (Coordinated Universal Time)</option>
+                    <option value="Asia/Dubai">Asia/Dubai (GST - UTC+04:00)</option>
+                  </select>
+                </div>
               </div>
             </div>
           )}
 
-          {/* SMS TAB */}
-          {activeTab === "sms" && (
-            <div className="space-y-6">
-              <div className="border-b border-[#2A3445] pb-4">
-                <h3 className="text-lg font-bold text-white">SMS & WhatsApp Gateway</h3>
-                <p className="text-xs text-[#94A3B8]">Twilio, Gupshup, and Meta WhatsApp Business API.</p>
+          {/* TAB 3: Pricing & Tax */}
+          {activeTab === "pricing" && (
+            <div className="space-y-4">
+              <div className="border-b border-[#2A3445] pb-3">
+                <h3 className="text-base font-bold text-white">Convenience Fees & Tax Slabs</h3>
+                <p className="text-xs text-[#94A3B8]">Configurable platform fee share and statutory GST percentages</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input label="SMS Gateway Provider" defaultValue="Twilio Enterprise / Gupshup" disabled />
-                <Input label="WhatsApp Business WABA ID" defaultValue="waba_8492019842" disabled />
-                <Input label="DLT Entity Registration ID" defaultValue="1101482910482" disabled />
-                <Input label="OTP Dispatch Timeout" defaultValue="45 Seconds" disabled />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block text-[#94A3B8] font-bold mb-1">Platform Convenience Fee / Seat (₹)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={convenienceFee}
+                    onChange={(e) => setConvenienceFee(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#111827] border border-[#2A3445] text-white focus:outline-none font-mono"
+                  />
+                  <span className="text-[10px] text-[#64748B]">Applied to customer online ticket bookings</span>
+                </div>
+                <div>
+                  <label className="block text-[#94A3B8] font-bold mb-1">Statutory Cinema GST Slab (%)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={gstPercent}
+                    onChange={(e) => setGstPercent(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#111827] border border-[#2A3445] text-white focus:outline-none font-mono"
+                  />
+                  <span className="text-[10px] text-[#64748B]">Calculated as 9% CGST + 9% SGST</span>
+                </div>
               </div>
             </div>
           )}
 
-          {/* SECURITY TAB */}
+          {/* TAB 4: Security */}
           {activeTab === "security" && (
-            <div className="space-y-6">
-              <div className="border-b border-[#2A3445] pb-4">
-                <h3 className="text-lg font-bold text-white">Security & Access Policies</h3>
-                <p className="text-xs text-[#94A3B8]">Two-factor authentication, session limits, and IP whitelist rules.</p>
-              </div>
-
-              <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-[#111827] border border-[#2A3445] flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-white text-xs">Mandatory 2FA for All Admins</div>
-                    <div className="text-[11px] text-[#94A3B8]">Enforce Google Authenticator / FIDO2 security keys</div>
-                  </div>
-                  <Badge variant="success" size="sm">Enforced</Badge>
-                </div>
-
-                <div className="p-4 rounded-xl bg-[#111827] border border-[#2A3445] flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-white text-xs">Session Inactivity Expiry</div>
-                    <div className="text-[11px] text-[#94A3B8]">Auto-lock dashboard after 30 minutes of idle time</div>
-                  </div>
-                  <Badge variant="primary" size="sm">30 Minutes</Badge>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STORAGE TAB */}
-          {activeTab === "storage" && (
-            <div className="space-y-6">
-              <div className="border-b border-[#2A3445] pb-4">
-                <h3 className="text-lg font-bold text-white">Storage & Media Clusters</h3>
-                <p className="text-xs text-[#94A3B8]">AWS S3, Cloudflare R2, and NVMe edge clusters.</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input label="Storage Cluster Provider" defaultValue="Cloudflare R2 + AWS S3" disabled />
-                <Input label="Storage Quota" defaultValue="4.2 TB / 10.0 TB" disabled />
-                <Input label="Asset CDN Edge URL" defaultValue="https://media.cinesphere.io" disabled />
-                <Input label="DCP Decryption Cache Limit" defaultValue="2.0 TB NVMe" disabled />
-              </div>
-            </div>
-          )}
-
-          {/* BACKUP TAB */}
-          {activeTab === "backup" && (
-            <div className="space-y-6">
-              <div className="border-b border-[#2A3445] pb-4">
-                <h3 className="text-lg font-bold text-white">Database Backup & Disaster Recovery</h3>
-                <p className="text-xs text-[#94A3B8]">Point-in-time recovery, multi-region snapshots, and replication.</p>
+            <div className="space-y-4">
+              <div className="border-b border-[#2A3445] pb-3">
+                <h3 className="text-base font-bold text-white">Access Security & 2FA Enforcement</h3>
+                <p className="text-xs text-[#94A3B8]">Session limits and mandatory authentication policies</p>
               </div>
 
               <div className="space-y-3 text-xs">
-                <div className="p-4 rounded-xl bg-[#111827] border border-[#2A3445] flex items-center justify-between">
+                <div className="p-4 rounded-2xl bg-[#111827] border border-[#2A3445] flex items-center justify-between">
                   <div>
-                    <div className="font-bold text-white">Automated Snapshot Frequency</div>
-                    <div className="text-[#94A3B8]">Continuous WAL archiving with 1-second RPO</div>
+                    <div className="font-bold text-white">Enforce Two-Factor Authentication (2FA)</div>
+                    <div className="text-[11px] text-[#94A3B8]">Requires SMS / Authenticator app OTP for all Super Admin and Theatre Admin logins</div>
                   </div>
-                  <Badge variant="success" size="sm">Active (0s RPO)</Badge>
+                  <button
+                    type="button"
+                    onClick={() => setTwoFactor(!twoFactor)}
+                    className={`px-3 py-1.5 rounded-lg font-bold text-xs ${
+                      twoFactor ? "bg-emerald-500 text-black" : "bg-[#2A3445] text-[#94A3B8]"
+                    }`}
+                  >
+                    {twoFactor ? "ENFORCED" : "OPTIONAL"}
+                  </button>
                 </div>
 
-                <div className="p-4 rounded-xl bg-[#111827] border border-[#2A3445] flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-white">Cross-Region Cold Mirror</div>
-                    <div className="text-[#94A3B8]">Encrypted mirror replica in eu-west-1 (Frankfurt)</div>
-                  </div>
-                  <Badge variant="outline" size="sm">Synchronized</Badge>
+                <div>
+                  <label className="block text-[#94A3B8] font-bold mb-1">Idle Session Inactivity Timeout (Minutes)</label>
+                  <input
+                    type="number"
+                    value={sessionTimeout}
+                    onChange={(e) => setSessionTimeout(e.target.value)}
+                    className="w-48 p-2.5 rounded-xl bg-[#111827] border border-[#2A3445] text-white focus:outline-none font-mono"
+                  />
                 </div>
               </div>
             </div>
           )}
 
-          {/* LOGS TAB */}
-          {activeTab === "logs" && (
-            <div className="space-y-6">
-              <div className="border-b border-[#2A3445] pb-4">
-                <h3 className="text-lg font-bold text-white">Audit & Log Retention Policy</h3>
-                <p className="text-xs text-[#94A3B8]">SOC-2 and ISO 27001 compliant retention schedules.</p>
+          {/* TAB 5: Maintenance Mode */}
+          {activeTab === "maintenance" && (
+            <div className="space-y-4">
+              <div className="border-b border-[#2A3445] pb-3">
+                <h3 className="text-base font-bold text-white">Circuit-Wide Maintenance Switch</h3>
+                <p className="text-xs text-[#94A3B8]">Emergency platform drain and scheduled upgrades</p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-[#111827] border border-[#2A3445] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="font-bold text-white text-sm">Platform Maintenance Mode</div>
+                  <p className="text-xs text-[#94A3B8] mt-1 max-w-md">
+                    When engaged, all public portals and booking engines display a graceful maintenance screen. Admin dashboards remain accessible to Super Admins.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMaintenanceMode(!maintenanceMode)}
+                  className={`px-4 py-2 rounded-xl font-bold text-xs transition-colors shrink-0 ${
+                    maintenanceMode
+                      ? "bg-rose-600 text-white shadow-lg shadow-rose-600/30"
+                      : "bg-[#2A3445] text-[#94A3B8] hover:text-white"
+                  }`}
+                >
+                  {maintenanceMode ? "MAINTENANCE ACTIVE" : "MAINTENANCE OFF"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: Email & SMS */}
+          {(activeTab === "email" || activeTab === "sms" || activeTab === "integrations") && (
+            <div className="space-y-4 text-xs">
+              <div className="border-b border-[#2A3445] pb-3">
+                <h3 className="text-base font-bold text-white">Notification Rails & API Connectors</h3>
+                <p className="text-xs text-[#94A3B8]">SMTP dispatchers, telecom SMS gateways, and production API credentials</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input label="Financial Ledger Retention" defaultValue="7 Years (Statutory)" disabled />
-                <Input label="Security Access Log Retention" defaultValue="365 Days" disabled />
-                <Input label="Projector Telemetry Frequency" defaultValue="Every 60 Seconds" disabled />
-                <Input label="Log Streaming Destination" defaultValue="Datadog / OpenTelemetry" disabled />
-              </div>
-            </div>
-          )}
-
-          {/* MAINTENANCE TAB */}
-          {activeTab === "maintenance" && (
-            <div className="space-y-6">
-              <div className="border-b border-[#2A3445] pb-4">
-                <h3 className="text-lg font-bold text-white">Maintenance & Upgrades</h3>
-                <p className="text-xs text-[#94A3B8]">Zero-downtime rolling upgrades and circuit maintenance windows.</p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-[#111827] border border-[#2A3445] space-y-2 text-xs">
-                <div className="font-bold text-white">Upcoming Maintenance Window</div>
-                <p className="text-[#94A3B8]">Scheduled for Nov 20, 2026 at 03:00 AM IST. Automatic traffic drains to read replicas with zero booking interruption.</p>
-                <div className="pt-2">
-                  <Badge variant="info" size="sm">Scheduled</Badge>
+                <div>
+                  <label className="block text-[#94A3B8] font-bold mb-1">Corporate SMTP Host</label>
+                  <input
+                    type="text"
+                    value={smtpHost}
+                    onChange={(e) => setSmtpHost(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#111827] border border-[#2A3445] text-white focus:outline-none font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#94A3B8] font-bold mb-1">High-Priority SMS Rail</label>
+                  <input
+                    type="text"
+                    value={smsGateway}
+                    onChange={(e) => setSmsGateway(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#111827] border border-[#2A3445] text-white focus:outline-none"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-[#94A3B8] font-bold mb-1">Platform Production API Master Key</label>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#111827] border border-[#2A3445] text-white focus:outline-none font-mono"
+                  />
                 </div>
               </div>
             </div>
           )}
 
-          {/* INTEGRATIONS TAB */}
-          {activeTab === "integrations" && (
-            <div className="space-y-6">
-              <div className="border-b border-[#2A3445] pb-4">
-                <h3 className="text-lg font-bold text-white">Hardware & Cinema Integrations</h3>
-                <p className="text-xs text-[#94A3B8]">Christie, Barco, Dolby Atmos, QSC, and Rentrak Comscore API keys.</p>
-              </div>
-
-              <div className="space-y-3">
-                {[
-                  { name: "Christie Digital CineLife SNMP", status: "Connected", desc: "4K Laser Projector automation and lamp telemetry" },
-                  { name: "Barco Alchemy Server API", status: "Connected", desc: "DCP ingestion, playlist cues and show synchronization" },
-                  { name: "Dolby CP950 Audio Processor", status: "Connected", desc: "Atmos 128-ch spatial sound volume and fader presets" },
-                  { name: "Comscore / Rentrak Box Office EDI", status: "Connected", desc: "Automated midnight box office reporting transmission" },
-                ].map((item, idx) => (
-                  <div key={idx} className="p-3.5 rounded-xl bg-[#111827] border border-[#2A3445] flex items-center justify-between text-xs">
-                    <div>
-                      <div className="font-bold text-white">{item.name}</div>
-                      <div className="text-[11px] text-[#94A3B8]">{item.desc}</div>
-                    </div>
-                    <Badge variant="success" size="sm">{item.status}</Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <div className="pt-4 border-t border-[#2A3445] flex justify-end">
+            <Button onClick={handleSave} variant="primary" size="sm" className="font-bold text-xs gap-2">
+              <Save className="h-4 w-4" /> Save Configuration
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -427,14 +427,15 @@ export default function SuperAdminDashboardPage() {
 
                 <div className="flex items-center justify-between text-[10px] text-[#64748B] pt-2 border-t border-[#2A3445]/60">
                   <span>By: {item.submittedBy} • {item.submittedAt}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled
-                    className="h-6 text-[10px] px-2 py-0 border-[#2A3445]"
-                  >
-                    Review (Disabled)
-                  </Button>
+                  <Link href="/dashboard/theatres">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-[10px] px-2 py-0 border-[#2A3445] text-[#FBBF24] hover:bg-[#FBBF24]/10"
+                    >
+                      Review in Hub →
+                    </Button>
+                  </Link>
                 </div>
               </div>
             ))}

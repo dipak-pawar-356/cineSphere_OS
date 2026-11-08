@@ -29,6 +29,9 @@ import {
   LogOut,
   CalendarDays,
   CreditCard,
+  Megaphone,
+  Activity,
+  Armchair,
 } from "lucide-react";
 
 export interface NavItemConfig {
@@ -68,10 +71,10 @@ export const PUBLIC_NAV_ITEMS: NavItemConfig[] = [
  */
 export const SUPER_ADMIN_NAV_SECTIONS: NavSectionConfig[] = [
   {
-    title: "Core Overview",
+    title: "Core Platform",
     items: [
       {
-        label: "Overview",
+        label: "Platform Command",
         href: ROUTES.SUPER_ADMIN.OVERVIEW,
         icon: LayoutDashboard,
         badge: "Live",
@@ -82,8 +85,30 @@ export const SUPER_ADMIN_NAV_SECTIONS: NavSectionConfig[] = [
         label: "Theatres Circuit",
         href: ROUTES.SUPER_ADMIN.THEATRES,
         icon: Building2,
-        badge: "25 Chains",
-        description: "Multi-tenant cinema complexes & locations",
+        badge: "Approval Hub",
+        badgeVariant: "primary",
+        description: "Multi-tenant cinema complexes, KYC & approvals",
+      },
+      {
+        label: "Subscriptions",
+        href: ROUTES.SUPER_ADMIN.SUBSCRIPTIONS,
+        icon: CreditCard,
+        badge: "4 Tiers",
+        description: "SaaS plan tiers, billing cycles & licensing",
+      },
+      {
+        label: "Cities & Geo",
+        href: ROUTES.SUPER_ADMIN.CITIES,
+        icon: MapPin,
+        badge: "12 Cities",
+        description: "Metropolitan jurisdictions, states & countries",
+      },
+      {
+        label: "Amenities Catalog",
+        href: ROUTES.SUPER_ADMIN.AMENITIES,
+        icon: Armchair,
+        badge: "Master List",
+        description: "Global luxury amenities available for theatre assignment",
       },
       {
         label: "Auditoriums & Halls",
@@ -92,12 +117,47 @@ export const SUPER_ADMIN_NAV_SECTIONS: NavSectionConfig[] = [
         badge: "110 Screens",
         description: "IMAX, 4DX, ScreenX, and Dolby Atmos screens",
       },
+    ],
+  },
+  {
+    title: "Operations & Governance",
+    items: [
       {
-        label: "Cities & Locations",
-        href: ROUTES.SUPER_ADMIN.LOCATIONS,
-        icon: MapPin,
-        badge: "12 Cities",
-        description: "Metropolitan jurisdictions, states & amenities",
+        label: "Global Bookings",
+        href: ROUTES.SUPER_ADMIN.BOOKINGS,
+        icon: Ticket,
+        badge: "124.8K",
+        badgeVariant: "primary",
+        description: "Cross-tenant ticketing ledger & reservation audit",
+      },
+      {
+        label: "Platform Payments",
+        href: ROUTES.SUPER_ADMIN.PAYMENTS,
+        icon: TrendingUp,
+        badge: "₹8.6 Cr",
+        badgeVariant: "warning",
+        description: "Tenant payment rails, UPI settlements & gateways",
+      },
+      {
+        label: "Unified Users",
+        href: ROUTES.SUPER_ADMIN.USERS,
+        icon: Users,
+        badge: "5 Roles",
+        description: "Cross-tier user registry, roles & tenant scoping",
+      },
+      {
+        label: "Announcements",
+        href: ROUTES.SUPER_ADMIN.ANNOUNCEMENTS,
+        icon: Megaphone,
+        badge: "Broadcast",
+        description: "Targeted platform notifications & urgent broadcasts",
+      },
+      {
+        label: "Support Desk",
+        href: ROUTES.SUPER_ADMIN.SUPPORT,
+        icon: Headphones,
+        badge: "Desk",
+        description: "Exhibitor escalation desk, bug tickets & inquiries",
       },
     ],
   },
@@ -118,14 +178,6 @@ export const SUPER_ADMIN_NAV_SECTIONS: NavSectionConfig[] = [
         description: "Timetable programming and projection assignments",
       },
       {
-        label: "Global Bookings",
-        href: ROUTES.SUPER_ADMIN.BOOKINGS,
-        icon: Ticket,
-        badge: "124.8K",
-        badgeVariant: "primary",
-        description: "Cross-tenant ticketing ledger & refunds",
-      },
-      {
         label: "Events & Festivals",
         href: ROUTES.SUPER_ADMIN.EVENTS,
         icon: CalendarDays,
@@ -141,40 +193,20 @@ export const SUPER_ADMIN_NAV_SECTIONS: NavSectionConfig[] = [
     ],
   },
   {
-    title: "User Management",
+    title: "Intelligence & Security",
     items: [
       {
-        label: "Customers",
-        href: ROUTES.SUPER_ADMIN.CUSTOMERS,
-        icon: Users,
-        badge: "385K",
-        description: "Patron registry, loyalty tiers & profiles",
+        label: "Audit Trail",
+        href: ROUTES.SUPER_ADMIN.AUDIT,
+        icon: History,
+        badge: "Security",
+        description: "Immutable security trail & administrative activities",
       },
       {
-        label: "Theatre Admins",
-        href: ROUTES.SUPER_ADMIN.ADMINS,
-        icon: ShieldCheck,
-        badge: "24",
-        description: "Authorized cinema chain operators & hall managers",
-      },
-      {
-        label: "Field Staff",
-        href: ROUTES.SUPER_ADMIN.STAFF,
-        icon: UserCheck,
-        description: "Box office agents, ushers & technicians",
-      },
-    ],
-  },
-  {
-    title: "Financials & Intelligence",
-    items: [
-      {
-        label: "Revenue & Payments",
-        href: ROUTES.SUPER_ADMIN.REVENUE,
-        icon: TrendingUp,
-        badge: "₹8.6 Cr",
-        badgeVariant: "warning",
-        description: "Box office split ledgers and concession yields",
+        label: "Platform Reports",
+        href: ROUTES.SUPER_ADMIN.REPORTS,
+        icon: FileText,
+        description: "Regulatory compliance and distributor tax filings",
       },
       {
         label: "Platform Analytics",
@@ -183,40 +215,8 @@ export const SUPER_ADMIN_NAV_SECTIONS: NavSectionConfig[] = [
         description: "Audience demographics, heatmaps & peak hours",
       },
       {
-        label: "Audit Reports",
-        href: ROUTES.SUPER_ADMIN.REPORTS,
-        icon: FileText,
-        description: "Regulatory compliance and distributor tax filings",
-      },
-    ],
-  },
-  {
-    title: "System & Control",
-    items: [
-      {
-        label: "System Alerts",
-        href: ROUTES.SUPER_ADMIN.NOTIFICATIONS,
-        icon: Bell,
-        badge: "3 Alerts",
-        badgeVariant: "danger",
-        description: "Projector telemetry alerts and security logs",
-      },
-      {
-        label: "Audit Logs",
-        href: ROUTES.SUPER_ADMIN.AUDIT_LOGS,
-        icon: History,
-        description: "Immutable security trail & admin activities",
-      },
-      {
-        label: "Support Tickets",
-        href: ROUTES.SUPER_ADMIN.SUPPORT_TICKETS,
-        icon: Headphones,
-        badge: "5 Urgent",
-        description: "Exhibitor escalation desk & customer disputes",
-      },
-      {
         label: "Media Library",
-        href: ROUTES.SUPER_ADMIN.MEDIA_LIBRARY,
+        href: ROUTES.SUPER_ADMIN.MEDIA,
         icon: ImageIcon,
         description: "Posters, banners, logos & 4K trailer assets",
       },

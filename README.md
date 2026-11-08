@@ -298,6 +298,19 @@ Phase 2 - Part 2 establishes the production-ready PostgreSQL database architectu
 
 ---
 
+## 🛡️ 2.4 Phase 2 - Part 3: Super Admin Platform Management
+
+Phase 2 - Part 3 delivers the comprehensive, enterprise-grade Super Admin Platform Control Plane under `/dashboard/...`:
+
+- 🎛️ **16 Enterprise Platform Views:** Executive KPI Command Center (`/dashboard`), Edge Telemetry Studio (`/dashboard/platform`), Theatre Approval Workflow Studio (`/dashboard/theatres`), Deep-Dive Multi-Tab Cinema Inspector (`/dashboard/theatres/[id]`), SaaS Subscription Management (`/dashboard/subscriptions`), Cross-Tenant Payments Ledger (`/dashboard/payments`), Global Bookings (`/dashboard/bookings`), Unified User & Role Directory (`/dashboard/users`), Cross-Platform Reporting Studio (`/dashboard/reports`), System Settings (`/dashboard/settings`), Geographic Hubs (`/dashboard/cities`), Luxury Amenities Catalog (`/dashboard/amenities`), System Announcements (`/dashboard/announcements`), Enterprise Support (`/dashboard/support`), Tamper-Evident Audit Logs (`/dashboard/audit`), and Digital Media Vault (`/dashboard/media`).
+- 🔄 **Theatre Lifecycle State Machine:** Strict multi-tenant verification pipeline (`Pending Approval` → `Active` or `Rejected` with logged justification; `Active` ↔ `Suspended` ↔ `Maintenance`).
+- 💼 **4-Tier Commercial SaaS Plans:** Free (₹0/mo, 1 screen, 4% cut), Starter (₹4,999/mo, 3 screens, 2.5% cut), Professional (₹14,999/mo, 8 screens, 1.5% cut), Enterprise (₹39,999/mo, unlimited screens, 0.8% cut).
+- 💾 **Centralized Platform State (`usePlatformStore`):** Persistent Zustand store managing all administrative actions, cinema approvals, settings changes, and immutable security audit logs with instant reactivity and local storage sync.
+- 🔒 **Zero Cross-Role Leakage:** Strict route guards in `auth/guards/route-guards.ts` and Next.js middleware restricting all `/dashboard` paths exclusively to `SUPER_ADMIN` (level 100).
+- 📚 **Exhaustive Platform Documentation:** Comprehensive architecture, state machine diagrams, and route guides in [`docs/SUPER_ADMIN_PLATFORM.md`](./docs/SUPER_ADMIN_PLATFORM.md).
+
+---
+
 ## ☁️ 9. Vercel Deployment Settings
 
 For zero-configuration deployment to Vercel:
@@ -316,6 +329,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🛡️ [`docs/SUPER_ADMIN_PLATFORM.md`](./docs/SUPER_ADMIN_PLATFORM.md) — Super Admin Platform Control Plane, Governance Architecture & State Machine (Phase 2 - Part 3).
 - 🗄️ [`docs/DATABASE_ARCHITECTURE.md`](./docs/DATABASE_ARCHITECTURE.md) — Production PostgreSQL Architecture, Drizzle ORM Schema, Relational Graph & Multi-Tenant Model (Phase 2 - Part 2).
 - 🏢 [`docs/AUTH_AND_AUTHORIZATION.md`](./docs/AUTH_AND_AUTHORIZATION.md) — Enterprise Authentication, Clerk Integration, Multi-Tenant Isolation & RBAC Architecture (Phase 2 - Part 1).
 - 🏢 [`docs/MULTI_TENANT_ARCHITECTURE.md`](./docs/MULTI_TENANT_ARCHITECTURE.md) — Comprehensive Multi-Tenant Cinema OS Specification & Layout Engine.

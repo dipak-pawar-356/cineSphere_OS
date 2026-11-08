@@ -16,16 +16,34 @@
 
 ---
 
-## 2. Super Admin Control Plane (`(admin)`)
+## 2. Super Admin Platform (`(super-admin)`)
+
+The primary Super Admin Control Plane is hosted under `/dashboard/...` (with legacy `/admin` routes retained for Phase 1 compatibility):
 
 | Path | Description | Access |
 |---|---|---|
-| `/admin` | Platform Overview, Gross Box Office, Admissions | Super Admin |
-| `/admin/theatres` | Cinema Circuit Onboarding & License Approvals | Super Admin |
-| `/admin/movies` | Global Movie Distribution & CBFC Ingestion | Super Admin |
-| `/admin/analytics` | Macro Revenue, City Breakdown, Format Split | Super Admin |
-| `/admin/system` | Service Health Telemetry, Redis, Edge CDN | Super Admin |
-| `/admin/settings` | Multi-Tenant Governance, Currency, GST Rules | Super Admin |
+| `/dashboard` | Master Executive Governance Command Center & KPIs | Super Admin |
+| `/dashboard/platform` | System Infrastructure Health & Edge Telemetry Studio | Super Admin |
+| `/dashboard/theatres` | Cinema Onboarding & Theatre Approval Workflow Studio | Super Admin |
+| `/dashboard/theatres/[id]` | Deep-Dive Multi-Tab Cinema Inspector (General, Admin, UPI, SaaS) | Super Admin |
+| `/dashboard/subscriptions` | SaaS Commercial Plans & Tier Pricing Management | Super Admin |
+| `/dashboard/payments` | Cross-Tenant Payments Ledger & Gateway Health | Super Admin |
+| `/dashboard/bookings` | Cross-Tenant Bookings Ledger & Transaction Stream | Super Admin |
+| `/dashboard/users` | Unified Multi-Tenant Identity Directory & Role Management | Super Admin |
+| `/dashboard/reports` | Cross-Platform Financial, Tax & Operational Analytics (PDF/Excel/CSV) | Super Admin |
+| `/dashboard/settings` | Platform Configuration Studio (Maintenance mode, fees, security) | Super Admin |
+| `/dashboard/cities` | Metropolitan & Geographic Hub Governance (Tier 1/2/3, coords) | Super Admin |
+| `/dashboard/amenities` | Master Luxury Cinema Amenities Catalog | Super Admin |
+| `/dashboard/announcements` | System Broadcast & Targeted Push Dispatch Center | Super Admin |
+| `/dashboard/support` | Enterprise Support Ticket Management Center | Super Admin |
+| `/dashboard/audit` | Tamper-Evident Security & Compliance Audit Log Vault | Super Admin |
+| `/dashboard/media` | Centralized Digital Media & Brand Asset Vault | Super Admin |
+| `/admin` *(Legacy)* | Phase 1 Platform Overview | Super Admin |
+| `/admin/theatres` *(Legacy)* | Phase 1 Cinema Circuit Onboarding | Super Admin |
+| `/admin/movies` *(Legacy)* | Phase 1 Global Movie Distribution | Super Admin |
+| `/admin/analytics` *(Legacy)* | Phase 1 Macro Revenue & Format Split | Super Admin |
+| `/admin/system` *(Legacy)* | Phase 1 Service Health Telemetry | Super Admin |
+| `/admin/settings` *(Legacy)* | Phase 1 Multi-Tenant Governance | Super Admin |
 
 ---
 
