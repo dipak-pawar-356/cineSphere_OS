@@ -166,3 +166,4 @@ export const LAYOUT_68_SEATS: HallLayout = generateHallLayout({
   vipAreas: ["Zero-G Recliners"],
   wheelchairSpaces: ["C1", "C20"],
 });
+

@@ -108,3 +108,4 @@ export function SeatRenderer({
 
   return <SeatTooltip seat={seat}>{seatNode}</SeatTooltip>;
 }
+

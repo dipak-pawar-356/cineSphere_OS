@@ -140,7 +140,7 @@ export interface Hall {
   name: string;
   hallNumber: number;
   screenNumber?: number;
-  capacity?: number;
+  capacity: number;
   totalSeats?: number;
   screenType: ScreenType;
   projectionType?: string;

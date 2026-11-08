@@ -229,3 +229,4 @@ export function calculateBookingPrice(
     seatCount: selectedSeats.length,
   };
 }
+

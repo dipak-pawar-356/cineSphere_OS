@@ -199,3 +199,4 @@ Located in [`components/cinema-engine/`](file:///d:/Project_2k24_25/cineSphere_O
 | `SeatTooltip` | Micro-tooltip showing seat number, section name, price, and tier on hover. |
 | `SectionBadge` | Color-coded pill reflecting section name and tier. |
 | `SeatBadge` | Compact selected seat pill (e.g. `B12 · Gold · ₹350`). |
+

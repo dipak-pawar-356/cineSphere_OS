@@ -8,3 +8,4 @@ export * from "./seat-summary";
 export * from "./price-summary";
 export * from "./hall-layout-renderer";
 export * from "./booking-sidebar";
+

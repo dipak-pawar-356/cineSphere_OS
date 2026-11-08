@@ -65,3 +65,4 @@ export function PriceSummary({ pricing, className }: PriceSummaryProps) {
     </div>
   );
 }
+

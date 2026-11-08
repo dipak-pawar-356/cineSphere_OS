@@ -30,3 +30,4 @@ export function SeatTooltip({ seat, children }: SeatTooltipProps) {
     </div>
   );
 }
+

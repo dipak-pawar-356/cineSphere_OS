@@ -321,3 +321,4 @@ export const MULTI_TENANT_THEATRES: Theatre[] = [
   THEATRE_B,
   THEATRE_C,
 ];
+

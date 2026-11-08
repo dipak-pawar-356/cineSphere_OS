@@ -49,7 +49,7 @@ export interface Theatre {
   city: string;
   state: string;
   pinCode?: string;
-  country?: string;
+  country: string;
   distanceKm?: number;
   rating: number;
   reviewsCount?: number;

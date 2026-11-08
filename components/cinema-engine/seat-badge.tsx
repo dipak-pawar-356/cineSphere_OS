@@ -37,3 +37,4 @@ export function SeatBadge({ seat, onRemove, className }: SeatBadgeProps) {
     </div>
   );
 }
+

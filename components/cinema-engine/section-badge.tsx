@@ -30,3 +30,4 @@ export function SectionBadge({ name, color = "#F59E0B", price, className }: Sect
     </div>
   );
 }
+
