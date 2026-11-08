@@ -282,6 +282,7 @@ export interface TheatreState {
   deletePricingProfile: (id: string) => { success: boolean; error?: string };
   duplicatePricingProfile: (id: string, newName?: string) => { success: boolean; profile?: DynamicPricingProfile; error?: string };
   setDefaultPricingProfile: (id: string) => void;
+  assignPricingProfileToShow: (showId: string, pricingProfileId: string) => { success: boolean; error?: string };
 
   // Show Programming (Phase 2 Part 8)
   addShow: (show: Omit<ManagedShow, "id" | "seatsBooked">) => { success: boolean; show?: ManagedShow; error?: string };
@@ -1618,6 +1619,40 @@ export const useTheatreStore = create<TheatreState>()(
             "Pricing",
             `Set "${target.name}" as the default cinema pricing profile`
           );
+        },
+
+        assignPricingProfileToShow: (showId, pricingProfileId) => {
+          const profile = get().pricingProfiles.find((p) => p.id === pricingProfileId);
+          if (!profile) {
+            return { success: false, error: "Pricing profile not found" };
+          }
+          const show = get().shows.find((s) => s.id === showId);
+          if (!show) {
+            return { success: false, error: "Show not found" };
+          }
+
+          set((state) => ({
+            shows: state.shows.map((s) => {
+              if (s.id === showId) {
+                return {
+                  ...s,
+                  pricingProfileId: profile.id,
+                  pricingProfileName: profile.name,
+                  sectionPricing: profile.tierPricing,
+                  updatedAt: new Date().toISOString(),
+                };
+              }
+              return s;
+            }),
+          }));
+
+          get().logTenantAudit(
+            "PRICING_PROFILE_ASSIGNED",
+            "Pricing",
+            `Assigned pricing profile "${profile.name}" to show "${show.movieTitle}" (${show.startTime})`
+          );
+
+          return { success: true };
         },
 
         // ----------------------------------------------------------------------

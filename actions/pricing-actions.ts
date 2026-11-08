@@ -199,6 +199,141 @@ export async function duplicatePricingProfileAction(
 }
 
 /**
+ * Server Action: Validate Pricing Input
+ */
+export async function validatePricingAction(
+  input: CreatePricingProfileInput
+): Promise<PricingActionResponse<{ isValid: boolean; errors: Record<string, string> }>> {
+  const result = validatePricingProfileInput(input);
+  return {
+    success: result.isValid,
+    message: result.isValid
+      ? "Pricing profile configuration is valid and meets all safety guardrails."
+      : "Pricing profile failed validation.",
+    errors: result.errors,
+    data: result,
+  };
+}
+
+/**
+ * Server Action: Assign Pricing Profile to Show
+ * Connects the Pricing Profile to a specific Show screening event.
+ */
+export async function assignPricingProfileToShowAction(
+  showId: string,
+  pricingProfileId: string,
+  theatreId: string,
+  profiles: DynamicPricingProfile[] = INITIAL_DYNAMIC_PRICING_PROFILES
+): Promise<
+  PricingActionResponse<{
+    showId: string;
+    pricingProfileId: string;
+    pricingProfileName: string;
+    sectionPricing: Record<string, number>;
+  }>
+> {
+  const profile = profiles.find((p) => p.id === pricingProfileId);
+  if (!profile) {
+    return {
+      success: false,
+      message: `Pricing profile ${pricingProfileId} not found.`,
+    };
+  }
+
+  // Tenant Isolation Check
+  if (profile.theatreId && profile.theatreId !== theatreId) {
+    return {
+      success: false,
+      message: "Tenant Isolation Violation: You cannot assign a pricing profile from another theatre.",
+    };
+  }
+
+  const auditRecord: PricingAuditLogRecord = {
+    id: `aud-prc-${Date.now()}`,
+    action: "ASSIGNED",
+    profileId: profile.id,
+    profileName: profile.name,
+    theatreId,
+    user: "theatre-admin@cinesphere.com",
+    timestamp: new Date().toISOString(),
+    details: `Assigned pricing profile "${profile.name}" (${profile.code}) to show ID ${showId}.`,
+    status: "SUCCESS",
+  };
+
+  return {
+    success: true,
+    message: `Successfully linked profile "${profile.name}" to show ${showId}.`,
+    data: {
+      showId,
+      pricingProfileId: profile.id,
+      pricingProfileName: profile.name,
+      sectionPricing: profile.tierPricing,
+    },
+    auditRecord,
+  };
+}
+
+/**
+ * Server Action: Activate Pricing Profile
+ */
+export async function activatePricingProfileAction(
+  profileId: string,
+  profileName: string,
+  theatreId: string
+): Promise<PricingActionResponse<{ profileId: string; status: "Active" }>> {
+  return {
+    success: true,
+    message: `Activated pricing profile "${profileName}".`,
+    data: { profileId, status: "Active" },
+    auditRecord: {
+      id: `aud-prc-${Date.now()}`,
+      action: "ACTIVATED",
+      profileId,
+      profileName,
+      theatreId,
+      user: "theatre-admin@cinesphere.com",
+      timestamp: new Date().toISOString(),
+      details: `Activated pricing profile "${profileName}".`,
+      status: "SUCCESS",
+    },
+  };
+}
+
+/**
+ * Server Action: Archive Pricing Profile
+ */
+export async function archivePricingProfileAction(
+  profileId: string,
+  profileName: string,
+  theatreId: string,
+  isDefault: boolean
+): Promise<PricingActionResponse<{ profileId: string; status: "Archived" }>> {
+  if (isDefault) {
+    return {
+      success: false,
+      message: "Cannot archive the default pricing profile. Set another profile as default first.",
+    };
+  }
+
+  return {
+    success: true,
+    message: `Archived pricing profile "${profileName}".`,
+    data: { profileId, status: "Archived" },
+    auditRecord: {
+      id: `aud-prc-${Date.now()}`,
+      action: "ARCHIVED",
+      profileId,
+      profileName,
+      theatreId,
+      user: "theatre-admin@cinesphere.com",
+      timestamp: new Date().toISOString(),
+      details: `Archived pricing profile "${profileName}".`,
+      status: "SUCCESS",
+    },
+  };
+}
+
+/**
  * Server Action: Calculate Ticket Pricing
  * Validates the exact seat selection pricing pipeline:
  * [Seat Selected] -> [Identify Section] -> [Pricing Profile] -> [Subtotal + Taxes] = Grand Total
@@ -221,3 +356,4 @@ export async function calculateTicketPricingAction(
     data: result,
   };
 }
+

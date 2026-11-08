@@ -138,7 +138,18 @@ Located in [`lib/engine/pricing-engine.ts`](file:///d:/Project_2k24_25/cineSpher
 - **`simulateShowRevenue(sections, profile)`**:
   Computes auditorium revenue projections across 100% (Housefull), 75%, and 50% occupancy, as well as Average Ticket Price (ATP) and section yield breakdowns.
 - **`INITIAL_DYNAMIC_PRICING_PROFILES`**:
-  7 pre-seeded production profiles covering Weekday Economy, Weekday Matinee, Prime Evening, Weekend Morning Family, Weekend Blockbuster Prime, Holiday Premium, and IMAX Laser Experience.
+  10 pre-seeded production profiles covering *Morning Weekday Economy*, *Weekday Matinee Regular*, *Prime Evening (Mon - Thu)*, *Weekend Morning Family*, *Weekend Blockbuster Prime*, *Holiday & Festival Premium*, *IMAX Laser Special Experience*, *Festival Special*, *Corporate Event*, and *Special Screening*.
+
+- **Server Actions Suite** ([`actions/pricing-actions.ts`](file:///d:/Project_2k24_25/cineSphere_OS/actions/pricing-actions.ts)):
+  - `createPricingProfileAction`: Validates and creates a new reusable profile.
+  - `updatePricingProfileAction`: Merges changes and tracks audit logs.
+  - `deletePricingProfileAction`: Enforces dependency checking (cannot delete default profile or profile attached to active shows).
+  - `duplicatePricingProfileAction`: Clones an existing profile as a Draft copy.
+  - `assignPricingProfileToShowAction`: Connects a Pricing Profile to a specific Show screening event with tenant isolation validation.
+  - `validatePricingAction`: Standalone validation of pricing input, boundaries, currencies, and decimal amounts.
+  - `activatePricingProfileAction`: Transitions profile status to `Active`.
+  - `archivePricingProfileAction`: Archives profile (with protection against archiving the default profile).
+  - `calculateTicketPricingAction`: Runs the complete seat calculation pipeline.
 
 ---
 
@@ -188,3 +199,4 @@ Located in [`components/pricing/pricing-simulator-modal.tsx`](file:///d:/Project
 - `tsc --noEmit`: **0 errors** (100% strict TypeScript compliance).
 - `next lint`: **0 errors** across all pricing engine modules.
 - Dynamic navigation badge registered under `THEATRE_ADMIN.PRICING` in [`config/routes.ts`](file:///d:/Project_2k24_25/cineSphere_OS/config/routes.ts) and [`config/navigation.ts`](file:///d:/Project_2k24_25/cineSphere_OS/config/navigation.ts).
+

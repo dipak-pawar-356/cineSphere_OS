@@ -90,7 +90,8 @@ export default function TheatrePricingPage() {
         return (
           p.name.toLowerCase().includes(q) ||
           p.code.toLowerCase().includes(q) ||
-          (p.description && p.description.toLowerCase().includes(q))
+          (p.description && p.description.toLowerCase().includes(q)) ||
+          Object.keys(p.tierPricing).some((tier) => tier.toLowerCase().includes(q))
         );
       })
       .filter((p) => {
@@ -353,7 +354,7 @@ export default function TheatrePricingPage() {
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <Input
               type="text"
-              placeholder="Search by profile name, code (PRF-...), or description..."
+              placeholder="Search by profile name, code (PRF-...), description, or section tier (Gold, VIP, Recliner)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-9 text-xs"

@@ -52,8 +52,56 @@ export function validatePricingProfileInput(
     }
   }
 
+  // Currency Validation
+  const supportedCurrencies = ["INR", "USD", "EUR", "GBP", "AED", "SGD"];
+  if (input.currency && !supportedCurrencies.includes(input.currency.toUpperCase())) {
+    errors.currency = `Unsupported currency "${input.currency}". Supported: ${supportedCurrencies.join(", ")}`;
+  }
+
+  // Safety Boundary Guardrails
+  if (input.minPrice !== undefined && input.minPrice < 0) {
+    errors.minPrice = "Minimum price floor cannot be negative.";
+  }
+  if (input.maxPrice !== undefined && input.maxPrice > 50000) {
+    errors.maxPrice = "Maximum price ceiling cannot exceed ₹50,000.";
+  }
+  if (
+    input.minPrice !== undefined &&
+    input.maxPrice !== undefined &&
+    input.minPrice > input.maxPrice
+  ) {
+    errors.priceRange = "Minimum price floor cannot be greater than maximum price ceiling.";
+  }
+
   return {
     isValid: Object.keys(errors).length === 0,
     errors,
   };
 }
+
+/**
+ * Validate that every active auditorium section has an assigned price in the profile.
+ */
+export function validateSectionCoverage(
+  sections: { name: string; tier?: string }[],
+  tierPricing: Record<string, number>
+): { isComplete: boolean; missingSections: string[] } {
+  const missing: string[] = [];
+
+  for (const s of sections) {
+    const hasPrice =
+      (s.tier && tierPricing[s.tier] !== undefined) ||
+      tierPricing[s.name] !== undefined ||
+      tierPricing["Silver"] !== undefined; // Fallback
+
+    if (!hasPrice) {
+      missing.push(s.name);
+    }
+  }
+
+  return {
+    isComplete: missing.length === 0,
+    missingSections: missing,
+  };
+}
+

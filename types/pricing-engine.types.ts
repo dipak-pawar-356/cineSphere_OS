@@ -26,13 +26,25 @@ export interface DynamicPricingRuleDescriptor {
   id: string;
   name: string;
   ruleType:
+    | "WEEKEND_PRICING"
+    | "HOLIDAY_PRICING"
+    | "FESTIVAL_PRICING"
+    | "PEAK_HOUR_PRICING"
+    | "LATE_NIGHT_PRICING"
+    | "MORNING_OFFERS"
+    | "EARLY_BIRD"
+    | "STUDENT_DISCOUNT"
+    | "SENIOR_CITIZEN_DISCOUNT"
+    | "MEMBERSHIP_PRICING"
+    | "COUPON_ENGINE"
+    | "SURGE_PRICING"
+    | "DEMAND_PRICING"
+    | "OCCUPANCY_BASED_PRICING"
     | "DAY_OF_WEEK"
     | "TIME_OF_DAY"
     | "OCCUPANCY_SURGE"
-    | "EARLY_BIRD"
     | "FESTIVAL_SPECIAL"
     | "HOLIDAY_SURGE"
-    | "STUDENT_DISCOUNT"
     | "MEMBERSHIP_TIER";
   conditionDescription: string;
   multiplier: number; // e.g. 1.15 for +15% surge or 0.85 for 15% discount
