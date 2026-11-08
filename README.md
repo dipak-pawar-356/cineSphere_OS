@@ -328,6 +328,21 @@ Phase 2 - Part 4 establishes the production-ready Theatre Admin Management Modul
 
 ---
 
+## 🏛️ 2.6 Phase 2 - Part 5: Hall Management & Dynamic Hall Configuration
+
+Phase 2 - Part 5 implements the complete **Hall Management & Dynamic Hall Configuration Module** under `/theatre/halls/...`:
+
+- 📐 **Dynamic Section Architecture:** Theatre Admins configure high-level seating tiers (`Silver`, `Gold`, `Platinum`, `VIP`, `Recliner`, `Wheelchair`, `Royal Suite`) rather than manually constructing thousands of individual seats.
+- 🎨 **Centralized Seating Design System:** Section colors and glowing styling are **never** stored as static business strings. Instead, colors, badges, and tints are derived dynamically from the design system ([`lib/constants/seating-design-system.ts`](./lib/constants/seating-design-system.ts)), guaranteeing uniform appearance across 2D schematics and tickets.
+- ⚖️ **Strict Capacity Balance Validation:** Mathematically enforces $\text{Hall Capacity} \equiv \sum \text{Section Seats}$. If there is any under-allocation or overage, the live capacity barometer shows visual alerts and prevents saving until balanced.
+- 🗺️ **Live 2D Floor Plan Schematic Preview (`HallPreview2D`):** Real-time architectural visualization displaying a curved screen aperture, audio channel outputs (Left, Center, Right), proportional section tier blocks, audience center aisles, and emergency exits.
+- 🎥 **Future 3D Frustum Readiness:** Prepared for Phase 6 Three.js and React Three Fiber visualizers by embedding camera presets ($60^\circ$ FOV, $1.2\,\text{m}$ spectator eye level, screen curvature) without requiring database or schema changes.
+- 📋 **Enterprise Fleet Management & Views:** Supports Grid Cards and Enterprise Table views with text search, capacity filters, screen type filters, operating status toggles, hall duplication (`-COPY`), and soft archiving.
+- 🔒 **Absolute Multi-Tenant Isolation:** Server actions and state mutations guarantee that every Theatre Admin can only create, edit, duplicate, or delete auditoriums belonging to their own cinema complex.
+- 📚 **Hall Management Architecture Guide:** Detailed technical documentation in [`docs/HALL_MANAGEMENT_ARCHITECTURE.md`](./docs/HALL_MANAGEMENT_ARCHITECTURE.md).
+
+---
+
 ## ☁️ 9. Vercel Deployment Settings
 
 For zero-configuration deployment to Vercel:

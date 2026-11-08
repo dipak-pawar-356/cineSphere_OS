@@ -11,6 +11,7 @@ import {
   THEATRE_STAFF as SEED_STAFF,
   THEATRE_NOTIFICATIONS as SEED_NOTIFICATIONS,
 } from "@/lib/constants/theatre-admin";
+import { DynamicHallSectionConfig, Future3DHallConfig, HallStatus } from "@/types/hall.types";
 
 /**
  * ==============================================================================
@@ -69,18 +70,26 @@ export interface PaymentRailConfig {
 
 export interface ManagedHall {
   id: string;
+  theatreId?: string;
   hallNumber: number;
+  hallCode: string;
   name: string;
-  screenType: "IMAX Laser" | "Dolby Cinema" | "4DX Dynamic" | "Prime Club" | "Royal Suite" | "Laser 4K";
+  screenType: "IMAX Laser" | "Dolby Cinema" | "4DX Dynamic" | "Prime Club" | "Royal Suite" | "Laser 4K" | "Standard" | "ScreenX" | "3D" | string;
   capacity: number;
   projectionType: string;
   soundSystem: string;
   aspectRatio: string;
-  status: "Active" | "Maintenance" | "Cleaning" | "Show Running";
+  floorNumber: string;
+  description: string;
+  status: HallStatus;
   occupancyPercent: number;
   currentMovie?: string;
   currentShow?: string;
   image: string;
+  sections: DynamicHallSectionConfig[];
+  layout?: Future3DHallConfig;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ManagedMovie {
@@ -192,6 +201,15 @@ export interface TheatreState {
   // Payment & UPI Configuration
   updatePaymentConfig: (updates: Partial<PaymentRailConfig>) => void;
 
+  // Hall Management (Phase 2 Part 5)
+  addHall: (hall: Omit<ManagedHall, "id" | "occupancyPercent">) => { success: boolean; error?: string };
+  updateHall: (id: string, updates: Partial<ManagedHall>) => { success: boolean; error?: string };
+  archiveHall: (id: string) => void;
+  activateHall: (id: string) => void;
+  deactivateHall: (id: string) => void;
+  duplicateHall: (id: string) => { success: boolean; newId?: string; error?: string };
+  deleteHall: (id: string) => void;
+
   // Movie CRUD (Catalog entry point)
   addMovie: (movie: Omit<ManagedMovie, "id">) => void;
   updateMovie: (id: string, updates: Partial<ManagedMovie>) => void;
@@ -217,8 +235,56 @@ export interface TheatreState {
 }
 
 // ------------------------------------------------------------------------------
-// Multi-Tenant Seed Factories
+// Multi-Tenant Seed Factories with Dynamic Section Allocations
 // ------------------------------------------------------------------------------
+
+export const DEFAULT_3D_CONFIG: Future3DHallConfig = {
+  cameraPresets: [
+    {
+      id: "cam-center-eye",
+      name: "Center Sweetspot (Row E)",
+      position: [0, 4.5, 14],
+      target: [0, 2, 0],
+      fov: 60,
+      description: "Direct view towards center screen from middle tier",
+    },
+    {
+      id: "cam-screen-view",
+      name: "Screen Projection Horizon",
+      position: [0, 1.5, 1],
+      target: [0, 5, 20],
+      fov: 75,
+      description: "Perspective looking back into the auditorium from screen",
+    },
+    {
+      id: "cam-vip-tier",
+      name: "VIP Tier Perspective",
+      position: [-5, 6, 18],
+      target: [0, 3, 0],
+      fov: 55,
+      description: "Elevation view from VIP Recliner zone",
+    },
+  ],
+  defaultCamera: "cam-center-eye",
+  screenCurvature: 0.18,
+  screenTiltDegrees: 4.5,
+  eyeLevelOffsetMeters: 1.2,
+  stageElevationMeters: 0.8,
+  rowTierElevationMeters: 0.35,
+  walkways: [
+    { afterColumn: 10, label: "Center Aisle Egress" },
+  ],
+  emergencyExits: [
+    { position: "front-left", label: "Exit 1 (Stage Left)" },
+    { position: "front-right", label: "Exit 2 (Stage Right)" },
+    { position: "rear-right", label: "Exit 3 (Lobby Concourse)" },
+  ],
+  accessibilitySlots: [
+    { sectionId: "sec-a", seatCount: 2, rampAccess: true },
+  ],
+  seatPitchMeters: 0.95,
+  rowSpacingMeters: 1.1,
+};
 
 const SEED_MEDIA_PUNE: ManagedMediaAsset[] = [
   {
@@ -333,39 +399,324 @@ function getInitialTenantData(theatreId: string) {
       halls: [
         {
           id: "hall-mum-1",
+          theatreId: "th-mum-001",
           hallNumber: 1,
+          hallCode: "MUM-IMAX-01",
           name: "Auditorium 1 - Royale IMAX Laser",
           screenType: "IMAX Laser" as const,
           capacity: 240,
           projectionType: "Christie CP4450-RGB Pure Laser Engine",
           soundSystem: "Dolby Atmos 64-Channel Commercial Array",
-          aspectRatio: "2.39:1 Scope",
-          status: "Active" as const,
+          aspectRatio: "1.90:1 IMAX",
+          floorNumber: "Floor 4 (Multiplex Concourse)",
+          description: "Our signature flagship IMAX screen equipped with pure 4K RGB laser illumination.",
+          status: "Active" as HallStatus,
           occupancyPercent: 94,
           currentMovie: "Kalki 2898 AD",
           currentShow: "06:30 PM",
           image: "https://images.unsplash.com/photo-1595769816263-9b910be24d5f?w=800&auto=format&fit=crop&q=80",
+          sections: [
+            {
+              id: "sec-mum-1a",
+              name: "Section A - VIP Recliner",
+              displayName: "VIP Recliner Tier",
+              seatCount: 40,
+              category: "VIP Recliner",
+              sortOrder: 1,
+              visibility: true,
+              status: "Active" as const,
+              rows: ["A", "B"],
+              seatsPerRow: 20,
+            },
+            {
+              id: "sec-mum-1b",
+              name: "Section B - Platinum Club",
+              displayName: "Platinum Club Tier",
+              seatCount: 100,
+              category: "Platinum",
+              sortOrder: 2,
+              visibility: true,
+              status: "Active" as const,
+              rows: ["C", "D", "E", "F", "G"],
+              seatsPerRow: 20,
+            },
+            {
+              id: "sec-mum-1c",
+              name: "Section C - Gold Prime",
+              displayName: "Gold Prime Tier",
+              seatCount: 100,
+              category: "Gold",
+              sortOrder: 3,
+              visibility: true,
+              status: "Active" as const,
+              rows: ["H", "I", "J", "K", "L"],
+              seatsPerRow: 20,
+            },
+          ] satisfies DynamicHallSectionConfig[],
+          layout: DEFAULT_3D_CONFIG,
+          createdAt: "2026-08-15T10:00:00Z",
+          updatedAt: "2026-11-01T15:30:00Z",
         },
         {
           id: "hall-mum-2",
+          theatreId: "th-mum-001",
           hallNumber: 2,
+          hallCode: "MUM-DOLBY-02",
           name: "Auditorium 2 - Dolby Cinema",
           screenType: "Dolby Cinema" as const,
           capacity: 180,
           projectionType: "Dolby Vision Dual Christie 4K",
           soundSystem: "Dolby Atmos 64-Channel Matrix",
           aspectRatio: "2.39:1 Scope",
-          status: "Show Running" as const,
+          floorNumber: "Floor 4 (South Wing)",
+          description: "Dual Christie 4K laser projection delivering 1,000,000:1 contrast ratio.",
+          status: "Show Running" as HallStatus,
           occupancyPercent: 88,
           currentMovie: "Dune: Part Two",
           currentShow: "07:15 PM",
           image: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&auto=format&fit=crop&q=80",
+          sections: [
+            {
+              id: "sec-mum-2a",
+              name: "Section A - Motorized Recliner",
+              displayName: "Recliner Suite",
+              seatCount: 40,
+              category: "Recliner",
+              sortOrder: 1,
+              visibility: true,
+              status: "Active" as const,
+              rows: ["A", "B"],
+              seatsPerRow: 20,
+            },
+            {
+              id: "sec-mum-2b",
+              name: "Section B - Executive Gold",
+              displayName: "Gold Tier",
+              seatCount: 60,
+              category: "Gold",
+              sortOrder: 2,
+              visibility: true,
+              status: "Active" as const,
+              rows: ["C", "D", "E"],
+              seatsPerRow: 20,
+            },
+            {
+              id: "sec-mum-2c",
+              name: "Section C - Standard Silver",
+              displayName: "Silver Tier",
+              seatCount: 80,
+              category: "Silver",
+              sortOrder: 3,
+              visibility: true,
+              status: "Active" as const,
+              rows: ["F", "G", "H", "I"],
+              seatsPerRow: 20,
+            },
+          ] satisfies DynamicHallSectionConfig[],
+          layout: DEFAULT_3D_CONFIG,
+          createdAt: "2026-08-20T10:00:00Z",
+          updatedAt: "2026-11-01T15:30:00Z",
         },
       ],
     };
   }
 
   // Default: THEATRE_A (Pune Flagship: th-pun-001)
+  const SEED_PUNE_SECTIONS: Record<string, DynamicHallSectionConfig[]> = {
+    "hall-01": [
+      {
+        id: "sec-p1a",
+        name: "Section A - VIP Recliner",
+        displayName: "VIP Recliner Tier",
+        seatCount: 40,
+        category: "VIP Recliner",
+        sortOrder: 1,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["A", "B"],
+        seatsPerRow: 20,
+      },
+      {
+        id: "sec-p1b",
+        name: "Section B - Platinum Club",
+        displayName: "Platinum Tier",
+        seatCount: 90,
+        category: "Platinum",
+        sortOrder: 2,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["C", "D", "E"],
+        seatsPerRow: 30,
+      },
+      {
+        id: "sec-p1c",
+        name: "Section C - Gold Executive",
+        displayName: "Gold Tier",
+        seatCount: 120,
+        category: "Gold",
+        sortOrder: 3,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["F", "G", "H", "I"],
+        seatsPerRow: 30,
+      },
+    ],
+    "hall-02": [
+      {
+        id: "sec-p2a",
+        name: "Section A - Motorized Recliner",
+        displayName: "Recliner Suite",
+        seatCount: 30,
+        category: "Recliner",
+        sortOrder: 1,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["A", "B"],
+        seatsPerRow: 15,
+      },
+      {
+        id: "sec-p2b",
+        name: "Section B - Gold Executive",
+        displayName: "Gold Tier",
+        seatCount: 70,
+        category: "Gold",
+        sortOrder: 2,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["C", "D"],
+        seatsPerRow: 35,
+      },
+      {
+        id: "sec-p2c",
+        name: "Section C - Silver Standard",
+        displayName: "Silver Tier",
+        seatCount: 80,
+        category: "Silver",
+        sortOrder: 3,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["E", "F"],
+        seatsPerRow: 40,
+      },
+    ],
+    "hall-03": [
+      {
+        id: "sec-p3a",
+        name: "Section A - Platinum 4DX",
+        displayName: "Platinum Motion Zone",
+        seatCount: 48,
+        category: "Platinum",
+        sortOrder: 1,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["A", "B", "C"],
+        seatsPerRow: 16,
+      },
+      {
+        id: "sec-p3b",
+        name: "Section B - Gold 4DX",
+        displayName: "Gold Motion Zone",
+        seatCount: 72,
+        category: "Gold",
+        sortOrder: 2,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["D", "E", "F"],
+        seatsPerRow: 24,
+      },
+    ],
+    "hall-04": [
+      {
+        id: "sec-p4a",
+        name: "Section A - Silver",
+        displayName: "Front Silver",
+        seatCount: 20,
+        category: "Silver",
+        sortOrder: 1,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["A", "B"],
+        seatsPerRow: 10,
+      },
+      {
+        id: "sec-p4b",
+        name: "Section B - Gold",
+        displayName: "Center Gold",
+        seatCount: 30,
+        category: "Gold",
+        sortOrder: 2,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["C", "D", "E"],
+        seatsPerRow: 10,
+      },
+      {
+        id: "sec-p4c",
+        name: "Section C - Platinum",
+        displayName: "Upper Platinum",
+        seatCount: 50,
+        category: "Platinum",
+        sortOrder: 3,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["F", "G", "H", "I", "J"],
+        seatsPerRow: 10,
+      },
+    ],
+    "hall-05": [
+      {
+        id: "sec-p5a",
+        name: "Section A - Royal Suite Lounger",
+        displayName: "Royal Pods",
+        seatCount: 24,
+        category: "Royal Suite",
+        sortOrder: 1,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["A", "B"],
+        seatsPerRow: 12,
+      },
+      {
+        id: "sec-p5b",
+        name: "Section B - VIP Recliner",
+        displayName: "VIP Recliners",
+        seatCount: 36,
+        category: "VIP Recliner",
+        sortOrder: 2,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["C", "D", "E"],
+        seatsPerRow: 12,
+      },
+    ],
+    "hall-06": [
+      {
+        id: "sec-p6a",
+        name: "Section A - Gold Executive",
+        displayName: "Gold Tier",
+        seatCount: 60,
+        category: "Gold",
+        sortOrder: 1,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["A", "B", "C"],
+        seatsPerRow: 20,
+      },
+      {
+        id: "sec-p6b",
+        name: "Section B - Silver Standard",
+        displayName: "Silver Tier",
+        seatCount: 100,
+        category: "Silver",
+        sortOrder: 2,
+        visibility: true,
+        status: "Active" as const,
+        rows: ["D", "E", "F", "G", "H"],
+        seatsPerRow: 20,
+      },
+    ],
+  };
+
   return {
     profile: {
       id: THEATRE_A.id,
@@ -418,20 +769,41 @@ function getInitialTenantData(theatreId: string) {
         stripe: { enabled: true, pubKeyMasked: "pk_live_••••••••1290" },
       },
     },
-    halls: SEED_HALLS.map((h) => ({
+    halls: SEED_HALLS.map((h, idx) => ({
       id: h.id,
+      theatreId: "th-pun-001",
       hallNumber: h.hallNumber,
+      hallCode: `PUN-H0${h.hallNumber}`,
       name: h.name,
       screenType: h.screenType,
       capacity: h.seatCount,
       projectionType: h.projectorModel,
       soundSystem: h.audioSpec,
       aspectRatio: h.aspectRatio,
-      status: h.status,
+      floorNumber: idx < 3 ? "Floor 2 (Main Deck)" : "Floor 3 (VIP Level)",
+      description: `${h.screenType} auditorium featuring ${h.projectorModel} and ${h.audioSpec}.`,
+      status: h.status as HallStatus,
       occupancyPercent: h.occupancyPercent,
       currentMovie: h.currentMovie,
       currentShow: h.currentShow,
       image: h.image,
+      sections: SEED_PUNE_SECTIONS[h.id] || [
+        {
+          id: `sec-${h.id}-1`,
+          name: "Section A - General Admission",
+          displayName: "General Tier",
+          seatCount: h.seatCount,
+          category: "Gold",
+          sortOrder: 1,
+          visibility: true,
+          status: "Active" as const,
+          rows: ["A", "B", "C", "D"],
+          seatsPerRow: Math.ceil(h.seatCount / 4),
+        },
+      ],
+      layout: DEFAULT_3D_CONFIG,
+      createdAt: "2026-09-01T10:00:00Z",
+      updatedAt: "2026-11-05T12:00:00Z",
     })),
   };
 }
@@ -448,24 +820,32 @@ export const useTheatreStore = create<TheatreState>()(
         halls: initial.halls,
         movies: SEED_MOVIES.map((m) => ({
           ...m,
-          status: m.status === "Now Showing" ? "Now Showing" : m.status === "Upcoming" ? "Upcoming" : "Archived",
+          formats: m.formats as ("2D" | "3D" | "IMAX" | "4DX" | "Dolby Atmos")[],
+          status: m.status as "Now Showing" | "Upcoming" | "Archived",
         })),
         shows: SEED_SHOWS.map((s) => ({
           ...s,
+          format: s.format as "2D" | "3D" | "IMAX" | "4DX" | "Dolby Atmos",
+          status: s.status as "Upcoming" | "Running" | "Housefull" | "Completed" | "Cancelled",
         })),
-        // Bookings are strictly monitored; theatre admin does not create them
         bookings: SEED_BOOKINGS.map((b) => ({
           ...b,
+          paymentMethod: b.paymentMethod as MonitoredBooking["paymentMethod"],
+          paymentStatus: b.paymentStatus as MonitoredBooking["paymentStatus"],
+          bookingStatus: b.bookingStatus as MonitoredBooking["bookingStatus"],
         })),
         staff: SEED_STAFF.map((st) => ({
           ...st,
+          role: st.role as ManagedStaff["role"],
+          shift: st.shift as ManagedStaff["shift"],
+          status: st.status as ManagedStaff["status"],
         })),
         media: SEED_MEDIA_PUNE,
         notifications: SEED_NOTIFICATIONS,
         auditLogs: [
           {
             id: "aud-01",
-            timestamp: "Today, 10:14 AM",
+            timestamp: "Today, 10:45 AM",
             actor: "Rajesh Kulkarni",
             role: "Theatre Admin",
             action: "UPI_CONFIG_VERIFIED",
@@ -515,6 +895,131 @@ export const useTheatreStore = create<TheatreState>()(
             paymentConfig: { ...state.paymentConfig, ...updates },
           }));
           get().logTenantAudit("PAYMENT_CONFIG_UPDATED", "UPI", "Updated merchant payment rails");
+        },
+
+        // ----------------------------------------------------------------------
+        // Hall Management (Phase 2 Part 5)
+        // ----------------------------------------------------------------------
+        addHall: (hallData) => {
+          const sections = hallData.sections || [];
+          const totalSectionSeats = sections.reduce((acc, s) => acc + (Number(s.seatCount) || 0), 0);
+          if (totalSectionSeats !== Number(hallData.capacity)) {
+            return {
+              success: false,
+              error: `Capacity Mismatch: Hall capacity (${hallData.capacity}) does not match configured section seats (${totalSectionSeats}).`,
+            };
+          }
+
+          const newHall: ManagedHall = {
+            ...hallData,
+            id: `hall-${Date.now()}`,
+            theatreId: get().activeTheatreId,
+            hallCode: hallData.hallCode || `H0${hallData.hallNumber}`,
+            floorNumber: hallData.floorNumber || "Floor 1",
+            description: hallData.description || "",
+            status: hallData.status || "Active",
+            occupancyPercent: 0,
+            image: hallData.image || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&auto=format&fit=crop&q=80",
+            layout: hallData.layout || DEFAULT_3D_CONFIG,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+
+          set((state) => ({
+            halls: [newHall, ...state.halls],
+          }));
+
+          get().logTenantAudit("HALL_CREATED", "Halls", `Created auditorium "${newHall.name}" (${newHall.hallCode}) with capacity ${newHall.capacity}`);
+          return { success: true };
+        },
+
+        updateHall: (id, updates) => {
+          const current = get().halls.find((h) => h.id === id);
+          if (!current) return { success: false, error: "Auditorium not found." };
+
+          const targetCapacity = updates.capacity !== undefined ? Number(updates.capacity) : current.capacity;
+          const targetSections = updates.sections !== undefined ? updates.sections : current.sections || [];
+
+          if (targetSections.length > 0) {
+            const totalSectionSeats = targetSections.reduce((acc, s) => acc + (Number(s.seatCount) || 0), 0);
+            if (totalSectionSeats !== targetCapacity) {
+              return {
+                success: false,
+                error: `Capacity Mismatch: Hall capacity (${targetCapacity}) does not match configured section seats (${totalSectionSeats}).`,
+              };
+            }
+          }
+
+          set((state) => ({
+            halls: state.halls.map((h) => (h.id === id ? { ...h, ...updates, updatedAt: new Date().toISOString() } : h)),
+          }));
+
+          get().logTenantAudit("HALL_UPDATED", "Halls", `Updated configuration for "${current.name}"`);
+          return { success: true };
+        },
+
+        archiveHall: (id) => {
+          const current = get().halls.find((h) => h.id === id);
+          set((state) => ({
+            halls: state.halls.map((h) => (h.id === id ? { ...h, status: "Archived" } : h)),
+          }));
+          get().logTenantAudit("HALL_ARCHIVED", "Halls", `Archived auditorium "${current?.name || id}"`);
+        },
+
+        activateHall: (id) => {
+          const current = get().halls.find((h) => h.id === id);
+          set((state) => ({
+            halls: state.halls.map((h) => (h.id === id ? { ...h, status: "Active" } : h)),
+          }));
+          get().logTenantAudit("HALL_ACTIVATED", "Halls", `Activated auditorium "${current?.name || id}"`);
+        },
+
+        deactivateHall: (id) => {
+          const current = get().halls.find((h) => h.id === id);
+          set((state) => ({
+            halls: state.halls.map((h) => (h.id === id ? { ...h, status: "Inactive" } : h)),
+          }));
+          get().logTenantAudit("HALL_DEACTIVATED", "Halls", `Deactivated auditorium "${current?.name || id}"`);
+        },
+
+        duplicateHall: (id) => {
+          const original = get().halls.find((h) => h.id === id);
+          if (!original) return { success: false, error: "Original auditorium not found." };
+
+          const newId = `hall-${Date.now()}`;
+          const nextHallNumber = Math.max(...get().halls.map((h) => h.hallNumber), 0) + 1;
+          const duplicated: ManagedHall = {
+            ...original,
+            id: newId,
+            name: `${original.name} (Copy)`,
+            hallCode: `${original.hallCode || "H"}-COPY`,
+            hallNumber: nextHallNumber,
+            status: "Draft",
+            occupancyPercent: 0,
+            currentMovie: undefined,
+            currentShow: undefined,
+            sections: original.sections.map((s, idx) => ({
+              ...s,
+              id: `sec-${newId}-${idx + 1}`,
+            })),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+
+          set((state) => ({
+            halls: [...state.halls, duplicated],
+          }));
+
+          get().logTenantAudit("HALL_DUPLICATED", "Halls", `Duplicated "${original.name}" into "${duplicated.name}" (${duplicated.hallCode})`);
+          return { success: true, newId };
+        },
+
+        deleteHall: (id) => {
+          const current = get().halls.find((h) => h.id === id);
+          set((state) => ({
+            halls: state.halls.filter((h) => h.id !== id),
+          }));
+          get().logTenantAudit("HALL_DELETED", "Halls", `Deleted auditorium "${current?.name || id}"`);
         },
 
         // ----------------------------------------------------------------------

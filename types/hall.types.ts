@@ -8,7 +8,37 @@ export type ScreenType =
   | "Royal Suite"
   | "Standard"
   | "ScreenX"
+  | "3D"
   | string;
+
+export type ProjectionType =
+  | "2K"
+  | "4K"
+  | "Laser"
+  | "Laser 4K"
+  | "Barco 4K Laser"
+  | "Christie RGB Laser"
+  | "IMAX Dual Laser"
+  | string;
+
+export type SoundSystemType =
+  | "Dolby Atmos"
+  | "Dolby Atmos 64-Channel"
+  | "Dolby Digital"
+  | "DTS"
+  | "DTS:X"
+  | "IMAX Sound"
+  | "Custom"
+  | string;
+
+export type HallStatus =
+  | "Draft"
+  | "Active"
+  | "Inactive"
+  | "Archived"
+  | "Maintenance"
+  | "Cleaning"
+  | "Show Running";
 
 export type SeatType =
   | "Standard"
@@ -34,9 +64,25 @@ export type SeatCategoryTier =
   | "Silver"
   | "Gold"
   | "Platinum"
+  | "VIP"
   | "VIP Recliner"
+  | "Recliner"
+  | "Wheelchair"
+  | "Royal Suite"
   | "Royal Suite Lounger"
   | string;
+
+export interface SectionCategoryDesignToken {
+  category: SeatCategoryTier;
+  label: string;
+  color: string;
+  bgClass: string;
+  borderClass: string;
+  textClass: string;
+  badgeClass: string;
+  defaultSeatsPerRow: number;
+  icon: string;
+}
 
 export interface SeatCategory {
   id: ID;
@@ -69,13 +115,33 @@ export interface Seat {
 }
 
 /**
- * Section Configuration inside a Hall
- * Admin defines: Section Name, Seat Count, Rows, Seats Per Row, Seat Type, Default Color.
- * The system automatically generates all seats.
+ * Dynamic Section Configuration inside a Hall
+ * Admin defines: Name, Display Name, Seat Count, Category, Sort Order, Seats Per Row.
+ * Colors are automatically derived from the centralized design system.
+ */
+export interface DynamicHallSectionConfig {
+  id: string;
+  name: string;
+  displayName: string;
+  seatCount: number;
+  category: SeatCategoryTier;
+  displayColor?: string;
+  legendColor?: string;
+  sortOrder: number;
+  description?: string;
+  visibility: boolean;
+  status: "Active" | "Maintenance" | "Disabled";
+  rows: string[];
+  seatsPerRow: number;
+}
+
+/**
+ * Legacy compatible HallSection definition.
  */
 export interface HallSection {
   id: ID;
   name: string;
+  displayName?: string;
   category?: SeatCategoryTier;
   seatCount: number;
   seatType: SeatType;
@@ -91,6 +157,9 @@ export interface HallSection {
   hasRecliners?: boolean;
   hasWheelchairSpaces?: boolean;
   generatedSeats?: Seat[];
+  visibility?: boolean;
+  status?: "Active" | "Maintenance" | "Disabled";
+  description?: string;
 }
 
 export interface WalkwayConfig {
@@ -102,6 +171,38 @@ export interface WalkwayConfig {
 export interface EmergencyExitConfig {
   position: "front-left" | "front-right" | "rear-left" | "rear-right" | "side-left" | "side-right";
   label?: string;
+}
+
+/**
+ * Future 3D Hall & Camera Preset Architecture
+ * Fully typed preparation for Three.js and React Three Fiber
+ */
+export interface Future3DCameraPreset {
+  id: string;
+  name: string;
+  position: [number, number, number]; // [x, y, z] in 3D world space
+  target: [number, number, number];   // lookAt target [x, y, z]
+  fov: number;                       // Field of View degrees
+  description: string;
+}
+
+export interface Future3DHallConfig {
+  cameraPresets: Future3DCameraPreset[];
+  defaultCamera: string;
+  screenCurvature: number;            // 0.0 to 0.5
+  screenTiltDegrees: number;
+  eyeLevelOffsetMeters: number;
+  stageElevationMeters: number;
+  rowTierElevationMeters: number;
+  walkways: WalkwayConfig[];
+  emergencyExits: EmergencyExitConfig[];
+  accessibilitySlots: {
+    sectionId: string;
+    seatCount: number;
+    rampAccess: boolean;
+  }[];
+  seatPitchMeters?: number;
+  rowSpacingMeters?: number;
 }
 
 /**
@@ -127,6 +228,7 @@ export interface HallLayout {
     screenCurvature: number;
     screenTiltDegrees: number;
     eyeLevelOffsetMeters: number;
+    cameraPosition?: { x: number; y: number; z: number };
   };
   generatedSeats: Seat[];
 }
@@ -138,23 +240,29 @@ export interface HallLayout {
 export interface Hall {
   id: ID;
   theatreId: ID;
-  name: string;
   hallNumber: number;
+  hallCode?: string;
+  name: string;
   screenNumber?: number;
   capacity?: number;
   totalSeats?: number;
   screenType: ScreenType;
-  projectionType?: string;
-  soundSystem?: string;
+  projectionType?: ProjectionType;
+  soundSystem?: SoundSystemType;
   aspectRatio?: string;
   projectorModel?: string;
   audioSpec?: string;
-  hallLayout?: HallLayout;
-  seatCategories?: SeatCategory[];
-  sections?: HallSection[];
+  floorNumber?: string;
+  description?: string;
+  status: HallStatus;
+  occupancyPercent?: number;
   currentMovie?: string;
   currentShow?: string;
-  occupancyPercent?: number;
-  status?: "Active" | "Maintenance" | "Cleaning" | "Show Running" | string;
+  sections?: DynamicHallSectionConfig[] | HallSection[];
+  hallLayout?: HallLayout;
+  future3DConfig?: Future3DHallConfig;
+  seatCategories?: SeatCategory[];
   image?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
