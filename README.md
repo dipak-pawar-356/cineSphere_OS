@@ -311,6 +311,23 @@ Phase 2 - Part 3 delivers the comprehensive, enterprise-grade Super Admin Platfo
 
 ---
 
+## 🏢 2.5 Phase 2 - Part 4: Theatre Admin Onboarding & Management
+
+Phase 2 - Part 4 establishes the production-ready Theatre Admin Management Module under `/theatre/...`:
+
+- 🔒 **Absolute Multi-Tenant Isolation:** Each Theatre Admin securely manages ONLY their assigned cinema complex. Zero cross-tenant data leakage between cinema operators (e.g. Pune `th-pun-001` vs Mumbai `th-mum-001`).
+- 🎟️ **Customer-Driven Admissions Law:** Theatre Admins do **not** manually create bookings. All bookings originate exclusively from customer checkouts. The Admin's role is to monitor reservations, QR turnstile scans, seat fill rates, and settlements.
+- 💳 **Independent UPI & Payment Rails (`/theatre/upi`):** Every cinema operates an independent merchant account with validated UPI VPA (`name@bank`), auto-generated NPCI standard QR code, nodal bank settlement details, and auxiliary card gateways (Razorpay, PhonePe, Paytm, Stripe).
+- 🖼️ **Media & Creative Asset Vault (`/theatre/media`):** Upload, organize, and delete logos, billboard banners, auditorium photography, lobby shots, and promotional videos with storage usage meters.
+- 📍 **Theatre Profile & GPS Pin (`/theatre/profile`):** Interactive editing of complex operating hours, manager desk email, customer care hotline, master luxury amenities, and GPS coordinates.
+- 🎞️ **Movie Catalog & Showtime Dispatch (`/theatre/movies` & `/theatre/shows`):** Feature film licensing, DCP ingestion status, and timetable programming linking Movie, Hall, Date/Time, and Base Starting Price.
+- 👥 **Crew Staff Roster (`/theatre/staff`):** Onboard Hall Managers, Projectionists, and Floor Ushers with duty status toggles (`On Duty` ↔ `Off Duty` ↔ `On Leave`).
+- 📊 **Audit-Grade Reports (`/theatre/reports`):** Daily Box Office Collections, Occupancy telemetry, Movie format yields, and GST returns with working **PDF**, **Excel**, and **CSV** export simulations.
+- 💾 **Tenant Persistent Store (`useTheatreStore`):** Persistent Zustand store managing all tenant-scoped operations, real-time metrics, and immutable audit trails.
+- 📚 **Comprehensive Onboarding Documentation:** Full architecture and developer specification in [`docs/THEATRE_ADMIN_ONBOARDING.md`](./docs/THEATRE_ADMIN_ONBOARDING.md).
+
+---
+
 ## ☁️ 9. Vercel Deployment Settings
 
 For zero-configuration deployment to Vercel:
@@ -329,6 +346,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🏢 [`docs/THEATRE_ADMIN_ONBOARDING.md`](./docs/THEATRE_ADMIN_ONBOARDING.md) — Theatre Admin Management, Multi-Tenant Isolation & Independent UPI Rails (Phase 2 - Part 4).
 - 🛡️ [`docs/SUPER_ADMIN_PLATFORM.md`](./docs/SUPER_ADMIN_PLATFORM.md) — Super Admin Platform Control Plane, Governance Architecture & State Machine (Phase 2 - Part 3).
 - 🗄️ [`docs/DATABASE_ARCHITECTURE.md`](./docs/DATABASE_ARCHITECTURE.md) — Production PostgreSQL Architecture, Drizzle ORM Schema, Relational Graph & Multi-Tenant Model (Phase 2 - Part 2).
 - 🏢 [`docs/AUTH_AND_AUTHORIZATION.md`](./docs/AUTH_AND_AUTHORIZATION.md) — Enterprise Authentication, Clerk Integration, Multi-Tenant Isolation & RBAC Architecture (Phase 2 - Part 1).

@@ -76,4 +76,6 @@ Default Flagship: *CineSphere Grand Cinemas* (`th-pun-001`, Phoenix Marketcity, 
 | `/theatre/notifications`| Operational Broadcasts & Equipment Alerts | Theatre Admin |
 | `/theatre/support` | Guest Care Helpdesk & Lost and Found Log | Theatre Admin |
 | `/theatre/settings` | Operational Parameters, Turnstile QR Rules | Theatre Admin |
+| `/theatre/media` | Creative Asset Vault, Posters, Logos & Photos | Theatre Admin |
+| `/theatre/upi` | Dedicated UPI Rail, VPA & Settlement Gateways | Theatre Admin |
 

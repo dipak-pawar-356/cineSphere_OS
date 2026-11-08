@@ -91,6 +91,8 @@ export const ROUTES = {
     NOTIFICATIONS: "/theatre/notifications",
     SUPPORT: "/theatre/support",
     SETTINGS: "/theatre/settings",
+    MEDIA: "/theatre/media",
+    UPI: "/theatre/upi",
   },
 
   // Customer Routes (End-User Experience)

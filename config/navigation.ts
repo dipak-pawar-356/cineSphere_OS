@@ -261,6 +261,12 @@ export const THEATRE_ADMIN_NAV_SECTIONS: NavSectionConfig[] = [
         icon: Building2,
       },
       {
+        label: "Media & Assets",
+        href: ROUTES.THEATRE_ADMIN.MEDIA,
+        icon: ImageIcon,
+        badge: "Vault",
+      },
+      {
         label: "Information & Legal",
         href: ROUTES.THEATRE_ADMIN.INFORMATION,
         icon: FileText,
@@ -367,6 +373,13 @@ export const THEATRE_ADMIN_NAV_SECTIONS: NavSectionConfig[] = [
         icon: TrendingUp,
         badge: "₹4.8L",
         badgeVariant: "success",
+      },
+      {
+        label: "UPI & Payment Rail",
+        href: ROUTES.THEATRE_ADMIN.UPI,
+        icon: QrCode,
+        badge: "Rail",
+        badgeVariant: "primary",
       },
       {
         label: "Payment Reconciliation",
