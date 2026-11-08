@@ -388,6 +388,34 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
 - ⚡ **Server Actions & Security Auditing:** Typed server actions (`createShowAction`, `updateShowAction`, `cancelShowAction`, `archiveShowAction`, `duplicateShowAction`, `validateScheduleAction`) with tamper-evident audit logging.
 - 📚 **Show Management & Scheduling Architecture Guide:** Detailed technical documentation in [`docs/SHOW_MANAGEMENT_AND_SCHEDULING.md`](./docs/SHOW_MANAGEMENT_AND_SCHEDULING.md).
 
+### 2.10 Phase 2 - Part 9: Dynamic Pricing Engine (Completed)
+- 💰 **The Fundamental Separation Law:**
+  - Movies **never** store ticket prices.
+  - Halls **never** store ticket prices.
+  - Seat layout templates **never** store ticket prices.
+  - Pricing belongs strictly to **Auditorium Sections** via reusable **Pricing Profiles** ($\text{Platform} \to \text{Theatre} \to \text{Pricing Profile} \to \text{Section Pricing} \to \text{Show} \to \text{Show Seat Inventory} \to \text{Customer Booking}$).
+- 🏷️ **Reusable Pricing Profiles Subsystem:**
+  - Pre-seeded with 7 production profiles: *Morning Weekday Economy*, *Weekday Matinee Regular*, *Prime Evening (Mon - Thu)*, *Weekend Morning Family*, *Weekend Blockbuster Prime*, *Holiday & Festival Premium*, and *IMAX Laser Special Experience*.
+  - Tier pricing for Silver, Gold, Platinum, VIP, Recliner, Wheelchair, and Royal Suite with full support for adding custom section tiers.
+  - Configurable Convenience Fees (₹) and statutory GST (18%) with floor and ceiling price boundaries.
+  - Theatre Default Profile designation for zero-touch show scheduling.
+- ⚡ **Seat Selection Pricing Pipeline:**
+  - Deterministic calculation: $\text{Seat Selection } (A3, C4) \longrightarrow \text{Identify Section} \longrightarrow \text{Lookup Pricing Profile} \longrightarrow \text{Compute Grand Total}$.
+  - Computes: $\text{Seat Subtotal} + \text{Convenience Fee Total} + \text{GST Tax} - \text{Discounts} = \text{Grand Total}$.
+- 🎮 **Dynamic Seat Pricing Simulator:**
+  - Interactive auditorium floor plan with curved screen horizon, row letters ($A \dots H$), and seat buttons.
+  - Live profile switcher and dynamic multiplier simulation (1.0x Standard, 0.95x Early Bird, 1.15x High-Demand Surge).
+  - Real-time calculation breakdown pane displaying itemized seats, subtotal, convenience fee, GST, and bold emerald grand total.
+- 🎛️ **Dedicated Pricing Studio Control Plane (`/theatre/pricing`):**
+  - KPI Stat Cards: Total Profiles, Theatre Default, Average Ticket Price (ATP), and Peak Tier Yield.
+  - Multi-faceted filter and search toolbar (Day classification, Time slot, Status, Search).
+  - Switchable **Grid Cards View** and **Detailed Table View** with 1-click actions: Test in Simulator, Set Default, Duplicate, Edit, and Delete.
+  - **Gross Box Office Yield Projection Simulator Widget:** Simulates 100% (Housefull), 75%, and 50% occupancy collections across any auditorium and profile pairing.
+- 🛡️ **Validation & Server Actions:**
+  - Typed server actions (`createPricingProfileAction`, `updatePricingProfileAction`, `deletePricingProfileAction`, `duplicatePricingProfileAction`, `calculateTicketPricingAction`).
+  - Robust validation rules preventing negative rates, rates $> ₹15,000$, deleting the default profile, or deleting profiles attached to active shows.
+- 📚 **Dynamic Pricing Engine Architecture Guide:** Detailed technical documentation in [`docs/DYNAMIC_PRICING_ENGINE.md`](./docs/DYNAMIC_PRICING_ENGINE.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -408,6 +436,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 💰 [`docs/DYNAMIC_PRICING_ENGINE.md`](./docs/DYNAMIC_PRICING_ENGINE.md) — Dynamic Pricing Engine Architecture, Fundamental Separation Law, Reusable Profiles, Section Hierarchy & Seat Calculation Simulator (Phase 2 - Part 9).
 - 🎟️ [`docs/SHOW_MANAGEMENT_AND_SCHEDULING.md`](./docs/SHOW_MANAGEMENT_AND_SCHEDULING.md) — Show Management System, Screening Event Architecture, Conflict Detection Engine, Reusable Pricing Profiles & Dynamic Seat Inventory (Phase 2 - Part 8).
 - 🎬 [`docs/MOVIE_MANAGEMENT_SYSTEM.md`](./docs/MOVIE_MANAGEMENT_SYSTEM.md) — Movie Management System, Master Entity Architecture, Two-Layer Global Library & Theatre Exhibition Catalog (Phase 2 - Part 7).
 - 🪑 [`docs/AUTOMATIC_SEAT_GENERATION_ENGINE.md`](./docs/AUTOMATIC_SEAT_GENERATION_ENGINE.md) — Automatic Seat Generation Engine, Immutable UUIDs, Zero Embedded Pricing & 3D Spatial Geometry (Phase 2 - Part 6).

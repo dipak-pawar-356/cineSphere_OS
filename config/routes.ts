@@ -75,6 +75,7 @@ export const ROUTES = {
     MOVIES: "/theatre/movies",
     SHOWS: "/theatre/shows",
     SHOW_CALENDAR: "/theatre/shows/calendar",
+    PRICING: "/theatre/pricing",
     BOOKINGS: "/theatre/bookings",
     BOOKINGS_TODAY: "/theatre/bookings/today",
     BOOKINGS_UPCOMING: "/theatre/bookings/upcoming",

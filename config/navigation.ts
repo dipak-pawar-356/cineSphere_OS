@@ -320,6 +320,12 @@ export const THEATRE_ADMIN_NAV_SECTIONS: NavSectionConfig[] = [
         href: ROUTES.THEATRE_ADMIN.SHOW_CALENDAR,
         icon: CalendarDays,
       },
+      {
+        label: "Pricing Profiles",
+        href: ROUTES.THEATRE_ADMIN.PRICING,
+        icon: Tag,
+        badge: "Dynamic",
+      },
     ],
   },
   {

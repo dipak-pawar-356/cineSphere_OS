@@ -16,12 +16,12 @@ import { SeatTemplateContainer } from "@/types/seat-generation.types";
 import { generateAuditoriumSeatTemplate } from "@/lib/engine/seat-generation-engine";
 import { GlobalMasterMovie } from "@/types/movie-management.types";
 import {
-  PricingProfile,
   BookingAvailabilityStatus,
   ShowSalesStatus,
 } from "@/types/show-management.types";
 import { ShowStatus, ShowSeat } from "@/types/show.types";
-import { INITIAL_PRICING_PROFILES } from "@/lib/constants/initial-pricing-profiles";
+import { DynamicPricingProfile } from "@/types/pricing-engine.types";
+import { INITIAL_DYNAMIC_PRICING_PROFILES } from "@/lib/engine/pricing-engine";
 import {
   calculateScheduleWindow,
   timeStringToMinutes,
@@ -233,7 +233,7 @@ export interface TheatreState {
   halls: ManagedHall[];
   movies: ManagedMovie[];
   shows: ManagedShow[];
-  pricingProfiles: PricingProfile[];
+  pricingProfiles: DynamicPricingProfile[];
   bookings: MonitoredBooking[];
   staff: ManagedStaff[];
   media: ManagedMediaAsset[];
@@ -276,10 +276,12 @@ export interface TheatreState {
   unlinkMovie: (id: string) => void;
   updateMovieScreeningStatus: (id: string, status: "Now Showing" | "Upcoming" | "Archived") => void;
 
-  // Pricing Profiles (Phase 2 Part 8)
-  addPricingProfile: (profile: Omit<PricingProfile, "id" | "createdAt" | "updatedAt">) => void;
-  updatePricingProfile: (id: string, updates: Partial<PricingProfile>) => void;
-  deletePricingProfile: (id: string) => void;
+  // Pricing Profiles (Phase 2 Part 9: Dynamic Pricing Engine)
+  addPricingProfile: (profile: Omit<DynamicPricingProfile, "id" | "createdAt" | "updatedAt" | "code"> & { code?: string }) => { success: boolean; profile?: DynamicPricingProfile; error?: string };
+  updatePricingProfile: (id: string, updates: Partial<DynamicPricingProfile>) => { success: boolean; profile?: DynamicPricingProfile; error?: string };
+  deletePricingProfile: (id: string) => { success: boolean; error?: string };
+  duplicatePricingProfile: (id: string, newName?: string) => { success: boolean; profile?: DynamicPricingProfile; error?: string };
+  setDefaultPricingProfile: (id: string) => void;
 
   // Show Programming (Phase 2 Part 8)
   addShow: (show: Omit<ManagedShow, "id" | "seatsBooked">) => { success: boolean; show?: ManagedShow; error?: string };
@@ -997,9 +999,9 @@ export const useTheatreStore = create<TheatreState>()(
           formats: m.formats as ("2D" | "3D" | "IMAX" | "4DX" | "Dolby Atmos")[],
           status: m.status as "Now Showing" | "Upcoming" | "Archived",
         })),
-        pricingProfiles: INITIAL_PRICING_PROFILES,
+        pricingProfiles: INITIAL_DYNAMIC_PRICING_PROFILES,
         shows: SEED_SHOWS.map((s, idx) => {
-          const profile = INITIAL_PRICING_PROFILES[idx % INITIAL_PRICING_PROFILES.length];
+          const profile = INITIAL_DYNAMIC_PRICING_PROFILES[idx % INITIAL_DYNAMIC_PRICING_PROFILES.length];
           const duration = 150;
           const intermission = 15;
           const cleaning = 20;
@@ -1448,47 +1450,173 @@ export const useTheatreStore = create<TheatreState>()(
 
         // ----------------------------------------------------------------------
         // ----------------------------------------------------------------------
-        // Pricing Profiles (Phase 2 Part 8)
+        // Pricing Profiles (Phase 2 Part 9: Dynamic Pricing Engine)
         // ----------------------------------------------------------------------
         addPricingProfile: (profile) => {
-          const newProfile: PricingProfile = {
+          const profileId = `pp-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          const code =
+            profile.code ||
+            `PRF-${profile.name.toUpperCase().replace(/[^A-Z0-9]+/g, "").slice(0, 4)}-${Math.floor(Math.random() * 90 + 10)}`;
+
+          const newProfile: DynamicPricingProfile = {
             ...profile,
-            id: `pp-${Date.now()}`,
+            id: profileId,
+            code,
+            theatreId: profile.theatreId || get().activeTheatreId || "th-pun-001",
+            status: profile.status || "Active",
+            isActive: profile.status ? profile.status === "Active" : true,
+            isDefault: profile.isDefault ?? false,
+            convenienceFee: profile.convenienceFee ?? 35,
+            gstPercent: profile.gstPercent ?? 18,
+            currency: profile.currency || "INR",
+            minPrice: profile.minPrice || 150,
+            maxPrice: profile.maxPrice || 3500,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
-          set((state) => ({
-            pricingProfiles: [newProfile, ...state.pricingProfiles],
-          }));
+
+          set((state) => {
+            let existing = state.pricingProfiles;
+            if (newProfile.isDefault) {
+              existing = existing.map((p) => ({ ...p, isDefault: false }));
+            }
+            return {
+              pricingProfiles: [newProfile, ...existing],
+            };
+          });
+
           get().logTenantAudit(
             "PRICING_PROFILE_CREATED",
             "Pricing",
-            `Created pricing profile "${profile.name}"`
+            `Created pricing profile "${newProfile.name}" (${newProfile.code})`
           );
+
+          return { success: true, profile: newProfile };
         },
 
         updatePricingProfile: (id, updates) => {
-          set((state) => ({
-            pricingProfiles: state.pricingProfiles.map((p) =>
-              p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
-            ),
-          }));
+          const existing = get().pricingProfiles.find((p) => p.id === id);
+          if (!existing) {
+            return { success: false, error: "Pricing profile not found" };
+          }
+
+          let updatedTarget: DynamicPricingProfile | undefined;
+
+          set((state) => {
+            const nextProfiles = state.pricingProfiles.map((p) => {
+              if (p.id === id) {
+                const nextStatus = updates.status || p.status;
+                const nextActive = updates.isActive ?? (nextStatus === "Active");
+                const merged: DynamicPricingProfile = {
+                  ...p,
+                  ...updates,
+                  status: nextStatus,
+                  isActive: nextActive,
+                  updatedAt: new Date().toISOString(),
+                };
+                updatedTarget = merged;
+                return merged;
+              }
+              if (updates.isDefault) {
+                return { ...p, isDefault: false };
+              }
+              return p;
+            });
+            return { pricingProfiles: nextProfiles };
+          });
+
           get().logTenantAudit(
             "PRICING_PROFILE_UPDATED",
             "Pricing",
-            `Updated pricing profile ID ${id}`
+            `Updated pricing profile "${updatedTarget?.name || id}"`
           );
+
+          return { success: true, profile: updatedTarget };
         },
 
         deletePricingProfile: (id) => {
           const target = get().pricingProfiles.find((p) => p.id === id);
+          if (!target) {
+            return { success: false, error: "Pricing profile not found" };
+          }
+          if (target.isDefault) {
+            return { success: false, error: "Cannot delete the default pricing profile. Set another profile as default first." };
+          }
+
+          // Check if any active shows are using this profile
+          const attachedShows = get().shows.filter((s) => s.pricingProfileId === id && s.status !== "Cancelled");
+          if (attachedShows.length > 0) {
+            return {
+              success: false,
+              error: `Cannot delete: ${attachedShows.length} show(s) currently reference this pricing profile. Reassign those shows first.`,
+            };
+          }
+
           set((state) => ({
             pricingProfiles: state.pricingProfiles.filter((p) => p.id !== id),
           }));
+
           get().logTenantAudit(
             "PRICING_PROFILE_DELETED",
             "Pricing",
-            `Deleted pricing profile "${target?.name || id}"`
+            `Deleted pricing profile "${target.name}" (${target.code})`
+          );
+
+          return { success: true };
+        },
+
+        duplicatePricingProfile: (id, newName) => {
+          const source = get().pricingProfiles.find((p) => p.id === id);
+          if (!source) {
+            return { success: false, error: "Source pricing profile not found" };
+          }
+
+          const copyName = newName || `${source.name} (Copy)`;
+          const newId = `pp-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          const code = `PRF-${copyName.toUpperCase().replace(/[^A-Z0-9]+/g, "").slice(0, 4)}-${Math.floor(Math.random() * 90 + 10)}`;
+
+          const copy: DynamicPricingProfile = {
+            ...source,
+            id: newId,
+            code,
+            name: copyName,
+            status: "Draft",
+            isActive: false,
+            isDefault: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+
+          set((state) => ({
+            pricingProfiles: [copy, ...state.pricingProfiles],
+          }));
+
+          get().logTenantAudit(
+            "PRICING_PROFILE_DUPLICATED",
+            "Pricing",
+            `Duplicated pricing profile "${source.name}" as "${copy.name}"`
+          );
+
+          return { success: true, profile: copy };
+        },
+
+        setDefaultPricingProfile: (id) => {
+          const target = get().pricingProfiles.find((p) => p.id === id);
+          if (!target) return;
+
+          set((state) => ({
+            pricingProfiles: state.pricingProfiles.map((p) => ({
+              ...p,
+              isDefault: p.id === id,
+              status: p.id === id ? "Active" : p.status,
+              isActive: p.id === id ? true : p.isActive,
+            })),
+          }));
+
+          get().logTenantAudit(
+            "PRICING_PROFILE_DEFAULT_CHANGED",
+            "Pricing",
+            `Set "${target.name}" as the default cinema pricing profile`
           );
         },
 
@@ -1509,7 +1637,7 @@ export const useTheatreStore = create<TheatreState>()(
           const pricingProfile =
             get().pricingProfiles.find((p) => p.id === show.pricingProfileId) ||
             get().pricingProfiles[0] ||
-            INITIAL_PRICING_PROFILES[0];
+            INITIAL_DYNAMIC_PRICING_PROFILES[0];
 
           // Check for conflicts
           const conflict = detectScheduleConflict(
