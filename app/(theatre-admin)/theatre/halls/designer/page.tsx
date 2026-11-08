@@ -26,13 +26,17 @@ import {
   HallLayout,
   SeatType,
   ShowSeat,
+  SeatCategoryTier,
 } from "@/types";
 import {
   generateHallLayout,
   generateShowSeatInventory,
 } from "@/lib/engine/seat-generator";
+import { generateAuditoriumSeatTemplate } from "@/lib/engine/seat-generation-engine";
+import { SeatTemplateContainer } from "@/types/seat-generation.types";
 import { HallLayoutRenderer } from "@/components/cinema-engine/hall-layout-renderer";
 import { SeatLegend } from "@/components/cinema-engine/seat-legend";
+import { SeatPreviewGrid } from "@/components/theatre/seat-preview-grid";
 
 // Default 100-seat configuration (Galaxy Multiplex Hall 1 specification)
 const DEFAULT_100_SEATS_CONFIG: HallSection[] = [
@@ -148,6 +152,7 @@ export default function TheatreHallDesignerPage() {
   const [soundSystem, setSoundSystem] = useState("IMAX 12-Channel High-Dynamic Precision Array");
   const [sections, setSections] = useState<HallSection[]>(DEFAULT_100_SEATS_CONFIG);
   const [isSaved, setIsSaved] = useState(false);
+  const [activeView, setActiveView] = useState<"grid" | "schematic">("grid");
 
   // Load a preset
   const handleApplyPreset = (presetId: string) => {
@@ -212,6 +217,39 @@ export default function TheatreHallDesignerPage() {
       },
     });
   }, [generatedLayout, sections]);
+
+  // Phase 2 Part 6: Deterministic Auditorium Seat Template with Immutable UUIDs & 3D Anchors
+  const deterministicSeatTemplate: SeatTemplateContainer = useMemo(() => {
+    const totalCapacity = sections.reduce((acc, s) => acc + s.seatCount, 0);
+    return generateAuditoriumSeatTemplate({
+      hallId: "hall-custom-preview",
+      theatreId: "th-pun-001",
+      layoutId: "layout-custom-preview",
+      name: `${hallName} Template`,
+      capacity: totalCapacity,
+      sections: sections.map((s, idx) => {
+        let cat: SeatCategoryTier = "Gold";
+        const nameLower = s.name.toLowerCase();
+        if (s.seatType === "VIP" || nameLower.includes("vip")) cat = "VIP";
+        else if (s.seatType === "Recliner" || nameLower.includes("recliner")) cat = "Recliner";
+        else if (s.seatType === "Wheelchair" || nameLower.includes("wheelchair")) cat = "Wheelchair";
+        else if (nameLower.includes("platinum")) cat = "Platinum";
+        else if (nameLower.includes("silver") || idx === 0) cat = "Silver";
+        else if (nameLower.includes("gold")) cat = "Gold";
+
+        return {
+          id: s.id,
+          name: s.name,
+          displayName: s.name,
+          seatCount: s.seatCount,
+          category: cat,
+          displayOrder: s.displayOrder || idx + 1,
+          seatsPerRow: s.seatsPerRow || 10,
+          rows: s.rows,
+        };
+      }),
+    });
+  }, [hallName, sections]);
 
   return (
     <div className="space-y-8 pb-16">
@@ -478,42 +516,82 @@ export default function TheatreHallDesignerPage() {
 
         {/* 5. RIGHT PANEL: LIVE AUTOMATIC LAYOUT VISUALIZATION (7 COLS) */}
         <div className="lg:col-span-7 space-y-6">
-          <Card variant="elevated" className="p-6 bg-[#0B1220] border-[#1E293B] shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-[#1E293B]">
-              <div>
-                <h3 className="font-extrabold text-white text-base">
-                  Live Generated Seating Grid
-                </h3>
-                <p className="text-xs text-[#94A3B8]">
-                  Auto-calculated from configuration without manual coordinate placement.
-                </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 p-1 bg-[#0B1220] border border-[#1E293B] rounded-xl text-xs">
+              <button
+                onClick={() => setActiveView("grid")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${
+                  activeView === "grid"
+                    ? "bg-[#1E293B] text-white shadow-sm"
+                    : "text-[#94A3B8] hover:text-white"
+                }`}
+              >
+                <Layers className="h-3.5 w-3.5 text-amber-400" />
+                Seat Matrix Grid
+              </button>
+              <button
+                onClick={() => setActiveView("schematic")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${
+                  activeView === "schematic"
+                    ? "bg-[#1E293B] text-white shadow-sm"
+                    : "text-[#94A3B8] hover:text-white"
+                }`}
+              >
+                <Box className="h-3.5 w-3.5 text-blue-400" />
+                2D Floor Schematic
+              </button>
+            </div>
+
+            <div className="text-right">
+              <span className="text-xs font-mono text-[#FBBF24] font-bold">
+                {deterministicSeatTemplate.totalGeneratedSeats} Total Seats
+              </span>
+              <div className="text-[10px] text-[#64748B]">
+                Checksum: {deterministicSeatTemplate.checksum}
               </div>
-              <div className="text-right">
-                <span className="text-xs font-mono text-[#FBBF24] font-bold">
-                  {generatedLayout.capacity} Total Seats
-                </span>
-                <div className="text-[10px] text-[#64748B]">
-                  {generatedLayout.rows} Rows • {generatedLayout.maxColumns} Max Columns
+            </div>
+          </div>
+
+          {activeView === "grid" ? (
+            <SeatPreviewGrid template={deterministicSeatTemplate} />
+          ) : (
+            <Card variant="elevated" className="p-6 bg-[#0B1220] border-[#1E293B] shadow-2xl">
+              <div className="flex items-center justify-between pb-4 border-b border-[#1E293B]">
+                <div>
+                  <h3 className="font-extrabold text-white text-base">
+                    Live 2D Seating Schematic
+                  </h3>
+                  <p className="text-xs text-[#94A3B8]">
+                    Auto-calculated from configuration without manual coordinate placement.
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-mono text-[#FBBF24] font-bold">
+                    {generatedLayout.capacity} Total Seats
+                  </span>
+                  <div className="text-[10px] text-[#64748B]">
+                    {generatedLayout.rows} Rows • {generatedLayout.maxColumns} Max Columns
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Layout Canvas */}
-            <div className="overflow-x-auto py-6">
-              <div className="min-w-[500px]">
-                <HallLayoutRenderer
-                  layout={generatedLayout}
-                  seatInventory={previewInventory}
-                  screenName={hallName}
-                />
+              {/* Layout Canvas */}
+              <div className="overflow-x-auto py-6">
+                <div className="min-w-[500px]">
+                  <HallLayoutRenderer
+                    layout={generatedLayout}
+                    seatInventory={previewInventory}
+                    screenName={hallName}
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Dynamic Legend */}
-            <div className="pt-4 border-t border-[#1E293B]">
-              <SeatLegend sections={generatedLayout.sections} />
-            </div>
-          </Card>
+              {/* Dynamic Legend */}
+              <div className="pt-4 border-t border-[#1E293B]">
+                <SeatLegend sections={generatedLayout.sections} />
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </div>

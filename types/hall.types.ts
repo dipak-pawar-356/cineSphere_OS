@@ -1,4 +1,5 @@
 import { ID } from "./common.types";
+import type { SeatTemplateContainer } from "./seat-generation.types";
 
 export type ScreenType =
   | "IMAX Laser"
@@ -260,6 +261,7 @@ export interface Hall {
   currentShow?: string;
   sections?: DynamicHallSectionConfig[] | HallSection[];
   hallLayout?: HallLayout;
+  seatTemplate?: SeatTemplateContainer;
   future3DConfig?: Future3DHallConfig;
   seatCategories?: SeatCategory[];
   image?: string;

@@ -12,6 +12,8 @@ import {
   THEATRE_NOTIFICATIONS as SEED_NOTIFICATIONS,
 } from "@/lib/constants/theatre-admin";
 import { DynamicHallSectionConfig, Future3DHallConfig, HallStatus } from "@/types/hall.types";
+import { SeatTemplateContainer } from "@/types/seat-generation.types";
+import { generateAuditoriumSeatTemplate } from "@/lib/engine/seat-generation-engine";
 
 /**
  * ==============================================================================
@@ -88,6 +90,7 @@ export interface ManagedHall {
   image: string;
   sections: DynamicHallSectionConfig[];
   layout?: Future3DHallConfig;
+  seatTemplate?: SeatTemplateContainer;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -209,6 +212,7 @@ export interface TheatreState {
   deactivateHall: (id: string) => void;
   duplicateHall: (id: string) => { success: boolean; newId?: string; error?: string };
   deleteHall: (id: string) => void;
+  generateSeatsForHall: (hallId: string) => { success: boolean; template?: SeatTemplateContainer; error?: string };
 
   // Movie CRUD (Catalog entry point)
   addMovie: (movie: Omit<ManagedMovie, "id">) => void;
@@ -454,6 +458,50 @@ function getInitialTenantData(theatreId: string) {
             },
           ] satisfies DynamicHallSectionConfig[],
           layout: DEFAULT_3D_CONFIG,
+          seatTemplate: generateAuditoriumSeatTemplate({
+            hallId: "hall-mum-1",
+            theatreId: "th-mum-001",
+            capacity: 240,
+            sections: [
+              {
+                id: "sec-mum-1a",
+                name: "Section A - VIP Recliner",
+                displayName: "VIP Recliner Tier",
+                seatCount: 40,
+                category: "VIP Recliner",
+                sortOrder: 1,
+                visibility: true,
+                status: "Active" as const,
+                rows: ["A", "B"],
+                seatsPerRow: 20,
+              },
+              {
+                id: "sec-mum-1b",
+                name: "Section B - Platinum Club",
+                displayName: "Platinum Club Tier",
+                seatCount: 100,
+                category: "Platinum",
+                sortOrder: 2,
+                visibility: true,
+                status: "Active" as const,
+                rows: ["C", "D", "E", "F", "G"],
+                seatsPerRow: 20,
+              },
+              {
+                id: "sec-mum-1c",
+                name: "Section C - Gold Prime",
+                displayName: "Gold Prime Tier",
+                seatCount: 100,
+                category: "Gold",
+                sortOrder: 3,
+                visibility: true,
+                status: "Active" as const,
+                rows: ["H", "I", "J", "K", "L"],
+                seatsPerRow: 20,
+              },
+            ],
+            name: "Royale IMAX Laser Seat Template",
+          }),
           createdAt: "2026-08-15T10:00:00Z",
           updatedAt: "2026-11-01T15:30:00Z",
         },
@@ -514,6 +562,50 @@ function getInitialTenantData(theatreId: string) {
             },
           ] satisfies DynamicHallSectionConfig[],
           layout: DEFAULT_3D_CONFIG,
+          seatTemplate: generateAuditoriumSeatTemplate({
+            hallId: "hall-mum-2",
+            theatreId: "th-mum-001",
+            capacity: 180,
+            sections: [
+              {
+                id: "sec-mum-2a",
+                name: "Section A - Motorized Recliner",
+                displayName: "Recliner Suite",
+                seatCount: 40,
+                category: "Recliner",
+                sortOrder: 1,
+                visibility: true,
+                status: "Active" as const,
+                rows: ["A", "B"],
+                seatsPerRow: 20,
+              },
+              {
+                id: "sec-mum-2b",
+                name: "Section B - Executive Gold",
+                displayName: "Gold Tier",
+                seatCount: 60,
+                category: "Gold",
+                sortOrder: 2,
+                visibility: true,
+                status: "Active" as const,
+                rows: ["C", "D", "E"],
+                seatsPerRow: 20,
+              },
+              {
+                id: "sec-mum-2c",
+                name: "Section C - Standard Silver",
+                displayName: "Silver Tier",
+                seatCount: 80,
+                category: "Silver",
+                sortOrder: 3,
+                visibility: true,
+                status: "Active" as const,
+                rows: ["F", "G", "H", "I"],
+                seatsPerRow: 20,
+              },
+            ],
+            name: "Dolby Cinema Seat Template",
+          }),
           createdAt: "2026-08-20T10:00:00Z",
           updatedAt: "2026-11-01T15:30:00Z",
         },
@@ -769,25 +861,8 @@ function getInitialTenantData(theatreId: string) {
         stripe: { enabled: true, pubKeyMasked: "pk_live_••••••••1290" },
       },
     },
-    halls: SEED_HALLS.map((h, idx) => ({
-      id: h.id,
-      theatreId: "th-pun-001",
-      hallNumber: h.hallNumber,
-      hallCode: `PUN-H0${h.hallNumber}`,
-      name: h.name,
-      screenType: h.screenType,
-      capacity: h.seatCount,
-      projectionType: h.projectorModel,
-      soundSystem: h.audioSpec,
-      aspectRatio: h.aspectRatio,
-      floorNumber: idx < 3 ? "Floor 2 (Main Deck)" : "Floor 3 (VIP Level)",
-      description: `${h.screenType} auditorium featuring ${h.projectorModel} and ${h.audioSpec}.`,
-      status: h.status as HallStatus,
-      occupancyPercent: h.occupancyPercent,
-      currentMovie: h.currentMovie,
-      currentShow: h.currentShow,
-      image: h.image,
-      sections: SEED_PUNE_SECTIONS[h.id] || [
+    halls: SEED_HALLS.map((h, idx) => {
+      const hallSections = SEED_PUNE_SECTIONS[h.id] || [
         {
           id: `sec-${h.id}-1`,
           name: "Section A - General Admission",
@@ -800,11 +875,46 @@ function getInitialTenantData(theatreId: string) {
           rows: ["A", "B", "C", "D"],
           seatsPerRow: Math.ceil(h.seatCount / 4),
         },
-      ],
-      layout: DEFAULT_3D_CONFIG,
-      createdAt: "2026-09-01T10:00:00Z",
-      updatedAt: "2026-11-05T12:00:00Z",
-    })),
+      ];
+
+      let seatTemplate: SeatTemplateContainer | undefined;
+      try {
+        seatTemplate = generateAuditoriumSeatTemplate({
+          hallId: h.id,
+          theatreId: "th-pun-001",
+          capacity: h.seatCount,
+          sections: hallSections,
+          name: `${h.name} Reusable Seat Template`,
+        });
+      } catch (e) {
+        // fallback
+      }
+
+      return {
+        id: h.id,
+        theatreId: "th-pun-001",
+        hallNumber: h.hallNumber,
+        hallCode: `PUN-H0${h.hallNumber}`,
+        name: h.name,
+        screenType: h.screenType,
+        capacity: h.seatCount,
+        projectionType: h.projectorModel,
+        soundSystem: h.audioSpec,
+        aspectRatio: h.aspectRatio,
+        floorNumber: idx < 3 ? "Floor 2 (Main Deck)" : "Floor 3 (VIP Level)",
+        description: `${h.screenType} auditorium featuring ${h.projectorModel} and ${h.audioSpec}.`,
+        status: h.status as HallStatus,
+        occupancyPercent: h.occupancyPercent,
+        currentMovie: h.currentMovie,
+        currentShow: h.currentShow,
+        image: h.image,
+        sections: hallSections,
+        layout: DEFAULT_3D_CONFIG,
+        seatTemplate,
+        createdAt: "2026-09-01T10:00:00Z",
+        updatedAt: "2026-11-05T12:00:00Z",
+      };
+    }),
   };
 }
 
@@ -910,6 +1020,19 @@ export const useTheatreStore = create<TheatreState>()(
             };
           }
 
+          let seatTemplate: SeatTemplateContainer | undefined;
+          try {
+            seatTemplate = generateAuditoriumSeatTemplate({
+              hallId: `hall-${Date.now()}`,
+              theatreId: get().activeTheatreId,
+              capacity: Number(hallData.capacity),
+              sections,
+              name: `${hallData.name} Reusable Seat Template`,
+            });
+          } catch (e) {
+            // fallback
+          }
+
           const newHall: ManagedHall = {
             ...hallData,
             id: `hall-${Date.now()}`,
@@ -921,6 +1044,7 @@ export const useTheatreStore = create<TheatreState>()(
             occupancyPercent: 0,
             image: hallData.image || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&auto=format&fit=crop&q=80",
             layout: hallData.layout || DEFAULT_3D_CONFIG,
+            seatTemplate,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
@@ -950,8 +1074,23 @@ export const useTheatreStore = create<TheatreState>()(
             }
           }
 
+          let seatTemplate = current.seatTemplate;
+          if (targetSections.length > 0) {
+            try {
+              seatTemplate = generateAuditoriumSeatTemplate({
+                hallId: current.id,
+                theatreId: current.theatreId || get().activeTheatreId,
+                capacity: targetCapacity,
+                sections: targetSections,
+                name: `${updates.name || current.name} Reusable Seat Template`,
+              });
+            } catch (e) {
+              // fallback
+            }
+          }
+
           set((state) => ({
-            halls: state.halls.map((h) => (h.id === id ? { ...h, ...updates, updatedAt: new Date().toISOString() } : h)),
+            halls: state.halls.map((h) => (h.id === id ? { ...h, ...updates, seatTemplate, updatedAt: new Date().toISOString() } : h)),
           }));
 
           get().logTenantAudit("HALL_UPDATED", "Halls", `Updated configuration for "${current.name}"`);
@@ -988,6 +1127,21 @@ export const useTheatreStore = create<TheatreState>()(
 
           const newId = `hall-${Date.now()}`;
           const nextHallNumber = Math.max(...get().halls.map((h) => h.hallNumber), 0) + 1;
+          let duplicatedTemplate: SeatTemplateContainer | undefined;
+          if (original.sections && original.sections.length > 0) {
+            try {
+              duplicatedTemplate = generateAuditoriumSeatTemplate({
+                hallId: newId,
+                theatreId: original.theatreId || get().activeTheatreId,
+                capacity: original.capacity,
+                sections: original.sections,
+                name: `${original.name} (Copy) Reusable Seat Template`,
+              });
+            } catch (e) {
+              // fallback
+            }
+          }
+
           const duplicated: ManagedHall = {
             ...original,
             id: newId,
@@ -1002,6 +1156,7 @@ export const useTheatreStore = create<TheatreState>()(
               ...s,
               id: `sec-${newId}-${idx + 1}`,
             })),
+            seatTemplate: duplicatedTemplate,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
@@ -1020,6 +1175,37 @@ export const useTheatreStore = create<TheatreState>()(
             halls: state.halls.filter((h) => h.id !== id),
           }));
           get().logTenantAudit("HALL_DELETED", "Halls", `Deleted auditorium "${current?.name || id}"`);
+        },
+
+        generateSeatsForHall: (hallId) => {
+          const current = get().halls.find((h) => h.id === hallId);
+          if (!current) return { success: false, error: "Auditorium not found." };
+
+          try {
+            const template = generateAuditoriumSeatTemplate({
+              hallId: current.id,
+              theatreId: current.theatreId || get().activeTheatreId,
+              capacity: current.capacity,
+              sections: current.sections,
+              name: `${current.name} Reusable Seat Template`,
+            });
+
+            set((state) => ({
+              halls: state.halls.map((h) =>
+                h.id === hallId ? { ...h, seatTemplate: template, updatedAt: new Date().toISOString() } : h
+              ),
+            }));
+
+            get().logTenantAudit(
+              "SEATS_GENERATED",
+              "Halls",
+              `Automatically generated ${template.totalGeneratedSeats} seat records for "${current.name}" (${current.hallCode})`
+            );
+
+            return { success: true, template };
+          } catch (err: any) {
+            return { success: false, error: err.message || "Failed to generate seat matrix." };
+          }
         },
 
         // ----------------------------------------------------------------------

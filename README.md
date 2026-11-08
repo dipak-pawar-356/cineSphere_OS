@@ -343,6 +343,21 @@ Phase 2 - Part 5 implements the complete **Hall Management & Dynamic Hall Config
 
 ---
 
+## 🪑 2.7 Phase 2 - Part 6: Automatic Seat Generation Engine
+
+Phase 2 - Part 6 implements the core **Automatic Seat Generation Engine** for CineSphere OS:
+
+- 🧮 **Deterministic Generation Algorithm:** Identical hall and section configurations generate mathematically identical seat layouts, spatial metrics, and immutable identifiers without database flakiness.
+- 🆔 **Immutable UUIDs Decoupled from Display Labels:** Every seat receives an immutable internal UUID (`id`) generated via 64-bit seed hashing, completely separated from mutable human-readable display labels (`seatLabel`: `A1..A20`, `B1..B30`, `C1..C50`). Renaming sections or renumbering seats never breaks historical booking records or foreign key relationships.
+- 🏷️ **Zero Embedded Pricing Law:** Seat templates store physical layout geometry, categories, and 3D camera vectors. Ticket prices are **never** stored in the seat template. Show Pricing is combined with templates dynamically via `generateShowInventoryFromTemplate` to create show inventories.
+- 📐 **Spatial 3D & Camera Anchors:** Calculates physical metric coordinates ($x, y, z$), tier elevation rises ($0.35\,\text{m}$ to $0.45\,\text{m}$), and viewer camera eye-level anchors ($1.2\,\text{m}$ eye elevation looking at $[0, 2.5, 0]$ with $60^\circ$ FOV) calibrated for future Phase 6 3D auditorium preview.
+- ⚖️ **Capacity Conservation Invariant:** Strictly validates $\text{Hall Capacity} \equiv \sum \text{Section Seats} \equiv |\text{Generated Seats}|$ before committing or returning templates.
+- 🖥️ **Interactive Seat Preview Grid (`SeatPreviewGrid`):** Features an architectural curved screen header, category-themed tier containers, live seat search by label (e.g. `B14`), section and type filters, and an interactive **Seat Inspector Card** revealing UUIDs, 3D coordinates, and flags.
+- 🔄 **CAD Designer & Hall Fleet Integration:** Fully integrated with the Hall Detail View (`/theatre/halls/[id]`), Dynamic Hall Designer (`/theatre/halls/designer`), and multi-tenant Zustand store (`useTheatreStore`).
+- 📚 **Automatic Seat Generation Engine Guide:** Detailed technical documentation in [`docs/AUTOMATIC_SEAT_GENERATION_ENGINE.md`](./docs/AUTOMATIC_SEAT_GENERATION_ENGINE.md).
+
+---
+
 ## ☁️ 9. Vercel Deployment Settings
 
 For zero-configuration deployment to Vercel:
@@ -361,6 +376,8 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🪑 [`docs/AUTOMATIC_SEAT_GENERATION_ENGINE.md`](./docs/AUTOMATIC_SEAT_GENERATION_ENGINE.md) — Automatic Seat Generation Engine, Immutable UUIDs, Zero Embedded Pricing & 3D Spatial Geometry (Phase 2 - Part 6).
+- 🏛️ [`docs/HALL_MANAGEMENT_ARCHITECTURE.md`](./docs/HALL_MANAGEMENT_ARCHITECTURE.md) — Hall Fleet Management, Dynamic Section Editor & 2D Floor Plan Schematic (Phase 2 - Part 5).
 - 🏢 [`docs/THEATRE_ADMIN_ONBOARDING.md`](./docs/THEATRE_ADMIN_ONBOARDING.md) — Theatre Admin Management, Multi-Tenant Isolation & Independent UPI Rails (Phase 2 - Part 4).
 - 🛡️ [`docs/SUPER_ADMIN_PLATFORM.md`](./docs/SUPER_ADMIN_PLATFORM.md) — Super Admin Platform Control Plane, Governance Architecture & State Machine (Phase 2 - Part 3).
 - 🗄️ [`docs/DATABASE_ARCHITECTURE.md`](./docs/DATABASE_ARCHITECTURE.md) — Production PostgreSQL Architecture, Drizzle ORM Schema, Relational Graph & Multi-Tenant Model (Phase 2 - Part 2).

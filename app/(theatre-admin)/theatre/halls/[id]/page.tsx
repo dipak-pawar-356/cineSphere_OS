@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTheatreStore } from "@/store/theatre-store";
@@ -9,8 +9,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HallPreview2D } from "@/components/theatre/hall-preview-2d";
+import { SeatPreviewGrid } from "@/components/theatre/seat-preview-grid";
 import { HallModal } from "@/components/theatre/hall-modal";
 import { getCategoryDesignTokens } from "@/lib/constants/seating-design-system";
+import { generateAuditoriumSeatTemplate } from "@/lib/engine/seat-generation-engine";
 import {
   Layers,
   Tv,
@@ -30,6 +32,8 @@ import {
   ShieldCheck,
   Film,
   Compass,
+  Grid3X3,
+  Eye,
 } from "lucide-react";
 import { ROUTES } from "@/config/routes";
 
@@ -47,14 +51,34 @@ export default function TheatreHallDetailPage() {
     activateHall,
     deactivateHall,
     archiveHall,
+    generateSeatsForHall,
     auditLogs,
   } = useTheatreStore();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [activePreviewTab, setActivePreviewTab] = useState<"matrix" | "blueprint">("matrix");
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const hall = halls.find((h) => h.id === hallId) || halls[0];
   const hallShows = shows.filter((s) => s.hallId === hall?.id);
   const sections = hall?.sections || [];
+
+  // Deterministic seat template fallback if not yet persisted
+  const seatTemplate = useMemo(() => {
+    if (hall?.seatTemplate) return hall.seatTemplate;
+    if (!hall) return null;
+    try {
+      return generateAuditoriumSeatTemplate({
+        hallId: hall.id,
+        theatreId: hall.theatreId || "th-pun-001",
+        capacity: hall.capacity,
+        sections: hall.sections || [],
+        name: `${hall.name} Reusable Seat Template`,
+      });
+    } catch (e) {
+      return null;
+    }
+  }, [hall]);
 
   if (!hall) {
     return (
@@ -87,6 +111,12 @@ export default function TheatreHallDetailPage() {
     }
   };
 
+  const handleRegenerate = () => {
+    setIsRegenerating(true);
+    generateSeatsForHall(hall.id);
+    setTimeout(() => setIsRegenerating(false), 500);
+  };
+
   return (
     <div className="space-y-8 pb-12">
       {/* Back to Hall Fleet Navigation */}
@@ -101,11 +131,22 @@ export default function TheatreHallDetailPage() {
       <PageHeader
         title={hall.name}
         subtitle={`${hall.screenType} • ${hall.capacity} Seating Capacity • ${hall.floorNumber || "Floor 2"}`}
-        description="Comprehensive technical diagnostics, dynamic seating tiers, hardware calibration, 2D floor plans, and showtime dispatch list."
+        description="Deterministic automatic seat generation, dynamic category tiers, 2D floor plans, and showtime dispatch list."
         badge={hall.status}
         badgeVariant={isOnline ? "success" : hall.status === "Maintenance" ? "warning" : "secondary"}
         actions={
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleRegenerate}
+              disabled={isRegenerating}
+              className="gap-1.5 font-bold bg-[#FBBF24] hover:bg-[#F59E0B] text-black shadow-lg shadow-[#FBBF24]/10"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {isRegenerating ? "Regenerating..." : "Regenerate Seat Matrix"}
+            </Button>
+
             <Button
               variant="outline"
               size="sm"
@@ -138,17 +179,56 @@ export default function TheatreHallDetailPage() {
         }
       />
 
-      {/* Main Grid: 2D Schematic Preview & Hardware Specifications */}
+      {/* View Switcher Bar between Seat Matrix Grid and 2D Blueprint */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-2 rounded-xl bg-[#0F172A] border border-[#1E293B]">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActivePreviewTab("matrix")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+              activePreviewTab === "matrix"
+                ? "bg-[#FBBF24] text-black shadow"
+                : "text-[#94A3B8] hover:text-white"
+            }`}
+          >
+            <Grid3X3 className="h-3.5 w-3.5" />
+            <span>Generated Seat Matrix ({hall.capacity} Seats)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActivePreviewTab("blueprint")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+              activePreviewTab === "blueprint"
+                ? "bg-[#1E293B] text-amber-400 border border-amber-400/30"
+                : "text-[#94A3B8] hover:text-white"
+            }`}
+          >
+            <Eye className="h-3.5 w-3.5" />
+            <span>2D Floor Plan Schematic</span>
+          </button>
+        </div>
+
+        <div className="text-xs font-mono text-[#64748B] pr-2">
+          Immutable Template: <span className="text-[#CBD5E1]">{hall.hallCode}</span>
+        </div>
+      </div>
+
+      {/* Main Grid: Visualizer & Hardware Specifications */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: 2D Floor Plan & Future 3D Architecture */}
+        {/* Left Column: Visual Preview & Dynamic Sections Table */}
         <div className="lg:col-span-2 space-y-6">
-          <HallPreview2D
-            hallName={hall.name}
-            hallCode={hall.hallCode}
-            screenType={hall.screenType}
-            capacity={hall.capacity}
-            sections={sections}
-          />
+          {activePreviewTab === "matrix" && seatTemplate ? (
+            <SeatPreviewGrid template={seatTemplate} onRegenerate={handleRegenerate} />
+          ) : (
+            <HallPreview2D
+              hallName={hall.name}
+              hallCode={hall.hallCode}
+              screenType={hall.screenType}
+              capacity={hall.capacity}
+              sections={sections}
+            />
+          )}
 
           {/* Dynamic Sections Table Breakdown */}
           <Card variant="elevated" className="p-6 rounded-2xl bg-[#111827] border-[#1E293B] space-y-4">
@@ -156,7 +236,7 @@ export default function TheatreHallDetailPage() {
               <div className="flex items-center gap-2">
                 <Layers className="h-4 w-4 text-[#FBBF24]" />
                 <h3 className="text-sm font-bold uppercase tracking-wider text-white">
-                  Dynamic Seating Tiers ({sections.length} Sections)
+                  Configured Seating Tiers ({sections.length} Sections)
                 </h3>
               </div>
               <Badge variant="success" size="sm" className="font-mono">
@@ -234,11 +314,11 @@ export default function TheatreHallDetailPage() {
             <div className="flex items-center gap-2 text-indigo-400">
               <Camera className="h-4 w-4" />
               <h3 className="text-sm font-bold uppercase tracking-wider text-white">
-                Future 3D Cinematic Viewport Architecture
+                Future 3D Cinematic Frustum Architecture
               </h3>
             </div>
             <p className="text-xs text-[#94A3B8]">
-              Ready for Phase 6 Three.js & React Three Fiber visualizer. The spatial metadata below is stored natively within the hall configuration.
+              Ready for Phase 6 Three.js & React Three Fiber visualizer. The spatial coordinates and camera anchors below are generated deterministically per seat.
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
@@ -259,26 +339,6 @@ export default function TheatreHallDetailPage() {
                 <span className="text-sm font-bold text-[#38BDF8]">0.80 m</span>
               </div>
             </div>
-
-            <div className="p-3 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs space-y-1.5">
-              <span className="text-[10px] font-mono text-[#94A3B8] uppercase font-bold block">
-                Camera Presets in Memory:
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-[#CBD5E1]">
-                <div className="p-2 rounded bg-[#111827] border border-[#2A3445]">
-                  <strong className="text-white block">1. Center Sweetspot</strong>
-                  <span className="text-[10px] text-[#64748B] font-mono">[0, 4.5, 14]</span>
-                </div>
-                <div className="p-2 rounded bg-[#111827] border border-[#2A3445]">
-                  <strong className="text-white block">2. Screen Horizon</strong>
-                  <span className="text-[10px] text-[#64748B] font-mono">[0, 1.5, 1]</span>
-                </div>
-                <div className="p-2 rounded bg-[#111827] border border-[#2A3445]">
-                  <strong className="text-white block">3. VIP Balcony Tier</strong>
-                  <span className="text-[10px] text-[#64748B] font-mono">[-5, 6, 18]</span>
-                </div>
-              </div>
-            </div>
           </Card>
         </div>
 
@@ -296,7 +356,7 @@ export default function TheatreHallDetailPage() {
                   <Tv className="h-4 w-4" /> Projection System
                 </div>
                 <p className="font-bold text-white mt-0.5">{hall.projectionType}</p>
-                <span className="text-[10px] text-[#64748B]">Barco / Christie Pure Laser Diode array</span>
+                <span className="text-[10px] text-[#64748B]">Pure Laser Diode illumination engine</span>
               </div>
 
               <div className="p-3.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] space-y-1">
@@ -378,9 +438,9 @@ export default function TheatreHallDetailPage() {
               <div className="flex items-start gap-2.5 text-[#CBD5E1]">
                 <div className="h-2 w-2 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
                 <div>
-                  <p className="font-semibold text-white">Created & Calibrated</p>
+                  <p className="font-semibold text-white">Seat Matrix Automatically Generated</p>
                   <p className="text-[10px] text-[#64748B] font-mono">
-                    {hall.createdAt ? hall.createdAt.split("T")[0] : "2026-09-01"} • System Architect
+                    {hall.capacity} Seats Deterministically Generated • Engine v2.0
                   </p>
                 </div>
               </div>
