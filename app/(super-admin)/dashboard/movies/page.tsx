@@ -51,6 +51,9 @@ export default function SuperAdminMoviesPage() {
   const [selectedLanguage, setSelectedLanguage] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedCertificate, setSelectedCertificate] = useState("all");
+  const [selectedReleaseYear, setSelectedReleaseYear] = useState("all");
+  const [selectedDuration, setSelectedDuration] = useState("all");
+  const [sortBy, setSortBy] = useState<"release-desc" | "release-asc" | "title-asc" | "title-desc" | "duration-desc" | "rating-desc">("release-desc");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
 
   // Modal states
@@ -63,9 +66,9 @@ export default function SuperAdminMoviesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  // Filtered master movies
+  // Filtered and Sorted master movies
   const filteredMovies = useMemo(() => {
-    return movies
+    const list = movies
       .filter((m) => !m.isDeleted)
       .filter((m) => {
         if (!searchQuery.trim()) return true;
@@ -77,6 +80,7 @@ export default function SuperAdminMoviesPage() {
           m.availableLanguages.some((l) => l.toLowerCase().includes(q)) ||
           m.formats.some((f) => f.toLowerCase().includes(q)) ||
           m.certificate.toLowerCase().includes(q) ||
+          m.releaseDate.toLowerCase().includes(q) ||
           m.cast.some((c) => c.actorName.toLowerCase().includes(q)) ||
           m.crew.some((cr) => cr.name.toLowerCase().includes(q))
         );
@@ -100,7 +104,29 @@ export default function SuperAdminMoviesPage() {
       .filter((m) => {
         if (selectedCertificate === "all") return true;
         return m.certificate.toLowerCase() === selectedCertificate.toLowerCase();
+      })
+      .filter((m) => {
+        if (selectedReleaseYear === "all") return true;
+        return m.releaseDate.startsWith(selectedReleaseYear);
+      })
+      .filter((m) => {
+        if (selectedDuration === "all") return true;
+        if (selectedDuration === "under-120") return m.durationMinutes < 120;
+        if (selectedDuration === "120-150") return m.durationMinutes >= 120 && m.durationMinutes <= 150;
+        if (selectedDuration === "over-150") return m.durationMinutes > 150;
+        return true;
       });
+
+    // Sorting
+    return list.sort((a, b) => {
+      if (sortBy === "release-desc") return new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime();
+      if (sortBy === "release-asc") return new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime();
+      if (sortBy === "title-asc") return a.title.localeCompare(b.title);
+      if (sortBy === "title-desc") return b.title.localeCompare(a.title);
+      if (sortBy === "duration-desc") return b.durationMinutes - a.durationMinutes;
+      if (sortBy === "rating-desc") return (b.rating || 0) - (a.rating || 0);
+      return 0;
+    });
   }, [
     movies,
     searchQuery,
@@ -109,6 +135,9 @@ export default function SuperAdminMoviesPage() {
     selectedLanguage,
     selectedStatus,
     selectedCertificate,
+    selectedReleaseYear,
+    selectedDuration,
+    sortBy,
   ]);
 
   // Paginated movies
@@ -184,6 +213,9 @@ export default function SuperAdminMoviesPage() {
     setSelectedLanguage("all");
     setSelectedStatus("all");
     setSelectedCertificate("all");
+    setSelectedReleaseYear("all");
+    setSelectedDuration("all");
+    setSortBy("release-desc");
     setCurrentPage(1);
   };
 
@@ -359,16 +391,70 @@ export default function SuperAdminMoviesPage() {
             <option value="all">All Ratings</option>
             <option value="U">U</option>
             <option value="UA">UA</option>
+            <option value="UA 13+">UA 13+</option>
             <option value="UA 16+">UA 16+</option>
             <option value="A">A</option>
+            <option value="S">S</option>
           </select>
+
+          <select
+            value={selectedReleaseYear}
+            onChange={(e) => {
+              setSelectedReleaseYear(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-7 px-2 rounded-lg bg-[#0B0F19] border border-[#2A3445] text-[11px] text-white font-mono"
+          >
+            <option value="all">All Release Years</option>
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2014">2014 (Classics)</option>
+          </select>
+
+          <select
+            value={selectedDuration}
+            onChange={(e) => {
+              setSelectedDuration(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-7 px-2 rounded-lg bg-[#0B0F19] border border-[#2A3445] text-[11px] text-white font-mono"
+          >
+            <option value="all">All Durations</option>
+            <option value="under-120">&lt; 120 mins</option>
+            <option value="120-150">120 - 150 mins</option>
+            <option value="over-150">&gt; 150 mins (Epic)</option>
+          </select>
+
+          <div className="h-4 w-[1px] bg-[#1E293B] hidden sm:block mx-1" />
+
+          {/* Sort By Dropdown */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] uppercase font-mono text-[#64748B]">Sort:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="h-7 px-2 rounded-lg bg-[#0B0F19] border border-[#2A3445] text-[11px] text-amber-400 font-mono"
+            >
+              <option value="release-desc">Release Date (Newest)</option>
+              <option value="release-asc">Release Date (Oldest)</option>
+              <option value="title-asc">Title (A to Z)</option>
+              <option value="title-desc">Title (Z to A)</option>
+              <option value="duration-desc">Duration (Longest)</option>
+              <option value="rating-desc">Rating (Highest)</option>
+            </select>
+          </div>
 
           {(searchQuery ||
             selectedGenre !== "all" ||
             selectedFormat !== "all" ||
             selectedLanguage !== "all" ||
             selectedStatus !== "all" ||
-            selectedCertificate !== "all") && (
+            selectedCertificate !== "all" ||
+            selectedReleaseYear !== "all" ||
+            selectedDuration !== "all" ||
+            sortBy !== "release-desc") && (
             <Button
               type="button"
               variant="ghost"
