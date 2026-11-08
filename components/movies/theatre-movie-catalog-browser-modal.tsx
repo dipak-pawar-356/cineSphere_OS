@@ -258,3 +258,4 @@ export function TheatreMovieCatalogBrowserModal({
     </div>
   );
 }
+

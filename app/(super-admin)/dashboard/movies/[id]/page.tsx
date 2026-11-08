@@ -276,6 +276,79 @@ export default function SuperAdminMovieDetailPage({
               </div>
             </Card>
           )}
+
+          {/* Stills & Promotional Gallery */}
+          {movie.galleryImages && movie.galleryImages.length > 0 && (
+            <Card variant="elevated" className="p-6 bg-[#0F172A] border-[#1E293B] space-y-4">
+              <h3 className="font-bold text-white text-xs uppercase tracking-wider text-[#94A3B8] flex items-center gap-1.5">
+                <Sparkles className="h-4 w-4 text-amber-400" />
+                Stills & Promotional Media Gallery ({movie.galleryImages.length})
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {movie.galleryImages.map((img) => (
+                  <div
+                    key={img.id}
+                    className="group relative rounded-xl overflow-hidden border border-[#1E293B] bg-[#0B0F19] aspect-video"
+                  >
+                    <img
+                      src={img.url}
+                      alt={img.altText || movie.title}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    {img.altText && (
+                      <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent text-[10px] text-white font-mono truncate">
+                        {img.altText}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Future Show Listings & Cross-Tenant Exhibition Placeholder */}
+          <Card variant="elevated" className="p-6 bg-[#0F172A] border-[#1E293B] space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-white text-xs uppercase tracking-wider text-[#94A3B8] flex items-center gap-1.5">
+                <Building2 className="h-4 w-4 text-sky-400" />
+                Cross-Tenant Exhibition & Show Scheduling (Phase 2 – Part 8)
+              </h3>
+              <Badge variant="outline" size="sm" className="font-mono text-sky-400 border-sky-400/30">
+                Next Phase Engine
+              </Badge>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#0B0F19] border border-[#1E293B] space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 shrink-0">
+                  <Film className="h-4 w-4" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-white">
+                    Platform Master Entity Architecture Invariant
+                  </p>
+                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                    This master record represents the canonical creative film. In CineSphere OS, movies never store hall assignments, pricing, or bookings. Individual licensed cinemas (e.g. CineSphere Grand Pune, Inox Megaplex Mumbai) connect this movie to their physical auditoriums via <span className="text-amber-400 font-mono">Shows</span>.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-[#1E293B]/70 font-mono text-[11px]">
+                <div className="p-2.5 rounded-lg bg-[#070B12] border border-[#1E293B]">
+                  <span className="text-[#64748B] block text-[10px]">LICENSED VENUES</span>
+                  <span className="text-white font-bold">Available to All Tenants</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-[#070B12] border border-[#1E293B]">
+                  <span className="text-[#64748B] block text-[10px]">ALLOCATED AUDITORIUMS</span>
+                  <span className="text-amber-400 font-bold">Dynamic per Show</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-[#070B12] border border-[#1E293B]">
+                  <span className="text-[#64748B] block text-[10px]">TICKET PRICING</span>
+                  <span className="text-emerald-400 font-bold">Decoupled via Sections</span>
+                </div>
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
 

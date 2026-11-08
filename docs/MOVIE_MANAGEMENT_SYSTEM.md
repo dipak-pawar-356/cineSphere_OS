@@ -223,3 +223,4 @@ The Movie Management System has passed rigorous verification:
 - **ESLint Validation:** Verified with `next lint` (0 errors).
 - **Zustand Hydration:** Hydration-safe state access across Super Admin and Theatre Admin stores.
 - **Responsive Ergonomics:** 100% styled in CineSphere OLED Void Palette (`#050507`), with glassmorphic cards, gold highlights, and responsive breakpoints from mobile to ultrawide displays.
+
