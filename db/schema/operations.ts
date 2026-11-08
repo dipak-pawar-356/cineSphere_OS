@@ -113,3 +113,4 @@ export const reports = pgTable(
     index("reports_created_at_idx").on(table.createdAt),
   ]
 );
+

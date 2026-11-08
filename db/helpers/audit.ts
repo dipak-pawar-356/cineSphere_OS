@@ -31,3 +31,4 @@ export function formatAuditEntry(params: CreateAuditLogParams): NewAuditLog {
     userAgent: params.userAgent || null,
   };
 }
+

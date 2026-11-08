@@ -137,3 +137,4 @@ export const userRoles = pgTable(
     index("user_roles_theatre_id_idx").on(table.theatreId),
   ]
 );
+

@@ -161,3 +161,4 @@ export const seatTemplates = pgTable(
     index("seat_templates_row_idx").on(table.row),
   ]
 );
+

@@ -145,3 +145,4 @@ export const seatInventory = pgTable(
     index("seat_inventory_locked_until_idx").on(table.lockedUntil),
   ]
 );
+

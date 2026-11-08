@@ -172,3 +172,4 @@ export const movieTrailers = pgTable(
     index("movie_trailers_movie_id_idx").on(table.movieId),
   ]
 );
+

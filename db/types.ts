@@ -130,3 +130,4 @@ export type NewMediaLibrary = InferInsertModel<typeof schema.mediaLibrary>;
 
 export type DbSystemSetting = InferSelectModel<typeof schema.systemSettings>;
 export type NewSystemSetting = InferInsertModel<typeof schema.systemSettings>;
+

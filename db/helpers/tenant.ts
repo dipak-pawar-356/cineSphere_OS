@@ -67,3 +67,4 @@ export function withTenant(theatreColumn: PgColumn, theatreId: string | null | u
   }
   return eq(theatreColumn, theatreId);
 }
+

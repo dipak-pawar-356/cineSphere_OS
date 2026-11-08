@@ -86,3 +86,4 @@ export const cities = pgTable(
     index("cities_tier_idx").on(table.tier),
   ]
 );
+

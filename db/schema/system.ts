@@ -75,3 +75,4 @@ export const systemSettings = pgTable(
     index("system_settings_is_public_idx").on(table.isPublic),
   ]
 );
+

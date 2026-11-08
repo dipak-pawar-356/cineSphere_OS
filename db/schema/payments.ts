@@ -102,3 +102,4 @@ export const payments = pgTable(
     index("payments_created_at_idx").on(table.createdAt),
   ]
 );
+

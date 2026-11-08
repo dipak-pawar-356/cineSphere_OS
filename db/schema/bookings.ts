@@ -125,3 +125,4 @@ export const tickets = pgTable(
     index("tickets_status_idx").on(table.status),
   ]
 );
+

@@ -235,3 +235,4 @@ export const customers = pgTable(
     index("customers_loyalty_tier_idx").on(table.loyaltyTier),
   ]
 );
+
