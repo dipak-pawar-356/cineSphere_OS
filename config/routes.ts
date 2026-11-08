@@ -118,6 +118,7 @@ export const ROUTES = {
     FORBIDDEN: "/forbidden",
     MAINTENANCE: "/maintenance",
     SERVER_ERROR: "/server-error",
+    SESSION_EXPIRED: "/session-expired",
   },
 } as const;
 

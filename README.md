@@ -270,6 +270,20 @@ pnpm run build
 
 ---
 
+## 🔐 2.2 Phase 2 - Part 1: Authentication, Clerk Integration & Multi-Tenant Authorization
+
+Phase 2 - Part 1 establishes the production-grade authentication and authorization foundation for CineSphere OS:
+
+- 🛡️ **Clerk Authentication Architecture:** Ready for Clerk (`@clerk/nextjs`) with resilient wrapper providers, environment variable validation, and seamless mock fallbacks.
+- 👥 **5-Tier Role Hierarchy:** `SUPER_ADMIN` (100) > `THEATRE_ADMIN` (80) > `HALL_MANAGER` (60) > `STAFF` (40) > `CUSTOMER` (10).
+- 🏢 **Multi-Tenant Isolation:** Architectural verification `User -> Role -> Theatre -> Permission`. Theatre Admins are strictly scoped to their assigned `theatreId` (`th-pun-001`, `th-mum-001`).
+- 🚦 **Centralized Next.js Middleware (`middleware.ts`):** Evaluates every incoming request, validates route constraints, injects `x-tenant-id` and `x-user-role` headers, and redirects unauthenticated or forbidden access attempts.
+- ⚡ **Instant Role Simulator:** Built-in 1-click test switcher on `/login` to test all 5 roles and cross-tenant boundaries without external email verification.
+- 🎨 **Enterprise Auth Pages:** Fully responsive, accessible Sign In, Sign Up, Forgot Password, Reset Password, Verify Email, Verify Phone, 401 Unauthorized, 403 Forbidden, and Session Expired views.
+- 📚 **Comprehensive Auth Architecture Guide:** Detailed specification available in [`docs/AUTH_AND_AUTHORIZATION.md`](./docs/AUTH_AND_AUTHORIZATION.md).
+
+---
+
 ## ☁️ 9. Vercel Deployment Settings
 
 For zero-configuration deployment to Vercel:
@@ -288,6 +302,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🏢 [`docs/AUTH_AND_AUTHORIZATION.md`](./docs/AUTH_AND_AUTHORIZATION.md) — Enterprise Authentication, Clerk Integration, Multi-Tenant Isolation & RBAC Architecture (Phase 2 - Part 1).
 - 🏢 [`docs/MULTI_TENANT_ARCHITECTURE.md`](./docs/MULTI_TENANT_ARCHITECTURE.md) — Comprehensive Multi-Tenant Cinema OS Specification & Layout Engine.
 - 📖 [`docs/PROJECT_OVERVIEW.md`](./docs/PROJECT_OVERVIEW.md) — Strategic vision and core personas.
 - 🏗️ [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — Codebase architecture and directory map.

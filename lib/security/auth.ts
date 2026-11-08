@@ -1,7 +1,9 @@
 /**
- * CineSphere OS - Authentication Placeholder
- * Architectural interface for Phase 2 SSO & Identity Providers.
+ * CineSphere OS - Authentication Bridge (Backward Compatibility)
+ * Re-exports from @/auth
  */
+
+export * from "@/auth";
 
 export interface AuthSession {
   user: {
@@ -16,7 +18,6 @@ export interface AuthSession {
 }
 
 export async function getSession(): Promise<AuthSession> {
-  // Placeholder - No business logic or real auth implemented in Phase 1
   return {
     user: null,
     isAuthenticated: false,
@@ -25,7 +26,5 @@ export async function getSession(): Promise<AuthSession> {
 }
 
 export async function validateToken(token: string): Promise<boolean> {
-  // Placeholder - token validation logic to be connected in Phase 2
   return Boolean(token);
 }
-

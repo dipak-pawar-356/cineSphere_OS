@@ -1,3 +1,10 @@
+/**
+ * CineSphere OS - Roles Bridge (Backward Compatibility)
+ */
+
+export type { UserRole } from "@/auth/types/role.types";
+export { ROLE_DEFINITIONS } from "@/auth/roles/role-definitions";
+
 export enum Role {
   SUPER_ADMIN = "SUPER_ADMIN",
   THEATRE_ADMIN = "THEATRE_ADMIN",
@@ -13,4 +20,3 @@ export const ROLE_HIERARCHY: Record<Role, number> = {
   [Role.STAFF]: 40,
   [Role.CUSTOMER]: 10,
 };
-
