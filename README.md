@@ -284,6 +284,20 @@ Phase 2 - Part 1 establishes the production-grade authentication and authorizati
 
 ---
 
+## 🏛️ 2.3 Phase 2 - Part 2: Database Architecture & Multi-Tenant Data Model
+
+Phase 2 - Part 2 establishes the production-ready PostgreSQL database architecture and normalized multi-tenant data model using Drizzle ORM and Neon Serverless:
+
+- 🗄️ **38 Tables & 26 Enums:** Normalized 3NF entity schema across Geographic, Identity, Multi-Tenant Theatres, Payments, CAD Halls, Movie Catalog, Show Scheduling, Dynamic Inventory, Bookings, Tickets, and System Marts.
+- 🔒 **Zero Cross-Tenant Leakage:** The Theatre is the atomic operational tenant. All physical auditoriums, shows, pricing, seat inventory, payment configurations, and bookings are strictly scoped by `theatreId`.
+- 🎟️ **Show-Centric Decoupling:** Movies never connect directly to seats or pricing. Hall layouts are designed once and reused. Pricing and real-time seat availability belong exclusively to the **Show**.
+- 💳 **Independent Merchant Rails:** Payment configuration belongs strictly to the Theatre (`upiId`, merchant names, Razorpay/PhonePe/Paytm/Stripe credentials), never platform-wide.
+- 🚀 **Serverless Neon PostgreSQL:** Drizzle ORM HTTP driver integration with connection pooling, strict type inference (`InferSelectModel`, `InferInsertModel`), and composite performance indexes.
+- 🛠️ **Drizzle Kit CLI Tooling:** Fully integrated migration engine (`pnpm db:generate`, `pnpm db:migrate`, `pnpm db:push`, `pnpm db:studio`).
+- 📚 **Exhaustive Database Architecture Guide:** Complete ER diagrams, table schemas, indexes, and constraints documented in [`docs/DATABASE_ARCHITECTURE.md`](./docs/DATABASE_ARCHITECTURE.md).
+
+---
+
 ## ☁️ 9. Vercel Deployment Settings
 
 For zero-configuration deployment to Vercel:
@@ -302,6 +316,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🗄️ [`docs/DATABASE_ARCHITECTURE.md`](./docs/DATABASE_ARCHITECTURE.md) — Production PostgreSQL Architecture, Drizzle ORM Schema, Relational Graph & Multi-Tenant Model (Phase 2 - Part 2).
 - 🏢 [`docs/AUTH_AND_AUTHORIZATION.md`](./docs/AUTH_AND_AUTHORIZATION.md) — Enterprise Authentication, Clerk Integration, Multi-Tenant Isolation & RBAC Architecture (Phase 2 - Part 1).
 - 🏢 [`docs/MULTI_TENANT_ARCHITECTURE.md`](./docs/MULTI_TENANT_ARCHITECTURE.md) — Comprehensive Multi-Tenant Cinema OS Specification & Layout Engine.
 - 📖 [`docs/PROJECT_OVERVIEW.md`](./docs/PROJECT_OVERVIEW.md) — Strategic vision and core personas.
