@@ -1,6 +1,7 @@
 import { ID, ContactInformation, MediaAsset } from "./common.types";
 import { MovieFormat } from "./movie.types";
 import { UPIConfiguration } from "./payment.types";
+import { Hall } from "./hall.types";
 
 export type TheatreStatus = "Active" | "Maintenance" | "Renovating" | "Pending Approval";
 
@@ -49,7 +50,7 @@ export interface Theatre {
   city: string;
   state: string;
   pinCode?: string;
-  country: string;
+  country?: string;
   distanceKm?: number;
   rating: number;
   reviewsCount?: number;
@@ -68,6 +69,7 @@ export interface Theatre {
   gallery?: MediaAsset[];
 
   // Multi-Tenant Governance & Operational Settings
+  halls?: Hall[];
   admins?: string[];
   upiDetails?: UPIConfiguration;
   gstNumber?: string;

@@ -1,14 +1,11 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { PageHeader } from "@/components/layout/page-header";
-import { MovieCard } from "@/components/cards/movie-card";
 import { DUMMY_MOVIES } from "@/lib/constants/movies";
-import { DUMMY_THEATRES } from "@/lib/constants/theatres";
+import { MULTI_TENANT_THEATRES } from "@/data/theatres/multi-tenant-theatres";
+import { DYNAMIC_SHOWS } from "@/data/shows/dynamic-shows";
 import { formatDuration } from "@/lib/utils";
 import { FormatBadge } from "@/components/badges/format-badge";
-import { ComingSoonButton } from "@/components/buttons/coming-soon-button";
-import { ComingSoon } from "@/components/placeholders/coming-soon";
 import { VideoPlaceholder, GalleryPlaceholder } from "@/components/media";
 import {
   Star,
@@ -23,6 +20,8 @@ import {
   MapPin,
   Compass,
   ArrowRight,
+  ShieldCheck,
+  Layers,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,15 +38,32 @@ export default async function MovieDetailPage({ params }: MovieDetailPageProps) 
     DUMMY_MOVIES[0];
 
   const relatedMovies = DUMMY_MOVIES.filter((m) => m.id !== movie.id).slice(0, 4);
-  const recommendedTheatres = DUMMY_THEATRES.slice(0, 3);
 
-  const mockShowtimes = [
-    { time: "10:30 AM", hall: "Hall 1 — IMAX Laser", price: "$24", format: "IMAX" },
-    { time: "01:45 PM", hall: "Hall 3 — Dolby Cinema", price: "$22", format: "Dolby Atmos" },
-    { time: "05:00 PM", hall: "Hall 1 — IMAX Laser", price: "$26", format: "IMAX", fillingFast: true },
-    { time: "08:30 PM", hall: "Hall 4 — 4DX Motion", price: "$28", format: "4DX", almostFull: true },
-    { time: "11:15 PM", hall: "Hall 2 — Laser 4K", price: "$18", format: "2D" },
-  ];
+  // 1. Resolve Shows playing this movie (or fallback to active dynamic shows)
+  const movieShows = DYNAMIC_SHOWS.filter(
+    (s) =>
+      s.movieId === movie.id ||
+      s.movieTitle.toLowerCase().includes(movie.title.toLowerCase()) ||
+      movie.title.toLowerCase().includes(s.movieTitle.toLowerCase())
+  );
+
+  const activeShows = movieShows.length > 0 ? movieShows : DYNAMIC_SHOWS;
+
+  // 2. Group shows by Theatre
+  const theatreMap = new Map<string, { theatre: (typeof MULTI_TENANT_THEATRES)[0]; shows: typeof activeShows }>();
+
+  activeShows.forEach((show) => {
+    const theatre =
+      MULTI_TENANT_THEATRES.find((t) => t.id === show.theatreId) ||
+      MULTI_TENANT_THEATRES[0];
+
+    if (!theatreMap.has(theatre.id)) {
+      theatreMap.set(theatre.id, { theatre, shows: [] });
+    }
+    theatreMap.get(theatre.id)!.shows.push(show);
+  });
+
+  const theatresPlayingMovie = Array.from(theatreMap.values());
 
   return (
     <div className="space-y-12 pb-16">
@@ -119,14 +135,15 @@ export default async function MovieDetailPage({ params }: MovieDetailPageProps) 
 
               {/* Action Buttons */}
               <div className="pt-3 flex flex-wrap items-center gap-3">
-                <ComingSoonButton
-                  featureName={`Seat Reservation: ${movie.title}`}
-                  description={`The live 3D seating map and ticket checkout for "${movie.title}" will unlock in Phase 2.`}
-                  size="md"
-                  variant="primary"
-                  label="Book Tickets (Disabled)"
-                  className="font-bold gap-2"
-                />
+                <Link href={`/booking/${activeShows[0]?.id || "show-pun-001"}`}>
+                  <Button
+                    size="md"
+                    variant="primary"
+                    className="font-bold gap-2 shadow-xl shadow-amber-400/20"
+                  >
+                    <Ticket className="h-4 w-4" /> Book Tickets
+                  </Button>
+                </Link>
                 <Button variant="outline" size="md" className="gap-2">
                   <Play className="h-4 w-4 text-[#FBBF24]" />
                   <span>Watch Trailer</span>
@@ -137,7 +154,7 @@ export default async function MovieDetailPage({ params }: MovieDetailPageProps) 
         </div>
       </div>
 
-      {/* 2. MAIN DETAILS & CAST / SYNOPSIS BODY */}
+      {/* 2. MAIN DETAILS & THEATRE SHOWTIME SCHEDULE */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Synopsis, Cast, Trailer, Gallery */}
@@ -162,10 +179,10 @@ export default async function MovieDetailPage({ params }: MovieDetailPageProps) 
                 </h3>
                 <span className="text-xs text-[#94A3B8]">4K UHD • 60 FPS</span>
               </div>
-              <VideoPlaceholder title={`${movie.title} — Official IMAX Theatrical Trailer`} duration="02:35" />
+              <VideoPlaceholder title={`${movie.title} — Official Theatrical Trailer`} duration="02:35" />
             </div>
 
-            {/* Cast & Crew Placeholders */}
+            {/* Cast & Crew */}
             <div className="p-6 rounded-2xl bg-[#161F2E] border border-[#2A3445] space-y-4">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Users className="h-4 w-4 text-[#FBBF24]" />
@@ -189,117 +206,85 @@ export default async function MovieDetailPage({ params }: MovieDetailPageProps) 
               </div>
             </div>
 
-            {/* Gallery Placeholders */}
+            {/* Gallery */}
             <div className="space-y-3">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-[#FBBF24]" />
-                <span>Theatrical Stills & Behind the Scenes</span>
+                <span>Theatrical Stills</span>
               </h3>
               <GalleryPlaceholder count={4} />
             </div>
-
-            {/* Future 3D Trailer Preview Placeholder */}
-            <div className="p-6 rounded-2xl bg-gradient-to-r from-[#161F2E] to-[#111827] border border-[#2A3445] space-y-2">
-              <div className="flex items-center gap-2">
-                <Compass className="h-4 w-4 text-[#FBBF24]" />
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#FBBF24]">
-                  Future 3D Spatial Trailer Preview
-                </span>
-              </div>
-              <p className="text-xs text-[#94A3B8]">
-                Interactive stereoscopic 3D trailer playback calibrated for VR and WebGL spatial canvas launches in Phase 2.
-              </p>
-            </div>
           </div>
 
-          {/* Right Column: Upcoming Showtimes & Recommended Theatres */}
+          {/* Right Column: Dynamic Theatres & Showtimes */}
           <div className="space-y-6">
-            {/* Showtimes Today Card */}
-            <div className="p-6 rounded-2xl bg-[#161F2E] border border-[#2A3445] space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-[#2A3445]">
+            <div className="p-6 rounded-3xl bg-[#161F2E] border border-[#2A3445] space-y-6 shadow-2xl">
+              <div className="flex items-center justify-between pb-3 border-b border-[#2A3445]">
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
                   <Ticket className="h-4 w-4 text-[#FBBF24]" />
-                  <span>Showtimes Today</span>
+                  <span>Theatres Playing This Movie</span>
                 </h3>
-                <span className="text-xs text-[#94A3B8] font-mono">Select Screen</span>
+                <span className="text-xs text-[#94A3B8] font-mono">Real-Time</span>
               </div>
 
-              <div className="space-y-2">
-                {mockShowtimes.map((show, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-xl bg-[#111827] border border-[#2A3445] flex items-center justify-between hover:border-[#FBBF24]/50 transition-colors"
-                  >
-                    <div className="space-y-0.5">
-                      <div className="font-bold text-white text-xs flex items-center gap-2">
-                        <span>{show.time}</span>
-                        <FormatBadge format={show.format} size="xs" />
-                      </div>
-                      <div className="text-[10px] text-[#94A3B8]">{show.hall}</div>
+              {theatresPlayingMovie.map(({ theatre, shows }) => (
+                <div
+                  key={theatre.id}
+                  className="p-4 rounded-2xl bg-[#111827] border border-[#2A3445] space-y-3"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-bold text-white text-xs hover:text-[#FBBF24] transition-colors">
+                        <Link href={`/theatre/${theatre.slug}`}>
+                          {theatre.name}
+                        </Link>
+                      </h4>
+                      <p className="text-[10px] text-[#94A3B8] flex items-center gap-1 mt-0.5">
+                        <MapPin className="h-3 w-3 text-[#FBBF24] shrink-0" />
+                        <span>{theatre.city} • {theatre.distanceKm || 2.4} km</span>
+                      </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-[#FBBF24]">{show.price}</span>
-                      <ComingSoonButton
-                        featureName={`Seat Hold: ${show.time}`}
-                        description="Seat selection and lock orchestra activates in Phase 2."
-                        size="xs"
-                        variant="primary"
-                        label="Select"
-                      />
+                    <div className="text-right">
+                      <span className="text-[9px] text-[#94A3B8] block">Starts from</span>
+                      <span className="font-mono text-xs font-bold text-[#FBBF24]">
+                        ₹{Math.min(...shows.map((s) => s.ticketPrice || 200))}
+                      </span>
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  {/* Shows for this theatre */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    {shows.map((show) => (
+                      <Link key={show.id} href={`/booking/${show.id}`} className="group">
+                        <div className="p-2.5 rounded-xl bg-[#070B12] border border-[#2A3445] group-hover:border-[#FBBF24] transition-all text-center space-y-1">
+                          <div className="font-mono font-bold text-xs text-white group-hover:text-[#FBBF24]">
+                            {show.startTime}
+                          </div>
+                          <div className="text-[9px] text-[#94A3B8] truncate">
+                            {show.format} • {show.language}
+                          </div>
+                          <div className="text-[10px] font-mono text-emerald-400 font-semibold">
+                            ₹{show.ticketPrice || 200}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {/* Recommended Theatres */}
-            <div className="p-6 rounded-2xl bg-[#161F2E] border border-[#2A3445] space-y-4">
-              <h3 className="text-base font-bold text-white flex items-center gap-2 pb-2 border-b border-[#2A3445]">
-                <Building2 className="h-4 w-4 text-[#38BDF8]" />
-                <span>Recommended Theatres</span>
-              </h3>
-
-              <div className="space-y-3">
-                {recommendedTheatres.map((theatre) => (
-                  <Link
-                    key={theatre.id}
-                    href={`/theatre/${theatre.slug}`}
-                    className="p-3 rounded-xl bg-[#111827] border border-[#2A3445] block hover:border-amber-400/50 transition-colors group"
-                  >
-                    <div className="font-bold text-white text-xs group-hover:text-amber-400 transition-colors">
-                      {theatre.name}
-                    </div>
-                    <div className="text-[10px] text-[#94A3B8] flex items-center gap-1 mt-0.5">
-                      <MapPin className="h-3 w-3 text-[#FBBF24]" />
-                      <span>{theatre.city}, {theatre.state}</span>
-                      <span>•</span>
-                      <span>{theatre.hallCount} Screens</span>
-                    </div>
-                  </Link>
-                ))}
+            {/* Architecture Callout */}
+            <div className="p-4 rounded-2xl bg-[#111827]/80 border border-[#2A3445] space-y-2 text-xs">
+              <div className="flex items-center gap-1.5 text-[#FBBF24] font-bold">
+                <Layers className="h-4 w-4" />
+                <span>Show-Centric Concurrency</span>
               </div>
+              <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                Movies do not own seats or pricing. Each show binds this film to a physical hall layout and generates its own seat availability.
+              </p>
             </div>
-          </div>
-        </div>
-
-        {/* 3. RELATED MOVIES SECTION */}
-        <div className="space-y-6 pt-6 border-t border-[#2A3445]">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Film className="h-5 w-5 text-[#FBBF24]" />
-              <span>You Might Also Like</span>
-            </h3>
-            <Link href="/movies" className="text-xs text-[#FBBF24] hover:underline flex items-center gap-1">
-              <span>View All</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {relatedMovies.map((m) => (
-              <MovieCard key={m.id} movie={m} />
-            ))}
           </div>
         </div>
       </div>

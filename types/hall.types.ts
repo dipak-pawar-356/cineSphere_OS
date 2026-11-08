@@ -79,7 +79,8 @@ export interface HallSection {
   category?: SeatCategoryTier;
   seatCount: number;
   seatType: SeatType;
-  defaultColor: string;
+  defaultColor?: string;
+  color?: string;
   displayOrder: number;
   rows: string[];
   seatsPerRow: number;
@@ -140,20 +141,20 @@ export interface Hall {
   name: string;
   hallNumber: number;
   screenNumber?: number;
-  capacity: number;
+  capacity?: number;
   totalSeats?: number;
   screenType: ScreenType;
   projectionType?: string;
   soundSystem?: string;
-  aspectRatio: string;
-  projectorModel: string;
-  audioSpec: string;
+  aspectRatio?: string;
+  projectorModel?: string;
+  audioSpec?: string;
   hallLayout?: HallLayout;
   seatCategories?: SeatCategory[];
   sections?: HallSection[];
   currentMovie?: string;
   currentShow?: string;
   occupancyPercent?: number;
-  status: "Active" | "Maintenance" | "Cleaning" | "Show Running";
+  status?: "Active" | "Maintenance" | "Cleaning" | "Show Running" | string;
   image?: string;
 }

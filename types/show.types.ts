@@ -78,7 +78,7 @@ export interface Show {
   endTime: string;
   language: MovieLanguage;
   format: MovieFormat;
-  pricing: ShowPricing;
+  pricing?: ShowPricing;
   seatInventory?: ShowSeat[];
   ticketPrice: number; // Starting from / base price
   seatsBooked: number;

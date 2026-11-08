@@ -93,6 +93,7 @@ export const THEATRE_A: Theatre = {
   ],
   pricingTier: "Luxury",
   status: "Active",
+  halls: THEATRE_A_HALLS,
   admins: ["usr-admin-pune-01", "usr-admin-pune-02"],
   upiDetails: {
     upiId: "cinesphere.pune@icici",
@@ -204,6 +205,7 @@ export const THEATRE_B: Theatre = {
   ],
   pricingTier: "Luxury",
   status: "Active",
+  halls: THEATRE_B_HALLS,
   admins: ["usr-admin-mum-01"],
   upiDetails: {
     upiId: "palladium.mumbai@hdfcbank",
@@ -294,6 +296,7 @@ export const THEATRE_C: Theatre = {
   ],
   pricingTier: "Standard",
   status: "Active",
+  halls: THEATRE_C_HALLS,
   admins: ["usr-admin-ahd-01"],
   upiDetails: {
     upiId: "heritage.ahd@axisbank",

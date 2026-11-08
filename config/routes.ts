@@ -22,6 +22,7 @@ export const ROUTES = {
     TERMS_AND_CONDITIONS: "/terms-and-conditions",
     COOKIES_POLICY: "/cookies-policy",
     DESIGN_SYSTEM: "/design-system",
+    BOOKING: (showId: string) => `/booking/${showId}`,
   },
 
   // Super Admin Routes (Multi-Tenant Platform HQ)
