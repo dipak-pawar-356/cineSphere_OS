@@ -14,6 +14,7 @@ import {
 import { DynamicHallSectionConfig, Future3DHallConfig, HallStatus } from "@/types/hall.types";
 import { SeatTemplateContainer } from "@/types/seat-generation.types";
 import { generateAuditoriumSeatTemplate } from "@/lib/engine/seat-generation-engine";
+import { GlobalMasterMovie } from "@/types/movie-management.types";
 
 /**
  * ==============================================================================
@@ -97,6 +98,7 @@ export interface ManagedHall {
 
 export interface ManagedMovie {
   id: string;
+  movieId?: string; // Reference to Platform Master Movie
   title: string;
   poster: string;
   backdrop: string;
@@ -106,11 +108,13 @@ export interface ManagedMovie {
   runtime: string;
   releaseDate: string;
   status: "Now Showing" | "Upcoming" | "Archived";
-  formats: ("2D" | "3D" | "IMAX" | "4DX" | "Dolby Atmos")[];
+  formats: ("2D" | "3D" | "IMAX" | "4DX" | "Dolby Atmos" | string)[];
   director: string;
   leadCast: string[];
   synopsis: string;
   trailerUrl?: string;
+  kdmStatus?: "Valid" | "Pending" | "Expired";
+  kdmKeyId?: string;
 }
 
 export interface ManagedShow {
@@ -216,10 +220,20 @@ export interface TheatreState {
   regenerateSeatsForHall: (hallId: string) => { success: boolean; template?: SeatTemplateContainer; error?: string };
   deleteSeatsForHall: (hallId: string) => { success: boolean; error?: string };
 
-  // Movie CRUD (Catalog entry point)
+  // Movie Catalog Operations (Layer 2 - Scoped to Theatre)
   addMovie: (movie: Omit<ManagedMovie, "id">) => void;
   updateMovie: (id: string, updates: Partial<ManagedMovie>) => void;
   archiveMovie: (id: string) => void;
+  linkGlobalMovie: (
+    movie: GlobalMasterMovie,
+    options?: {
+      formats?: string[];
+      language?: string;
+      status?: "Now Showing" | "Upcoming";
+    }
+  ) => { success: boolean; error?: string };
+  unlinkMovie: (id: string) => void;
+  updateMovieScreeningStatus: (id: string, status: "Now Showing" | "Upcoming" | "Archived") => void;
 
   // Show Programming
   addShow: (show: Omit<ManagedShow, "id" | "seatsBooked">) => void;
@@ -1286,6 +1300,75 @@ export const useTheatreStore = create<TheatreState>()(
             movies: state.movies.map((m) => (m.id === id ? { ...m, status: "Archived" } : m)),
           }));
           get().logTenantAudit("MOVIE_ARCHIVED", "Catalog", `Archived exhibition license for movie ID ${id}`);
+        },
+
+        linkGlobalMovie: (globalMovie, options) => {
+          // Check if already linked
+          const exists = get().movies.some(
+            (m) => m.movieId === globalMovie.id || m.title.toLowerCase() === globalMovie.title.toLowerCase()
+          );
+          if (exists) {
+            return { success: false, error: `"${globalMovie.title}" is already in your theatre exhibition catalog.` };
+          }
+
+          const runtimeFormatted = `${Math.floor(globalMovie.durationMinutes / 60)}h ${globalMovie.durationMinutes % 60}m`;
+          const activeTheatre = get().activeTheatreId;
+
+          const linkedMovie: ManagedMovie = {
+            id: `th-mov-${activeTheatre}-${globalMovie.id}`,
+            movieId: globalMovie.id,
+            title: globalMovie.title,
+            poster: globalMovie.posterUrl,
+            backdrop: globalMovie.bannerUrl,
+            language: options?.language || globalMovie.primaryLanguage,
+            genre: globalMovie.genres,
+            rating: globalMovie.certificate,
+            runtime: runtimeFormatted,
+            releaseDate: globalMovie.releaseDate,
+            status: options?.status || (globalMovie.status === "Upcoming" ? "Upcoming" : "Now Showing"),
+            formats: options?.formats || globalMovie.formats,
+            director: globalMovie.crew.find((c) => c.role === "Director")?.name || "Acclaimed Filmmaker",
+            leadCast: globalMovie.cast.slice(0, 4).map((c) => c.actorName),
+            synopsis: globalMovie.synopsis,
+            trailerUrl: globalMovie.trailers[0]?.videoUrl,
+            kdmStatus: "Valid",
+            kdmKeyId: `KDM-${activeTheatre.slice(0, 6).toUpperCase()}-${globalMovie.id.slice(0, 6).toUpperCase()}`,
+          };
+
+          set((state) => ({
+            movies: [linkedMovie, ...state.movies],
+          }));
+
+          get().logTenantAudit(
+            "MOVIE_LINKED",
+            "Catalog",
+            `Acquired exhibition screening license for Master Movie "${globalMovie.title}"`
+          );
+          return { success: true };
+        },
+
+        unlinkMovie: (id) => {
+          const target = get().movies.find((m) => m.id === id);
+          set((state) => ({
+            movies: state.movies.filter((m) => m.id !== id),
+          }));
+          get().logTenantAudit(
+            "MOVIE_UNLINKED",
+            "Catalog",
+            `Removed exhibition license for "${target?.title || id}"`
+          );
+        },
+
+        updateMovieScreeningStatus: (id, status) => {
+          const target = get().movies.find((m) => m.id === id);
+          set((state) => ({
+            movies: state.movies.map((m) => (m.id === id ? { ...m, status } : m)),
+          }));
+          get().logTenantAudit(
+            "MOVIE_STATUS_CHANGED",
+            "Catalog",
+            `Changed screening status of "${target?.title || id}" to ${status}`
+          );
         },
 
         // ----------------------------------------------------------------------

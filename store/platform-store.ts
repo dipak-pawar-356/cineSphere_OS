@@ -3,6 +3,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { DUMMY_THEATRES } from "@/lib/constants/theatres";
+import { GlobalMasterMovie } from "@/types/movie-management.types";
+import { INITIAL_MASTER_MOVIES } from "@/lib/constants/initial-master-movies";
 
 /**
  * ==============================================================================
@@ -148,6 +150,15 @@ interface PlatformState {
   supportTickets: SupportTicket[];
   auditLogs: PlatformAuditLog[];
   settings: PlatformSettings;
+  movies: GlobalMasterMovie[];
+
+  // Global Master Movie Library Actions (Super Admin)
+  addMasterMovie: (movie: Omit<GlobalMasterMovie, "id" | "createdAt" | "updatedAt" | "isDeleted">) => { success: boolean; id?: string };
+  updateMasterMovie: (id: string, partial: Partial<GlobalMasterMovie>) => { success: boolean };
+  archiveMasterMovie: (id: string) => void;
+  restoreMasterMovie: (id: string) => void;
+  deleteMasterMovie: (id: string) => void;
+  duplicateMasterMovie: (id: string) => { success: boolean; newId?: string };
 
   // Actions
   approveTheatre: (id: string) => void;
@@ -509,6 +520,7 @@ export const usePlatformStore = create<PlatformState>()(
       supportTickets: INITIAL_SUPPORT_TICKETS,
       auditLogs: INITIAL_AUDIT_LOGS,
       settings: INITIAL_SETTINGS,
+      movies: INITIAL_MASTER_MOVIES,
 
       // Theatre Operations
       approveTheatre: (id: string) => {
@@ -711,6 +723,96 @@ export const usePlatformStore = create<PlatformState>()(
         }));
       },
 
+      // Global Movie Operations
+      addMasterMovie: (movie) => {
+        const timestamp = new Date().toISOString();
+        const id = `mov-${Date.now()}`;
+        const newMovie: GlobalMasterMovie = {
+          ...movie,
+          id,
+          isDeleted: false,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
+
+        set((state) => ({
+          movies: [newMovie, ...state.movies],
+        }));
+
+        get().logAuditEvent("MOVIE_INGESTED", "Catalog", `Ingested master film "${newMovie.title}" (${newMovie.durationMinutes} mins)`);
+        return { success: true, id };
+      },
+
+      updateMasterMovie: (id, updates) => {
+        const timestamp = new Date().toISOString();
+        const current = get().movies.find((m) => m.id === id);
+        if (!current) return { success: false };
+
+        set((state) => ({
+          movies: state.movies.map((m) =>
+            m.id === id ? { ...m, ...updates, updatedAt: timestamp } : m
+          ),
+        }));
+
+        get().logAuditEvent("MOVIE_UPDATED", "Catalog", `Updated metadata for master film "${current.title}"`);
+        return { success: true };
+      },
+
+      archiveMasterMovie: (id) => {
+        const current = get().movies.find((m) => m.id === id);
+        set((state) => ({
+          movies: state.movies.map((m) =>
+            m.id === id ? { ...m, status: "Archived", updatedAt: new Date().toISOString() } : m
+          ),
+        }));
+        get().logAuditEvent("MOVIE_ARCHIVED", "Catalog", `Archived master film "${current?.title || id}"`);
+      },
+
+      restoreMasterMovie: (id) => {
+        const current = get().movies.find((m) => m.id === id);
+        set((state) => ({
+          movies: state.movies.map((m) =>
+            m.id === id ? { ...m, status: "Now Showing", updatedAt: new Date().toISOString() } : m
+          ),
+        }));
+        get().logAuditEvent("MOVIE_RESTORED", "Catalog", `Restored master film "${current?.title || id}"`);
+      },
+
+      deleteMasterMovie: (id) => {
+        const current = get().movies.find((m) => m.id === id);
+        set((state) => ({
+          movies: state.movies.map((m) =>
+            m.id === id ? { ...m, isDeleted: true, deletedAt: new Date().toISOString() } : m
+          ),
+        }));
+        get().logAuditEvent("MOVIE_DELETED", "Catalog", `Soft-deleted master film "${current?.title || id}"`);
+      },
+
+      duplicateMasterMovie: (id) => {
+        const current = get().movies.find((m) => m.id === id);
+        if (!current) return { success: false };
+
+        const timestamp = new Date().toISOString();
+        const newId = `mov-${Date.now()}`;
+        const duplicated: GlobalMasterMovie = {
+          ...current,
+          id: newId,
+          title: `${current.title} (Copy)`,
+          slug: `${current.slug}-copy`,
+          status: "Draft",
+          isDeleted: false,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
+
+        set((state) => ({
+          movies: [duplicated, ...state.movies],
+        }));
+
+        get().logAuditEvent("MOVIE_DUPLICATED", "Catalog", `Duplicated master film "${current.title}" as "${duplicated.title}"`);
+        return { success: true, newId };
+      },
+
       // Settings Operations
       updateSettings: (partial) => {
         set((state) => ({
@@ -746,6 +848,7 @@ export const usePlatformStore = create<PlatformState>()(
         amenities: state.amenities,
         announcements: state.announcements,
         settings: state.settings,
+        movies: state.movies,
       }),
     }
   )

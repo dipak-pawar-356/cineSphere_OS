@@ -1,6 +1,7 @@
 export * from "./common.types";
 export * from "./platform.types";
 export * from "./movie.types";
+export * from "./movie-management.types";
 export * from "./theatre.types";
 export * from "./hall.types";
 export * from "./seat-generation.types";

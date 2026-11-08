@@ -358,6 +358,21 @@ Phase 2 - Part 6 implements the core **Automatic Seat Generation Engine** for Ci
 
 ---
 
+## 🎬 2.8 Phase 2 - Part 7: Movie Management System
+
+Phase 2 - Part 7 implements the **Movie Management System** for CineSphere OS, strictly enforcing the platform-level master entity pattern:
+
+- 🌐 **Platform-Level Master Entity Pattern:** A Movie is a platform-wide master film (title, canonical synopsis, media vault, trailer links, runtime, certificate, cast & crew roster). Movies are **never** owned by individual theatres, completely eliminating data duplication when the same film is screened across hundreds of cinema complexes.
+- 🔗 **Decoupled Show Connector Invariant:** $\text{Movie} \rightarrow \text{Multiple Shows} \rightarrow \text{Different Theatres} \rightarrow \text{Different Halls} \rightarrow \text{Different Prices}$. Movies **never** permanently embed ticket prices, physical seat templates, or booking records.
+- 🎛️ **Two-Layer Movie Architecture:**
+  1. **Global Master Movie Library (`/dashboard/movies`):** Super Admin control plane for canonical movie ingestion, multi-tab modal (`MasterMovieFormModal`), media asset vault, video trailer embeds (YouTube/Vimeo), and cast/crew directories.
+  2. **Theatre Exhibition Catalog (`/theatre/movies`):** Theatre Admin exhibition roster managing licensed screening titles without metadata duplication, DCI/SMPTE **KDM decryption key status tracking** (`Valid`, `Pending`, `Expired`), and 1-click global catalog discovery (`TheatreMovieCatalogBrowserModal`).
+- ⚡ **Server Actions & Security Auditing:** Typed server actions (`createMovieAction`, `updateMovieAction`, `archiveMovieAction`, `restoreMovieAction`, `deleteMovieAction`, `duplicateMovieAction`, `linkMovieToTheatreAction`) with tamper-evident audit logging.
+- 🎨 **Cinematic UI & Inspector Views:** Dedicated movie inspection routes (`/dashboard/movies/[id]`), interactive hero backdrops, format badges, and live search/filtering.
+- 📚 **Movie Management System Architecture Guide:** Detailed technical documentation in [`docs/MOVIE_MANAGEMENT_SYSTEM.md`](./docs/MOVIE_MANAGEMENT_SYSTEM.md).
+
+---
+
 ## ☁️ 9. Vercel Deployment Settings
 
 For zero-configuration deployment to Vercel:
@@ -376,6 +391,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🎬 [`docs/MOVIE_MANAGEMENT_SYSTEM.md`](./docs/MOVIE_MANAGEMENT_SYSTEM.md) — Movie Management System, Master Entity Architecture, Two-Layer Global Library & Theatre Exhibition Catalog (Phase 2 - Part 7).
 - 🪑 [`docs/AUTOMATIC_SEAT_GENERATION_ENGINE.md`](./docs/AUTOMATIC_SEAT_GENERATION_ENGINE.md) — Automatic Seat Generation Engine, Immutable UUIDs, Zero Embedded Pricing & 3D Spatial Geometry (Phase 2 - Part 6).
 - 🏛️ [`docs/HALL_MANAGEMENT_ARCHITECTURE.md`](./docs/HALL_MANAGEMENT_ARCHITECTURE.md) — Hall Fleet Management, Dynamic Section Editor & 2D Floor Plan Schematic (Phase 2 - Part 5).
 - 🏢 [`docs/THEATRE_ADMIN_ONBOARDING.md`](./docs/THEATRE_ADMIN_ONBOARDING.md) — Theatre Admin Management, Multi-Tenant Isolation & Independent UPI Rails (Phase 2 - Part 4).
