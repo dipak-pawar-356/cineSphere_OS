@@ -6,6 +6,7 @@ export * from "./theatre.types";
 export * from "./hall.types";
 export * from "./seat-generation.types";
 export * from "./show.types";
+export * from "./show-management.types";
 export * from "./booking.types";
 export * from "./customer.types";
 export * from "./staff.types";

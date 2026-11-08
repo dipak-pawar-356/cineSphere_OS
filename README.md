@@ -373,6 +373,23 @@ Phase 2 - Part 7 implements the **Movie Management System** for CineSphere OS, s
 
 ---
 
+## 🎟️ 2.9 Phase 2 - Part 8: Show Management & Scheduling System
+
+Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling System** for CineSphere OS, establishing the Show as the central business entity:
+
+- 🎟️ **Central Business Entity Law:** A Show is **NOT** simply `Movie + Hall + Date + Time`. It represents a complete screening event: $\text{Movie} + \text{Theatre} + \text{Hall} + \text{Date} + \text{Start Time} + \text{End Time} + \text{Language} + \text{Format} + \text{Pricing Profile} + \text{Seat Inventory} + \text{Booking Status} + \text{Sales Status} = \text{Show}$. All bookings, payments, QR tickets, occupancy, and box office yields reference the Show directly.
+- 💳 **Reusable Pricing Profiles Subsystem:** Instead of embedding static pricing into Shows or Halls, Shows reference reusable **Pricing Profiles** (`Morning Weekday Economy`, `Weekday Matinee Regular`, `Prime Evening`, `Weekend Blockbuster Prime`, `IMAX Laser Special`). Section prices (`Silver`, `Gold`, `Platinum`, `VIP`, `Recliner`, `Royal Suite`) are derived dynamically per show.
+- ⏱️ **Turnaround & Conflict Detection Engine:** Automatically calculates total occupied time ($\text{Runtime} + \text{Intermission} + \text{Cleaning Buffer}$). Prevents auditorium scheduling collisions and enforces turnaround buffers with 1-click earliest safe slot recommendations.
+- 🪑 **Dynamic Show Seat Inventory Preparation:** Combines the Hall's immutable Seat Template with the assigned Pricing Profile to synthesize show-specific seat inventories where each seat possesses independent availability (`Available`, `Locked`, `Reserved`, `Booked`, `Blocked`), tier, price, and 3D camera anchor.
+- 🎛️ **Dispatch Control Plane & Visual Calendar:**
+  - Table View & Grid View with multi-faceted search (Movie, Hall, Show Code, Audio, Format) and filtering.
+  - Multi-Screen Showtime Dispatch Matrix (`/theatre/shows/calendar`) with horizontal hall tracks and 7-day switcher.
+  - Dedicated Full-Page Dispatch Route (`/theatre/shows/create`) and Telemetry Inspection View (`/theatre/shows/[id]`).
+- ⚡ **Server Actions & Security Auditing:** Typed server actions (`createShowAction`, `updateShowAction`, `cancelShowAction`, `archiveShowAction`, `duplicateShowAction`, `validateScheduleAction`) with tamper-evident audit logging.
+- 📚 **Show Management & Scheduling Architecture Guide:** Detailed technical documentation in [`docs/SHOW_MANAGEMENT_AND_SCHEDULING.md`](./docs/SHOW_MANAGEMENT_AND_SCHEDULING.md).
+
+---
+
 ## ☁️ 9. Vercel Deployment Settings
 
 For zero-configuration deployment to Vercel:
@@ -391,6 +408,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🎟️ [`docs/SHOW_MANAGEMENT_AND_SCHEDULING.md`](./docs/SHOW_MANAGEMENT_AND_SCHEDULING.md) — Show Management System, Screening Event Architecture, Conflict Detection Engine, Reusable Pricing Profiles & Dynamic Seat Inventory (Phase 2 - Part 8).
 - 🎬 [`docs/MOVIE_MANAGEMENT_SYSTEM.md`](./docs/MOVIE_MANAGEMENT_SYSTEM.md) — Movie Management System, Master Entity Architecture, Two-Layer Global Library & Theatre Exhibition Catalog (Phase 2 - Part 7).
 - 🪑 [`docs/AUTOMATIC_SEAT_GENERATION_ENGINE.md`](./docs/AUTOMATIC_SEAT_GENERATION_ENGINE.md) — Automatic Seat Generation Engine, Immutable UUIDs, Zero Embedded Pricing & 3D Spatial Geometry (Phase 2 - Part 6).
 - 🏛️ [`docs/HALL_MANAGEMENT_ARCHITECTURE.md`](./docs/HALL_MANAGEMENT_ARCHITECTURE.md) — Hall Fleet Management, Dynamic Section Editor & 2D Floor Plan Schematic (Phase 2 - Part 5).

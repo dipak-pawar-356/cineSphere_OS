@@ -2,7 +2,17 @@ import { ID } from "./common.types";
 import { MovieFormat, MovieLanguage } from "./movie.types";
 import { SeatStatus, SeatType } from "./hall.types";
 
-export type ShowStatus = "Upcoming" | "Running" | "Housefull" | "Completed" | "Cancelled";
+export type ShowStatus =
+  | "Draft"
+  | "Scheduled"
+  | "Upcoming"
+  | "Now Showing"
+  | "Completed"
+  | "Cancelled"
+  | "Postponed"
+  | "Archived"
+  | "Running"
+  | "Housefull";
 
 /**
  * Show Pricing by Section

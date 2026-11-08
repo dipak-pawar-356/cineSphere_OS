@@ -15,6 +15,18 @@ import { DynamicHallSectionConfig, Future3DHallConfig, HallStatus } from "@/type
 import { SeatTemplateContainer } from "@/types/seat-generation.types";
 import { generateAuditoriumSeatTemplate } from "@/lib/engine/seat-generation-engine";
 import { GlobalMasterMovie } from "@/types/movie-management.types";
+import {
+  PricingProfile,
+  BookingAvailabilityStatus,
+  ShowSalesStatus,
+} from "@/types/show-management.types";
+import { ShowStatus, ShowSeat } from "@/types/show.types";
+import { INITIAL_PRICING_PROFILES } from "@/lib/constants/initial-pricing-profiles";
+import {
+  calculateScheduleWindow,
+  timeStringToMinutes,
+  detectScheduleConflict,
+} from "@/lib/engine/scheduling-engine";
 
 /**
  * ==============================================================================
@@ -119,19 +131,47 @@ export interface ManagedMovie {
 
 export interface ManagedShow {
   id: string;
+  showCode?: string;
+  slug?: string;
   movieId: string;
   movieTitle: string;
+  moviePosterUrl?: string;
+  movieBannerUrl?: string;
+  movieDurationMinutes?: number;
+  movieCertificate?: string;
+  theatreId?: string;
+  theatreName?: string;
   hallId: string;
   hallName: string;
+  hallCode?: string;
+  screenType?: string;
   date: string;
   startTime: string;
   endTime: string;
+  durationMinutes?: number;
+  intermissionMinutes?: number;
+  cleaningBufferMinutes?: number;
+  totalOccupiedMinutes?: number;
   language: string;
-  format: "2D" | "3D" | "IMAX" | "4DX" | "Dolby Atmos";
+  format: "2D" | "3D" | "IMAX" | "4DX" | "Dolby Atmos" | "Dolby Cinema" | "ScreenX" | string;
   ticketPrice: number;
   seatsBooked: number;
   totalSeats: number;
-  status: "Upcoming" | "Running" | "Housefull" | "Completed" | "Cancelled";
+  status: ShowStatus;
+  bookingStatus?: BookingAvailabilityStatus;
+  salesStatus?: ShowSalesStatus;
+  pricingProfileId?: string;
+  pricingProfileName?: string;
+  sectionPricing?: Record<string, number>;
+  seatsAvailable?: number;
+  seatsBlocked?: number;
+  occupancyPercent?: number;
+  revenueEstimated?: number;
+  seatInventory?: ShowSeat[];
+  isConflict?: boolean;
+  conflictReason?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface MonitoredBooking {
@@ -193,6 +233,7 @@ export interface TheatreState {
   halls: ManagedHall[];
   movies: ManagedMovie[];
   shows: ManagedShow[];
+  pricingProfiles: PricingProfile[];
   bookings: MonitoredBooking[];
   staff: ManagedStaff[];
   media: ManagedMediaAsset[];
@@ -235,10 +276,17 @@ export interface TheatreState {
   unlinkMovie: (id: string) => void;
   updateMovieScreeningStatus: (id: string, status: "Now Showing" | "Upcoming" | "Archived") => void;
 
-  // Show Programming
-  addShow: (show: Omit<ManagedShow, "id" | "seatsBooked">) => void;
-  updateShow: (id: string, updates: Partial<ManagedShow>) => void;
-  cancelShow: (id: string) => void;
+  // Pricing Profiles (Phase 2 Part 8)
+  addPricingProfile: (profile: Omit<PricingProfile, "id" | "createdAt" | "updatedAt">) => void;
+  updatePricingProfile: (id: string, updates: Partial<PricingProfile>) => void;
+  deletePricingProfile: (id: string) => void;
+
+  // Show Programming (Phase 2 Part 8)
+  addShow: (show: Omit<ManagedShow, "id" | "seatsBooked">) => { success: boolean; show?: ManagedShow; error?: string };
+  updateShow: (id: string, updates: Partial<ManagedShow>) => { success: boolean; show?: ManagedShow; error?: string };
+  cancelShow: (id: string, reason?: string) => void;
+  archiveShow: (id: string) => void;
+  duplicateShow: (id: string, newDate?: string, newStartTime?: string) => { success: boolean; show?: ManagedShow; error?: string };
 
   // Staff Management
   addStaff: (staffMember: Omit<ManagedStaff, "id">) => void;
@@ -949,11 +997,38 @@ export const useTheatreStore = create<TheatreState>()(
           formats: m.formats as ("2D" | "3D" | "IMAX" | "4DX" | "Dolby Atmos")[],
           status: m.status as "Now Showing" | "Upcoming" | "Archived",
         })),
-        shows: SEED_SHOWS.map((s) => ({
-          ...s,
-          format: s.format as "2D" | "3D" | "IMAX" | "4DX" | "Dolby Atmos",
-          status: s.status as "Upcoming" | "Running" | "Housefull" | "Completed" | "Cancelled",
-        })),
+        pricingProfiles: INITIAL_PRICING_PROFILES,
+        shows: SEED_SHOWS.map((s, idx) => {
+          const profile = INITIAL_PRICING_PROFILES[idx % INITIAL_PRICING_PROFILES.length];
+          const duration = 150;
+          const intermission = 15;
+          const cleaning = 20;
+          const window = calculateScheduleWindow(s.startTime, duration, intermission, cleaning);
+          return {
+            ...s,
+            showCode: `SH-PUN-0${idx + 1}-${s.format.replace(/\s+/g, "")}-${timeStringToMinutes(s.startTime)}`,
+            slug: `pune-phoenix-${s.hallId}-${timeStringToMinutes(s.startTime)}`,
+            theatreId: "th-pun-001",
+            theatreName: "CineSphere Grand Cinemas (Phoenix Marketcity)",
+            durationMinutes: duration,
+            intermissionMinutes: intermission,
+            cleaningBufferMinutes: cleaning,
+            totalOccupiedMinutes: window.totalOccupiedMinutes,
+            pricingProfileId: profile.id,
+            pricingProfileName: profile.name,
+            sectionPricing: profile.tierPricing,
+            bookingStatus: s.status === "Cancelled" ? ("Cancelled" as const) : s.status === "Housefull" ? ("Sold Out" as const) : ("Booking Open" as const),
+            salesStatus: s.status === "Cancelled" ? ("Off Sale" as const) : s.status === "Housefull" ? ("Sold Out" as const) : ("On Sale" as const),
+            seatsAvailable: Math.max(0, s.totalSeats - s.seatsBooked),
+            seatsBlocked: 0,
+            occupancyPercent: s.totalSeats > 0 ? Math.round((s.seatsBooked / s.totalSeats) * 100) : 0,
+            revenueEstimated: s.seatsBooked * s.ticketPrice,
+            createdAt: "2026-11-01T08:00:00Z",
+            updatedAt: "2026-11-05T12:00:00Z",
+            format: s.format as "2D" | "3D" | "IMAX" | "4DX" | "Dolby Atmos",
+            status: s.status as ShowStatus,
+          };
+        }),
         bookings: SEED_BOOKINGS.map((b) => ({
           ...b,
           paymentMethod: b.paymentMethod as MonitoredBooking["paymentMethod"],
@@ -1372,32 +1447,226 @@ export const useTheatreStore = create<TheatreState>()(
         },
 
         // ----------------------------------------------------------------------
-        // Show Programming
+        // ----------------------------------------------------------------------
+        // Pricing Profiles (Phase 2 Part 8)
+        // ----------------------------------------------------------------------
+        addPricingProfile: (profile) => {
+          const newProfile: PricingProfile = {
+            ...profile,
+            id: `pp-${Date.now()}`,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          set((state) => ({
+            pricingProfiles: [newProfile, ...state.pricingProfiles],
+          }));
+          get().logTenantAudit(
+            "PRICING_PROFILE_CREATED",
+            "Pricing",
+            `Created pricing profile "${profile.name}"`
+          );
+        },
+
+        updatePricingProfile: (id, updates) => {
+          set((state) => ({
+            pricingProfiles: state.pricingProfiles.map((p) =>
+              p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
+            ),
+          }));
+          get().logTenantAudit(
+            "PRICING_PROFILE_UPDATED",
+            "Pricing",
+            `Updated pricing profile ID ${id}`
+          );
+        },
+
+        deletePricingProfile: (id) => {
+          const target = get().pricingProfiles.find((p) => p.id === id);
+          set((state) => ({
+            pricingProfiles: state.pricingProfiles.filter((p) => p.id !== id),
+          }));
+          get().logTenantAudit(
+            "PRICING_PROFILE_DELETED",
+            "Pricing",
+            `Deleted pricing profile "${target?.name || id}"`
+          );
+        },
+
+        // ----------------------------------------------------------------------
+        // Show Programming (Phase 2 Part 8)
         // ----------------------------------------------------------------------
         addShow: (show) => {
+          const showId = `shw-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          const duration = show.durationMinutes || 150;
+          const intermission = show.intermissionMinutes ?? 15;
+          const cleaning = show.cleaningBufferMinutes ?? 20;
+          const window = calculateScheduleWindow(show.startTime, duration, intermission, cleaning);
+
+          const hall = get().halls.find((h) => h.id === show.hallId);
+          const totalSeats = show.totalSeats || hall?.capacity || 200;
+
+          // Resolve Pricing Profile
+          const pricingProfile =
+            get().pricingProfiles.find((p) => p.id === show.pricingProfileId) ||
+            get().pricingProfiles[0] ||
+            INITIAL_PRICING_PROFILES[0];
+
+          // Check for conflicts
+          const conflict = detectScheduleConflict(
+            {
+              hallId: show.hallId,
+              date: show.date,
+              startTime: show.startTime,
+              durationMinutes: duration,
+              intermissionMinutes: intermission,
+              cleaningBufferMinutes: cleaning,
+            },
+            get().shows
+          );
+
+          if (conflict.hasConflict) {
+            return { success: false, error: conflict.message };
+          }
+
           const newShow: ManagedShow = {
             ...show,
-            id: `shw-${Date.now()}`,
+            id: showId,
+            showCode:
+              show.showCode ||
+              `SH-${show.hallId.toUpperCase()}-${timeStringToMinutes(show.startTime)}`,
+            slug: `${show.hallId}-${timeStringToMinutes(show.startTime)}`,
+            theatreId: get().activeTheatreId,
+            theatreName: get().profile.name,
+            hallName: show.hallName || hall?.name || "Auditorium",
+            hallCode: hall?.hallCode,
+            screenType: hall?.screenType,
+            endTime: show.endTime || window.endTimeFormatted,
+            durationMinutes: duration,
+            intermissionMinutes: intermission,
+            cleaningBufferMinutes: cleaning,
+            totalOccupiedMinutes: window.totalOccupiedMinutes,
+            pricingProfileId: pricingProfile.id,
+            pricingProfileName: pricingProfile.name,
+            sectionPricing: pricingProfile.tierPricing,
+            ticketPrice: show.ticketPrice || pricingProfile.tierPricing["Silver"] || 250,
             seatsBooked: 0,
+            totalSeats,
+            seatsAvailable: totalSeats,
+            seatsBlocked: 0,
+            occupancyPercent: 0,
+            revenueEstimated: 0,
+            status: show.status || "Scheduled",
+            bookingStatus: show.bookingStatus || "Booking Open",
+            salesStatus: show.salesStatus || "On Sale",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           };
+
           set((state) => ({
             shows: [newShow, ...state.shows],
           }));
-          get().logTenantAudit("SHOW_PROGRAMMED", "Shows", `Scheduled "${show.movieTitle}" in ${show.hallName} on ${show.date}`);
+
+          get().logTenantAudit(
+            "SHOW_PROGRAMMED",
+            "Shows",
+            `Scheduled "${show.movieTitle}" in ${newShow.hallName} on ${show.date} at ${newShow.startTime}`
+          );
+
+          return { success: true, show: newShow };
         },
 
         updateShow: (id, updates) => {
+          const current = get().shows.find((s) => s.id === id);
+          if (!current) return { success: false, error: "Show not found." };
+
+          const startTime = updates.startTime || current.startTime;
+          const duration = updates.durationMinutes || current.durationMinutes || 150;
+          const intermission = updates.intermissionMinutes ?? current.intermissionMinutes ?? 15;
+          const cleaning = updates.cleaningBufferMinutes ?? current.cleaningBufferMinutes ?? 20;
+          const window = calculateScheduleWindow(startTime, duration, intermission, cleaning);
+
+          const updatedShow: ManagedShow = {
+            ...current,
+            ...updates,
+            startTime,
+            endTime: window.endTimeFormatted,
+            durationMinutes: duration,
+            intermissionMinutes: intermission,
+            cleaningBufferMinutes: cleaning,
+            totalOccupiedMinutes: window.totalOccupiedMinutes,
+            updatedAt: new Date().toISOString(),
+          };
+
           set((state) => ({
-            shows: state.shows.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+            shows: state.shows.map((s) => (s.id === id ? updatedShow : s)),
           }));
-          get().logTenantAudit("SHOW_UPDATED", "Shows", `Updated schedule parameters for show ID ${id}`);
+
+          get().logTenantAudit(
+            "SHOW_UPDATED",
+            "Shows",
+            `Updated schedule parameters for show ID ${id}`
+          );
+
+          return { success: true, show: updatedShow };
         },
 
-        cancelShow: (id) => {
+        cancelShow: (id, reason = "Operational Adjustment") => {
+          const target = get().shows.find((s) => s.id === id);
           set((state) => ({
-            shows: state.shows.map((s) => (s.id === id ? { ...s, status: "Cancelled" } : s)),
+            shows: state.shows.map((s) =>
+              s.id === id
+                ? {
+                    ...s,
+                    status: "Cancelled" as const,
+                    bookingStatus: "Cancelled" as const,
+                    salesStatus: "Off Sale" as const,
+                  }
+                : s
+            ),
           }));
-          get().logTenantAudit("SHOW_CANCELLED", "Shows", `Cancelled showtime ID ${id}`);
+          get().logTenantAudit(
+            "SHOW_CANCELLED",
+            "Shows",
+            `Cancelled showtime "${target?.movieTitle || id}" (${reason})`
+          );
+        },
+
+        archiveShow: (id) => {
+          const target = get().shows.find((s) => s.id === id);
+          set((state) => ({
+            shows: state.shows.map((s) =>
+              s.id === id
+                ? {
+                    ...s,
+                    status: "Archived" as const,
+                    bookingStatus: "Booking Closed" as const,
+                    salesStatus: "Off Sale" as const,
+                  }
+                : s
+            ),
+          }));
+          get().logTenantAudit(
+            "SHOW_ARCHIVED",
+            "Shows",
+            `Archived showtime "${target?.movieTitle || id}"`
+          );
+        },
+
+        duplicateShow: (id, newDate, newStartTime) => {
+          const source = get().shows.find((s) => s.id === id);
+          if (!source) return { success: false, error: "Source show not found." };
+
+          const date = newDate || source.date;
+          const startTime = newStartTime || source.startTime;
+
+          return get().addShow({
+            ...source,
+            date,
+            startTime,
+            status: "Scheduled",
+            bookingStatus: "Booking Open",
+            salesStatus: "On Sale",
+          });
         },
 
         // ----------------------------------------------------------------------
@@ -1491,6 +1760,7 @@ export const useTheatreStore = create<TheatreState>()(
         halls: state.halls,
         movies: state.movies,
         shows: state.shows,
+        pricingProfiles: state.pricingProfiles,
         staff: state.staff,
         media: state.media,
         auditLogs: state.auditLogs,
