@@ -15,6 +15,7 @@ import {
   bookingStatusEnum,
   paymentStatusEnum,
   ticketStatusEnum,
+  ticketStrategyEnum,
   seatTypeEnum,
 } from "./enums";
 import { users } from "./users";
@@ -157,23 +158,43 @@ export const tickets = pgTable(
     id: varchar("id", { length: 36 })
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    ticketNumber: varchar("ticket_number", { length: 60 }).notNull().unique(), // e.g. "TKT-CS-9281-A1"
+    secureId: varchar("secure_id", { length: 64 }).notNull(), // Public unguessable ULID / cryptographic token
+    ticketNumber: varchar("ticket_number", { length: 60 }).notNull(), // e.g. "TK-2027-000001" or "TK-2027-000001-01"
     bookingId: varchar("booking_id", { length: 36 })
       .notNull()
       .references(() => bookings.id, { onDelete: "cascade" }),
+    bookingReference: varchar("booking_reference", { length: 50 }).notNull(),
     bookingSeatId: varchar("booking_seat_id", { length: 36 })
       .references(() => bookingSeats.id, { onDelete: "set null" }),
-    seatNumber: varchar("seat_number", { length: 20 }).notNull(),
+    theatreId: varchar("theatre_id", { length: 36 })
+      .references(() => theatres.id, { onDelete: "cascade" }),
+    showId: varchar("show_id", { length: 36 })
+      .references(() => shows.id, { onDelete: "cascade" }),
+    customerId: varchar("customer_id", { length: 36 })
+      .references(() => users.id, { onDelete: "cascade" }),
+    strategy: ticketStrategyEnum("strategy").notNull().default("PER_BOOKING"),
+    seatNumber: varchar("seat_number", { length: 50 }).notNull(),
+    seatNumbers: jsonb("seat_numbers").$type<string[]>().notNull().default([]),
+    seatCount: integer("seat_count").notNull().default(1),
+    qrPayload: jsonb("qr_payload").$type<Record<string, unknown>>().notNull().default({}),
     qrPlaceholder: text("qr_placeholder").notNull(),
-    status: ticketStatusEnum("status").notNull().default("VALID"),
+    qrVersion: varchar("qr_version", { length: 10 }).notNull().default("v1"),
+    signature: varchar("signature", { length: 256 }),
+    status: ticketStatusEnum("status").notNull().default("ISSUED"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
     issuedAt: timestamp("issued_at", { withTimezone: true }).defaultNow().notNull(),
     usedAt: timestamp("used_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    uniqueIndex("tickets_secure_id_idx").on(table.secureId),
     uniqueIndex("tickets_ticket_number_idx").on(table.ticketNumber),
     index("tickets_booking_id_idx").on(table.bookingId),
+    index("tickets_theatre_id_idx").on(table.theatreId),
+    index("tickets_customer_id_idx").on(table.customerId),
+    index("tickets_show_id_idx").on(table.showId),
     index("tickets_status_idx").on(table.status),
   ]
 );

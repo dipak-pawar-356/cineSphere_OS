@@ -23,6 +23,7 @@ export const ROUTES = {
     COOKIES_POLICY: "/cookies-policy",
     DESIGN_SYSTEM: "/design-system",
     BOOKING: (showId: string) => `/booking/${showId}`,
+    DIGITAL_TICKET: (secureId: string) => `/tickets/${secureId}`,
   },
 
   // Super Admin Routes (Multi-Tenant Platform HQ)

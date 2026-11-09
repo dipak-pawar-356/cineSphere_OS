@@ -1,32 +1,35 @@
 import React from "react";
 import { PageHeader } from "@/components/layout/page-header";
-import { ComingSoon } from "@/components/placeholders/coming-soon";
-import { QrCode, Smartphone, Sparkles } from "lucide-react";
+import { getCustomerTickets } from "@/lib/engine/ticket-engine";
+import { CustomerTicketsClient } from "./customer-tickets-client";
 
 export const metadata = {
-  title: "Digital Tickets & QR | CineSphere Patron Portal",
+  title: "My Digital Tickets & Passes | CineSphere OS Patron Portal",
+  description:
+    "View and manage your verified admission passes with fast turnstile QR codes.",
 };
 
-export default function CustomerTicketsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function CustomerTicketsPage() {
+  // Retrieve tickets for the authenticated customer (defaulted to primary seed patron 'cust-001')
+  const customerId = "cust-001";
+  const { tickets } = getCustomerTickets(customerId, {
+    timeFilter: "ALL",
+    sortBy: "showTime_desc",
+  });
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-16">
       <PageHeader
-        title="Digital Tickets & Fast-Pass QR"
-        subtitle="Apple Wallet & Google Pay Passes • Dynamic Security Verification"
-        description="Access dynamic QR admission codes with cryptographic offline verification for zero-delay usher scanning at the auditorium door."
-        badge="Live QR Active"
+        title="My Digital Tickets & Admission Passes"
+        subtitle="Fast-Pass Gate Admission Codes • Proof of Confirmed Booking"
+        description="Access verified admission passes, dynamic fast-pass QR entry codes, and complete booking manifests for zero-delay usher verification at the door."
+        badge="Live Passes Active"
         badgeVariant="primary"
       />
 
-      <ComingSoon
-        moduleName="Apple Wallet Pass & Offline Dynamic QR Engine"
-        description="PassKit `.pkpass` downloads, Google Wallet synchronization, and offline brightness boost activate in Phase 2."
-        versionLabel="v1.2 Mobile Passes"
-        icon={QrCode}
-        backHref="/profile"
-        backLabel="Back to Profile"
-      />
+      <CustomerTicketsClient initialTickets={tickets} customerId={customerId} />
     </div>
   );
 }
-

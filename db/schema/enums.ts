@@ -219,9 +219,19 @@ export const paymentMethodEnum = pgEnum("payment_method", [
 ]);
 
 export const ticketStatusEnum = pgEnum("ticket_status", [
+  "ISSUED",
+  "ACTIVE",
   "VALID",
   "USED",
   "CANCELLED",
+  "EXPIRED",
+  "REFUNDED",
+  "VOIDED",
+]);
+
+export const ticketStrategyEnum = pgEnum("ticket_strategy", [
+  "PER_BOOKING",
+  "PER_SEAT",
 ]);
 
 // ------------------------------------------------------------------------------

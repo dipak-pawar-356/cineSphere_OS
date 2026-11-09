@@ -480,6 +480,18 @@ export const ticketsRelations = relations(tickets, ({ one }) => ({
     fields: [tickets.bookingSeatId],
     references: [bookingSeats.id],
   }),
+  theatre: one(theatres, {
+    fields: [tickets.theatreId],
+    references: [theatres.id],
+  }),
+  show: one(shows, {
+    fields: [tickets.showId],
+    references: [shows.id],
+  }),
+  customer: one(users, {
+    fields: [tickets.customerId],
+    references: [users.id],
+  }),
 }));
 
 // ------------------------------------------------------------------------------

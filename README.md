@@ -501,6 +501,32 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Multi-rail daily settlement reconciliation tracking volume, count, and zero-MDR UPI advantages.
 - 📚 **Payment Architecture Guide:** Detailed technical documentation in [`docs/THEATRE_PAYMENT_CONFIGURATION_ARCHITECTURE.md`](./docs/THEATRE_PAYMENT_CONFIGURATION_ARCHITECTURE.md).
 
+### 2.14 Phase 2 - Part 13: Ticket Management & Digital Ticket System (Completed)
+- 🎟️ **The Digital Ticket Lifecycle Invariant:**
+  - A ticket is **never** created upon initial seat clicking or temporary reservation.
+  - Strict unidirectional flow:
+    ```
+    Booking Session → Payment → Payment Verification → Booking Confirmation → Ticket Generation → QR Generation → My Tickets → Future Check-in
+    ```
+- 🆔 **Four-Tier Distinct Identifiers:**
+  - **Internal DB ID (`id`):** UUID primary key for database relational graph.
+  - **Booking Reference (`bookingReference`):** Human-readable billing code (e.g. `BK-2027-005001`).
+  - **Ticket Number (`ticketNumber`):** Human-readable entry code (e.g. `TK-2027-001001` or `TK-2027-001001-01`).
+  - **Public Secure ID (`secureId`):** High-entropy, unguessable 26-character Crockford Base32 cryptographic token for tamper-proof public URLs.
+- 🛡️ **Public URL Traversal Protection:**
+  - Route `/tickets/[secureId]` strictly resolves unguessable tokens; sequential integer requests (e.g. `/tickets/123`, `/tickets/1`) are rejected server-side to prevent scraping.
+- ⚡ **Structured High-Integrity QR Payload:**
+  - Encodes `ticketSecureId`, `bookingSecureId`, `ticketNumber`, `theatreId`, `showId`, `seatNumbers`, `issuedAt`, `version: "v1"`, and cryptographic `signaturePlaceholder`.
+  - Dynamic QR URI derivation via `api.qrserver.com` at 250×250 resolution.
+- 👥 **Multi-Ticket Issuance Strategies:**
+  - `PER_BOOKING`: Consolidated admission pass covering all seats in the booking (`seatCount: N`).
+  - `PER_SEAT`: Individual admission pass per seat with indexed sub-tickets (`-01`, `-02`), distinct QR codes, and split amounts.
+- 📱 **Customer "My Tickets" Portal (`/profile/tickets`):**
+  - Real-time customer isolation, search toolbar, tabs (Upcoming, Past, Today, All), dynamic status pills, modal QR previewer, and 1-click navigation to full digital passes.
+- 🔍 **Interactive Cryptographic QR Payload Inspector (`<QrPayloadInspector />`):**
+  - Live inspection dialog allowing patrons and turnstile managers to decode and verify the raw JSON cryptographic payload directly from the ticket view.
+- 📚 **Digital Ticketing Architecture Guide:** Detailed technical documentation in [`docs/TICKET_MANAGEMENT_AND_DIGITAL_TICKETS.md`](./docs/TICKET_MANAGEMENT_AND_DIGITAL_TICKETS.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -521,6 +547,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🎟️ [`docs/TICKET_MANAGEMENT_AND_DIGITAL_TICKETS.md`](./docs/TICKET_MANAGEMENT_AND_DIGITAL_TICKETS.md) — Digital Ticket Management & QR Architecture, 4-Tier Identifier Separation, Dynamic QR Payload, Multi-Ticket Strategies & Public URL Security (Phase 2 - Part 13).
 - 💳 [`docs/THEATRE_PAYMENT_CONFIGURATION_ARCHITECTURE.md`](./docs/THEATRE_PAYMENT_CONFIGURATION_ARCHITECTURE.md) — Theatre Payment Configuration & Payment Architecture, 1:N Rails, Dynamic NPCI QR Derivation, Multi-Tenant Isolation & Audit Trail (Phase 2 - Part 12).
 - 🎟️ [`docs/BOOKING_ENGINE_AND_RESERVATION_ARCHITECTURE.md`](./docs/BOOKING_ENGINE_AND_RESERVATION_ARCHITECTURE.md) — Booking Engine & Seat Reservation Architecture, 3-Tier Layering Model, Session vs Booking ID, Concurrency Locks & Audit Trail (Phase 2 - Part 11).
 - 🧭 [`docs/CUSTOMER_DISCOVERY_AND_BOOKING_FLOW.md`](./docs/CUSTOMER_DISCOVERY_AND_BOOKING_FLOW.md) — Customer Discovery & Booking Flow Architecture, Multi-Journey Convergence (City, Movie, Theatre, Direct), Unified Single Show ID Snapshot & Interactive 2D Seat Matrix (Phase 2 - Part 10).
