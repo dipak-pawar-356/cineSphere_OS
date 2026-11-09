@@ -1,32 +1,41 @@
 import React from "react";
 import { PageHeader } from "@/components/layout/page-header";
-import { ComingSoon } from "@/components/placeholders/coming-soon";
-import { Bell, CheckCircle2 } from "lucide-react";
+import {
+  getCustomerNotifications,
+  getUnreadCount,
+  getUserPreferences,
+} from "@/lib/engine/notification-engine";
+import { CustomerNotificationsClient } from "./customer-notifications-client";
 
 export const metadata = {
-  title: "Patron Notifications | CineSphere Patron Portal",
+  title: "Patron Notifications & Alerts | CineSphere OS",
+  description: "Review real-time booking receipts, admission pass issuances, and showtime reminders.",
 };
 
-export default function CustomerNotificationsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function CustomerNotificationsPage() {
+  const customerId = "cust-001";
+  const notificationsResult = getCustomerNotifications(customerId);
+  const unreadCount = getUnreadCount(customerId, "CUSTOMER");
+  const preferences = getUserPreferences(customerId);
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-16">
       <PageHeader
         title="Patron Activity & Ticket Updates"
         subtitle="Booking Confirmations, Gate Opening Reminders & Concession Deals"
         description="Review all messages sent to your account regarding showtime changes, auditorium opening reminders, and loyalty bonus points."
-        badge="Notifications"
-        badgeVariant="primary"
+        badge={`${unreadCount} Unread Alerts`}
+        badgeVariant={unreadCount > 0 ? "warning" : "primary"}
       />
 
-      <ComingSoon
-        moduleName="Real-Time Showtime SMS & Push Notification Hub"
-        description="Unified notification preference matrix and message archive deploy in Phase 2."
-        versionLabel="v1.2 Notification Hub"
-        icon={Bell}
-        backHref="/profile"
-        backLabel="Back to Profile"
+      <CustomerNotificationsClient
+        initialNotifications={notificationsResult.notifications}
+        initialUnreadCount={unreadCount}
+        initialPreferences={preferences}
+        customerId={customerId}
       />
     </div>
   );
 }
-

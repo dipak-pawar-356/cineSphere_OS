@@ -240,6 +240,7 @@ export const ticketStrategyEnum = pgEnum("ticket_strategy", [
 export const notificationTypeEnum = pgEnum("notification_type", [
   "BOOKING",
   "PAYMENT",
+  "TICKET",
   "THEATRE",
   "MOVIE",
   "SHOW",
@@ -247,6 +248,32 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "ALERT",
   "APPROVAL",
   "SYSTEM",
+  "SECURITY",
+  "MARKETING",
+]);
+
+export const notificationPriorityEnum = pgEnum("notification_priority", [
+  "LOW",
+  "NORMAL",
+  "HIGH",
+  "CRITICAL",
+]);
+
+export const notificationStatusEnum = pgEnum("notification_status", [
+  "UNREAD",
+  "READ",
+  "ARCHIVED",
+  "DELETED",
+]);
+
+export const notificationChannelEnum = pgEnum("notification_channel", [
+  "IN_APP",
+  "EMAIL",
+  "SMS",
+  "PUSH",
+  "WHATSAPP",
+  "TELEGRAM",
+  "WEBHOOK",
 ]);
 
 export const notificationSeverityEnum = pgEnum("notification_severity", [

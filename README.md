@@ -527,6 +527,29 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Live inspection dialog allowing patrons and turnstile managers to decode and verify the raw JSON cryptographic payload directly from the ticket view.
 - 📚 **Digital Ticketing Architecture Guide:** Detailed technical documentation in [`docs/TICKET_MANAGEMENT_AND_DIGITAL_TICKETS.md`](./docs/TICKET_MANAGEMENT_AND_DIGITAL_TICKETS.md).
 
+### 2.15 Phase 2 - Part 14: Centralized Notification & Communication System (Completed)
+- 🔔 **Event-Driven Decoupled Architecture Law:**
+  - Modules (Booking, Payment, Show, Ticket, Admin) **never** send messages directly.
+  - Every module publishes domain events (`DomainEvent<T>`) to the Central Notification Engine.
+  - Pipeline:
+    ```
+    Domain Modules → Domain Event Bus → Central Notification Service → Channels (In-App live; Email/SMS/Push placeholders) → Role Inboxes
+    ```
+- 📝 **Centralized Template Engine (`renderTemplate`):**
+  - Reusable templates with dynamic token replacement (`{customerName}`, `{movieTitle}`, `{showTime}`, `{amount}`, `{bookingRef}`, etc.) and fallback values.
+- ⚙️ **User Notification Preferences Matrix (`NotificationPreferences`):**
+  - Configurable delivery channels (`inApp`, `email`, `sms`, `push`, `whatsapp`).
+  - Configurable event categories (`bookingUpdates`, `paymentReceipts`, `ticketPasses`, `showReminders`, `promotionalOffers`, `securityAlerts`).
+  - Automatic status propagation: channel opt-out maps to `"OPTED_OUT"`; category opt-out maps to `"SUPPRESSED"`.
+- 📡 **Multi-Channel Dispatch Manifest (`channelDispatches`):**
+  - Live In-App notifications delivered immediately (`DELIVERED`).
+  - External channels maintained as structured architecture placeholders (`QUEUED_PLACEHOLDER`) without mock delivery hacks.
+- 👥 **Role-Isolated Notification Centers:**
+  - **Patron Portal (`/profile/notifications`):** Live unread counter, multi-criteria filtering, channel telemetry, and interactive Notification Preferences modal.
+  - **Theatre Admin Portal (`/theatre/notifications`):** Operations queue for turnstiles, laser projector SNMP telemetry, box office alerts, and single-click acknowledgement.
+  - **Super Admin Portal (`/dashboard/notifications`):** Platform-wide incident notifications, security advisories, onboarding review triggers, and live dispatch audit trail stream.
+- 📚 **Notification System Guide:** Detailed architecture in [`docs/NOTIFICATION_AND_COMMUNICATION_SYSTEM.md`](./docs/NOTIFICATION_AND_COMMUNICATION_SYSTEM.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -547,6 +570,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🔔 [`docs/NOTIFICATION_AND_COMMUNICATION_SYSTEM.md`](./docs/NOTIFICATION_AND_COMMUNICATION_SYSTEM.md) — Centralized Notification & Communication System, Event-Driven Decoupled Bus, Template Engine, Multi-Channel Manifest & Preferences Matrix (Phase 2 - Part 14).
 - 🎟️ [`docs/TICKET_MANAGEMENT_AND_DIGITAL_TICKETS.md`](./docs/TICKET_MANAGEMENT_AND_DIGITAL_TICKETS.md) — Digital Ticket Management & QR Architecture, 4-Tier Identifier Separation, Dynamic QR Payload, Multi-Ticket Strategies & Public URL Security (Phase 2 - Part 13).
 - 💳 [`docs/THEATRE_PAYMENT_CONFIGURATION_ARCHITECTURE.md`](./docs/THEATRE_PAYMENT_CONFIGURATION_ARCHITECTURE.md) — Theatre Payment Configuration & Payment Architecture, 1:N Rails, Dynamic NPCI QR Derivation, Multi-Tenant Isolation & Audit Trail (Phase 2 - Part 12).
 - 🎟️ [`docs/BOOKING_ENGINE_AND_RESERVATION_ARCHITECTURE.md`](./docs/BOOKING_ENGINE_AND_RESERVATION_ARCHITECTURE.md) — Booking Engine & Seat Reservation Architecture, 3-Tier Layering Model, Session vs Booking ID, Concurrency Locks & Audit Trail (Phase 2 - Part 11).

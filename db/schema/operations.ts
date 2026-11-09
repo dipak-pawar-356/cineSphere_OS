@@ -6,12 +6,16 @@ import {
   timestamp,
   jsonb,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import {
   auditActionEnum,
   notificationTypeEnum,
   notificationSeverityEnum,
   notificationAudienceEnum,
+  notificationPriorityEnum,
+  notificationStatusEnum,
+  notificationChannelEnum,
   reportCategoryEnum,
   reportStatusEnum,
 } from "./enums";
@@ -63,19 +67,58 @@ export const notifications = pgTable(
       .references(() => theatres.id, { onDelete: "cascade" }), // Nullable for platform notifications
     type: notificationTypeEnum("type").notNull().default("SYSTEM"),
     severity: notificationSeverityEnum("severity").notNull().default("INFO"),
+    priority: notificationPriorityEnum("priority").notNull().default("NORMAL"),
+    status: notificationStatusEnum("status").notNull().default("UNREAD"),
     audience: notificationAudienceEnum("audience").notNull().default("CUSTOMER"), // CUSTOMER, ADMIN, SYSTEM, ALL
     title: varchar("title", { length: 200 }).notNull(),
     message: text("message").notNull(),
+    sourceModule: varchar("source_module", { length: 50 }).notNull().default("SYSTEM"),
+    referenceEntity: jsonb("reference_entity").$type<{ type: string; id: string; link?: string }>(),
+    channelDispatches: jsonb("channel_dispatches").$type<Record<string, string>>().default({ inApp: "DELIVERED" }),
     isRead: boolean("is_read").notNull().default(false),
     readAt: timestamp("read_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("notifications_user_unread_idx").on(table.userId, table.isRead),
+    index("notifications_user_status_idx").on(table.userId, table.status),
     index("notifications_theatre_id_idx").on(table.theatreId),
     index("notifications_audience_idx").on(table.audience),
+    index("notifications_priority_idx").on(table.priority),
     index("notifications_created_at_idx").on(table.createdAt),
+  ]
+);
+
+export const notificationPreferences = pgTable(
+  "notification_preferences",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: varchar("user_id", { length: 36 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    channels: jsonb("channels")
+      .$type<{ inApp: boolean; email: boolean; sms: boolean; push: boolean; whatsapp: boolean }>()
+      .notNull()
+      .default({ inApp: true, email: true, sms: true, push: true, whatsapp: false }),
+    categories: jsonb("categories")
+      .$type<Record<string, boolean>>()
+      .notNull()
+      .default({
+        bookingUpdates: true,
+        paymentReceipts: true,
+        ticketPasses: true,
+        showReminders: true,
+        promotionalOffers: false,
+        securityAlerts: true,
+      }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("notif_prefs_user_id_idx").on(table.userId),
   ]
 );
 
