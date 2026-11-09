@@ -141,3 +141,12 @@ export async function fetchCustomerPriceSummaryAction(
   };
 }
 
+// ==============================================================================
+// Verbatim Server Action Exports (Phase 2 Part 10 Specifications)
+// ==============================================================================
+export const fetchMoviesAction = fetchPublishedMoviesAction;
+export const fetchTheatresAction = fetchPublishedTheatresAction;
+export const fetchShowsAction = fetchPublishedShowsAction;
+export const fetchPricingSummaryAction = fetchCustomerPriceSummaryAction;
+
+

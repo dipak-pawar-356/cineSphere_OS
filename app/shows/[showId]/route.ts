@@ -58,14 +58,25 @@ export async function GET(
     return NextResponse.json(
       {
         movie: unified.movie,
+        Movie: unified.movie,
         theatre: unified.theatre,
+        Theatre: unified.theatre,
         hall: unified.hall,
+        Hall: unified.hall,
         hallLayout: unified.layout,
+        "Hall Layout": unified.layout,
+        layout: unified.layout,
         seatInventory: unified.seatInventory,
+        "Seat Inventory": unified.seatInventory,
         pricingProfile: unified.pricingProfile,
+        "Pricing Profile": unified.pricingProfile,
         availableSeats: unified.capacityMetrics.availableSeats,
+        "Available Seats": unified.capacityMetrics.availableSeats,
         legends: unified.sectionLegends,
+        Legends: unified.sectionLegends,
         showDetails: unified.show,
+        "Show Details": unified.show,
+        show: unified.show,
         capacityMetrics: unified.capacityMetrics,
       },
       {
@@ -86,3 +97,4 @@ export async function GET(
     );
   }
 }
+
