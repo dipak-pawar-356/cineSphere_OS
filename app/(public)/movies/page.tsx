@@ -1,149 +1,517 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { PageHeader } from "@/components/layout/page-header";
-import { MovieCard } from "@/components/cards/movie-card";
-import { DUMMY_MOVIES } from "@/lib/constants/movies";
-import { Search, Filter, Sparkles, Film, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
+import { useCityStore } from "@/store/city-store";
+import { getAllPublishedMovies, getFilteredMovies } from "@/lib/engine/customer-discovery-engine";
+import { CustomerMovieDTO } from "@/types/customer-discovery.types";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import {
+  Search,
+  Filter,
+  Sparkles,
+  Film,
+  SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  MapPin,
+  Star,
+  Clock,
+  Ticket,
+  TrendingUp,
+  Flame,
+  Calendar,
+  X,
+  Eye,
+} from "lucide-react";
 import { cn } from "@/utils";
 
-const FILTER_TAGS = [
-  "All Movies",
-  "Now Showing",
-  "Coming Soon",
-  "IMAX with Laser",
-  "Dolby Cinema",
-  "4DX Motion",
-  "Sci-Fi",
+type MovieTab = "Now Showing" | "Coming Soon" | "Trending" | "Recommended" | "Recently Viewed";
+
+const GENRES = [
+  "All",
   "Action",
+  "Sci-Fi",
   "Drama",
+  "Thriller",
+  "Adventure",
+  "Fantasy",
+  "Biography",
 ];
 
+const LANGUAGES = ["All", "English", "Hindi", "Telugu", "Tamil", "Malayalam"];
+const FORMATS = ["All", "IMAX", "Dolby Cinema", "4DX", "3D", "2D"];
+const CERTIFICATES = ["All", "U", "UA", "UA 16+", "A", "PG-13", "R"];
+
 export default function MoviesPage() {
-  const [activeFilter, setActiveFilter] = useState("All Movies");
+  const { selectedCity, setCityModalOpen } = useCityStore();
+
+  const [activeTab, setActiveTab] = useState<MovieTab>("Now Showing");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState("All");
+  const [selectedLanguage, setSelectedLanguage] = useState("All");
+  const [selectedFormat, setSelectedFormat] = useState("All");
+  const [selectedCertificate, setSelectedCertificate] = useState("All");
+  const [recentlyViewedSlugs, setRecentlyViewedSlugs] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 8;
 
-  const filteredMovies = DUMMY_MOVIES.filter((movie) => {
-    const matchesSearch =
-      movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      movie.genre.some((g) => g.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      movie.director.toLowerCase().includes(searchQuery.toLowerCase());
+  // Load recently viewed from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("cinesphere_recent_movies");
+      if (stored) {
+        setRecentlyViewedSlugs(JSON.parse(stored));
+      }
+    } catch {
+      // Fallback
+    }
+  }, []);
 
-    if (!matchesSearch) return false;
+  const allMovies = useMemo(() => getAllPublishedMovies(), []);
 
-    if (activeFilter === "Now Showing") return !movie.isComingSoon;
-    if (activeFilter === "Coming Soon") return movie.isComingSoon;
-    if (activeFilter === "IMAX with Laser") return movie.formats.includes("IMAX");
-    if (activeFilter === "Dolby Cinema") return movie.formats.includes("Dolby Atmos");
-    if (activeFilter === "4DX Motion") return movie.formats.includes("4DX");
-    if (activeFilter === "Sci-Fi") return movie.genre.includes("Sci-Fi");
-    if (activeFilter === "Action") return movie.genre.includes("Action");
-    if (activeFilter === "Drama") return movie.genre.includes("Drama");
+  // Filter movies based on active tab & facets
+  const filteredMovies = useMemo(() => {
+    let list = allMovies;
 
-    return true;
-  });
+    // 1. Tab Filtering
+    if (activeTab === "Now Showing") {
+      list = list.filter((m) => m.status === "Now Showing");
+    } else if (activeTab === "Coming Soon") {
+      list = list.filter((m) => m.status === "Coming Soon");
+    } else if (activeTab === "Trending") {
+      list = list.filter((m) => m.isTrending || m.rating >= 8.8);
+    } else if (activeTab === "Recommended") {
+      list = list.filter((m) => m.isFeatured || m.rating >= 8.5);
+    } else if (activeTab === "Recently Viewed") {
+      list = list.filter((m) => recentlyViewedSlugs.includes(m.slug));
+    }
+
+    // 2. Facet Filtering
+    if (selectedGenre !== "All") {
+      list = list.filter((m) => m.genre.some((g) => g.toLowerCase() === selectedGenre.toLowerCase()));
+    }
+    if (selectedLanguage !== "All") {
+      list = list.filter((m) => m.languages.some((l) => l.toLowerCase() === selectedLanguage.toLowerCase()));
+    }
+    if (selectedFormat !== "All") {
+      list = list.filter((m) => m.formats.some((f) => f.toLowerCase().includes(selectedFormat.toLowerCase())));
+    }
+    if (selectedCertificate !== "All") {
+      list = list.filter((m) => m.certification === selectedCertificate);
+    }
+
+    // 3. Search Query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (m) =>
+          m.title.toLowerCase().includes(q) ||
+          m.genre.some((g) => g.toLowerCase().includes(q)) ||
+          (m.director && m.director.toLowerCase().includes(q)) ||
+          (m.cast && m.cast.some((c) => c.toLowerCase().includes(q)))
+      );
+    }
+
+    return list;
+  }, [
+    allMovies,
+    activeTab,
+    selectedGenre,
+    selectedLanguage,
+    selectedFormat,
+    selectedCertificate,
+    searchQuery,
+    recentlyViewedSlugs,
+  ]);
+
+  // Paginated Movies
+  const paginatedMovies = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredMovies.slice(start, start + pageSize);
+  }, [filteredMovies, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredMovies.length / pageSize));
+
+  const resetFilters = () => {
+    setSelectedGenre("All");
+    setSelectedLanguage("All");
+    setSelectedFormat("All");
+    setSelectedCertificate("All");
+    setSearchQuery("");
+  };
+
+  const hasActiveFilters =
+    selectedGenre !== "All" ||
+    selectedLanguage !== "All" ||
+    selectedFormat !== "All" ||
+    selectedCertificate !== "All" ||
+    searchQuery !== "";
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Page Header */}
-      <PageHeader
-        title="Explore Theatrical Releases"
-        subtitle="Current Blockbusters, Archival 70mm Runs & Film Festival Premieres"
-        description="Experience the pinnacle of cinema audio-visual technology across our connected partner circuit. Bookings open up to 14 days in advance."
-        badge={`${DUMMY_MOVIES.length} Titles Available`}
-        badgeVariant="primary"
-      />
-
-      {/* Top Search & Filter Bar */}
-      <div className="space-y-4 p-4 rounded-2xl bg-[#111827] border border-[#2A3445] shadow-lg">
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Search Input */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-3 h-4 w-4 text-[#64748B]" />
-            <input
-              type="text"
-              placeholder="Search by movie title, genre, or director..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#070B12] border border-[#2A3445] text-xs text-white placeholder-[#64748B] focus:outline-none focus:border-[#FBBF24]"
-            />
+      {/* 1. Page Header with Circuit City Indicator */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2A3445]/60 pb-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="primary" size="sm">
+              Customer Discovery
+            </Badge>
+            <span className="text-xs text-slate-400">•</span>
+            <span className="text-xs text-amber-400 font-mono">Journey 1 & 2</span>
           </div>
+          <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+            Explore Theatrical Releases
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-400">
+            Discover blockbuster screenings, archival runs, and festival premieres in your region.
+          </p>
+        </div>
 
-          <Button variant="outline" size="sm" className="gap-2 shrink-0">
-            <SlidersHorizontal className="h-4 w-4 text-[#FBBF24]" />
-            <span>More Filters</span>
+        {/* City Indicator Pill */}
+        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-[#111827] border border-[#2A3445]">
+          <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
+          <div className="text-xs">
+            <span className="text-slate-400 block text-[10px] uppercase font-semibold">Active Circuit</span>
+            <span className="font-bold text-white">{selectedCity.name}</span>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            onClick={() => setCityModalOpen(true)}
+            className="ml-2 text-amber-300 border-amber-400/40 hover:bg-amber-400/10"
+          >
+            Change City
           </Button>
         </div>
+      </div>
 
-        {/* Filter Chips Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {FILTER_TAGS.map((tag) => {
-            const isActive = activeFilter === tag;
-            return (
+      {/* 2. Primary Discovery Tabs (Now Showing, Coming Soon, Trending, Recommended, Recently Viewed) */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-[#2A3445]/60 scrollbar-none">
+        {(
+          [
+            { id: "Now Showing", label: "Now Showing", icon: Film },
+            { id: "Coming Soon", label: "Coming Soon", icon: Calendar },
+            { id: "Trending", label: "Trending", icon: Flame },
+            { id: "Recommended", label: "Recommended", icon: Sparkles },
+            { id: "Recently Viewed", label: "Recently Viewed", icon: Eye },
+          ] as const
+        ).map((tab) => {
+          const isActive = activeTab === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                setActiveTab(tab.id);
+                setCurrentPage(1);
+              }}
+              className={cn(
+                "px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0",
+                isActive
+                  ? "bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20"
+                  : "bg-[#111827] text-slate-300 border border-[#2A3445] hover:text-white hover:border-slate-500"
+              )}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{tab.label}</span>
+              {tab.id === "Recently Viewed" && recentlyViewedSlugs.length > 0 && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-amber-400">
+                  {recentlyViewedSlugs.length}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 3. Search & Multi-Faceted Filters */}
+      <div className="p-4 rounded-2xl bg-[#111827] border border-[#2A3445] shadow-lg space-y-3.5">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by movie title, genre, director, or cast..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-10 pr-9 py-2 rounded-xl bg-[#070B12] border border-[#2A3445] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+            />
+            {searchQuery && (
               <button
-                key={tag}
                 type="button"
-                onClick={() => setActiveFilter(tag)}
-                className={cn(
-                  "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer",
-                  isActive
-                    ? "bg-[#FBBF24] text-[#070B12] font-bold shadow-md shadow-[#FBBF24]/20"
-                    : "bg-[#161F2E] text-[#94A3B8] hover:text-white hover:bg-[#1f293d] border border-[#2A3445]"
-                )}
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
               >
-                {tag}
+                <X className="w-3.5 h-3.5" />
               </button>
-            );
-          })}
+            )}
+          </div>
+
+          {hasActiveFilters && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={resetFilters}
+              className="text-amber-400 border-amber-400/40 hover:bg-amber-400/10 shrink-0"
+            >
+              Reset Filters
+            </Button>
+          )}
+        </div>
+
+        {/* Filter Dropdowns Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs">
+          <div>
+            <label className="text-[10px] text-slate-400 uppercase font-semibold block mb-1">
+              Genre
+            </label>
+            <select
+              className="w-full bg-[#070B12] border border-[#2A3445] rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400"
+              value={selectedGenre}
+              onChange={(e) => {
+                setSelectedGenre(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              {GENRES.map((g) => (
+                <option key={g} value={g}>
+                  {g === "All" ? "All Genres" : g}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-[10px] text-slate-400 uppercase font-semibold block mb-1">
+              Language
+            </label>
+            <select
+              className="w-full bg-[#070B12] border border-[#2A3445] rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400"
+              value={selectedLanguage}
+              onChange={(e) => {
+                setSelectedLanguage(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              {LANGUAGES.map((l) => (
+                <option key={l} value={l}>
+                  {l === "All" ? "All Languages" : l}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-[10px] text-slate-400 uppercase font-semibold block mb-1">
+              Format
+            </label>
+            <select
+              className="w-full bg-[#070B12] border border-[#2A3445] rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400"
+              value={selectedFormat}
+              onChange={(e) => {
+                setSelectedFormat(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              {FORMATS.map((f) => (
+                <option key={f} value={f}>
+                  {f === "All" ? "All Formats" : f}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-[10px] text-slate-400 uppercase font-semibold block mb-1">
+              Certificate
+            </label>
+            <select
+              className="w-full bg-[#070B12] border border-[#2A3445] rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400"
+              value={selectedCertificate}
+              onChange={(e) => {
+                setSelectedCertificate(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              {CERTIFICATES.map((c) => (
+                <option key={c} value={c}>
+                  {c === "All" ? "All Certificates" : c}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Results Header */}
-      <div className="flex items-center justify-between text-xs text-[#94A3B8]">
+      {/* 4. Results Count Header */}
+      <div className="flex items-center justify-between text-xs text-slate-400">
         <span>
-          Showing <strong className="text-white">{filteredMovies.length}</strong> movies
+          Showing <strong className="text-white">{filteredMovies.length}</strong> titles playing in{" "}
+          <strong className="text-amber-400">{selectedCity.name}</strong>
         </span>
-        <span className="text-[11px] font-mono">Sorted by Premiere Date</span>
+        <span className="text-[11px] font-mono">
+          Page {currentPage} of {totalPages}
+        </span>
       </div>
 
-      {/* Movies Grid */}
-      {filteredMovies.length > 0 ? (
+      {/* 5. Movies Grid */}
+      {paginatedMovies.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredMovies.map((movie) => (
-            <MovieCard key={movie.id} movie={movie} />
+          {paginatedMovies.map((movie) => (
+            <Card
+              key={movie.id}
+              className="overflow-hidden bg-[#111827] border-[#2A3445] flex flex-col justify-between hover:border-amber-400/50 transition-all duration-300 group hover:-translate-y-1 shadow-xl"
+            >
+              {/* Poster Thumbnail */}
+              <Link href={`/movie/${movie.slug}`} className="relative aspect-[2/3] overflow-hidden bg-[#070B12] block">
+                <Image
+                  src={movie.poster}
+                  alt={movie.title}
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#111827] via-transparent to-transparent opacity-60" />
+
+                {/* Rating Badge */}
+                <div className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/80 backdrop-blur-md border border-amber-400/30 text-amber-400 text-xs font-bold">
+                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                  <span>{movie.rating.toFixed(1)}</span>
+                </div>
+
+                {/* Certificate */}
+                <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/80 border border-slate-700 text-slate-300 text-[10px] font-bold font-mono">
+                  {movie.certification}
+                </div>
+
+                {/* Starting Price Pill */}
+                <div className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-extrabold shadow">
+                  From ₹{movie.startingPrice || 200}
+                </div>
+              </Link>
+
+              {/* Movie Details */}
+              <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-1">
+                    {movie.formats.slice(0, 3).map((f) => (
+                      <span
+                        key={f}
+                        className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#161F2E] text-slate-300 border border-[#2A3445]"
+                      >
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+
+                  <Link href={`/movie/${movie.slug}`}>
+                    <h3 className="font-bold text-sm text-white group-hover:text-amber-400 transition-colors line-clamp-1">
+                      {movie.title}
+                    </h3>
+                  </Link>
+
+                  <p className="text-xs text-slate-400 flex items-center gap-2">
+                    <span className="truncate">{movie.genre.slice(0, 2).join(", ")}</span>
+                    <span>•</span>
+                    <span className="shrink-0 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-amber-400" />
+                      {movie.durationMinutes}m
+                    </span>
+                  </p>
+
+                  <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                    {movie.synopsis}
+                  </p>
+                </div>
+
+                {/* Book Shows CTA Button */}
+                <div className="pt-2 border-t border-[#2A3445]/60 flex items-center justify-between gap-2">
+                  <span className="text-[10px] text-slate-400">
+                    {movie.availableTheatresCount} Theatres in {selectedCity.name}
+                  </span>
+
+                  <Link href={`/movie/${movie.slug}`}>
+                    <Button variant="primary" size="xs" className="font-bold gap-1">
+                      <Ticket className="w-3 h-3" />
+                      <span>Book</span>
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </Card>
           ))}
         </div>
       ) : (
-        <div className="p-12 text-center rounded-2xl bg-[#111827] border border-[#2A3445] space-y-2">
-          <Film className="h-10 w-10 text-[#64748B] mx-auto" />
-          <h3 className="text-base font-bold text-white">No releases match your query</h3>
-          <p className="text-xs text-[#94A3B8]">Try adjusting your search terms or filter tags.</p>
+        /* Empty State */
+        <div className="p-12 text-center rounded-2xl bg-[#111827] border border-[#2A3445] space-y-3">
+          <Film className="h-10 w-10 text-slate-500 mx-auto" />
+          <h3 className="text-base font-bold text-white">No releases match your query in {selectedCity.name}</h3>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
+            Try adjusting your search terms, changing the active city, or clearing the facet filters.
+          </p>
+          <Button variant="outline" size="sm" onClick={resetFilters}>
+            Clear All Filters
+          </Button>
         </div>
       )}
 
-      {/* Pagination Placeholder */}
-      <div className="pt-8 border-t border-[#2A3445] flex items-center justify-between text-xs text-[#94A3B8]">
-        <Button variant="outline" size="sm" disabled className="gap-1.5">
-          <ChevronLeft className="h-3.5 w-3.5" /> Previous
-        </Button>
+      {/* 6. Pagination */}
+      {totalPages > 1 && (
+        <div className="pt-8 border-t border-[#2A3445] flex items-center justify-between text-xs text-slate-400">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            className="gap-1.5"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" /> Previous
+          </Button>
 
-        <div className="flex items-center gap-1">
-          <button className="h-8 w-8 rounded-lg bg-[#FBBF24] text-[#070B12] font-bold text-xs">
-            1
-          </button>
-          <button className="h-8 w-8 rounded-lg bg-[#111827] text-[#94A3B8] hover:text-white text-xs border border-[#2A3445]">
-            2
-          </button>
-          <button className="h-8 w-8 rounded-lg bg-[#111827] text-[#94A3B8] hover:text-white text-xs border border-[#2A3445]">
-            3
-          </button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }).map((_, idx) => {
+              const pNum = idx + 1;
+              const isCurrent = currentPage === pNum;
+              return (
+                <button
+                  key={pNum}
+                  type="button"
+                  onClick={() => setCurrentPage(pNum)}
+                  className={cn(
+                    "h-8 w-8 rounded-lg text-xs font-bold transition-colors cursor-pointer",
+                    isCurrent
+                      ? "bg-amber-400 text-slate-950"
+                      : "bg-[#111827] text-slate-400 hover:text-white border border-[#2A3445]"
+                  )}
+                >
+                  {pNum}
+                </button>
+              );
+            })}
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            className="gap-1.5"
+          >
+            Next <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
         </div>
-
-        <Button variant="outline" size="sm" className="gap-1.5">
-          Next <ChevronRight className="h-3.5 w-3.5" />
-        </Button>
-      </div>
+      )}
     </div>
   );
 }

@@ -416,6 +416,34 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Robust validation rules preventing negative rates, rates $> ₹15,000$, deleting the default profile, or deleting profiles attached to active shows.
 - 📚 **Dynamic Pricing Engine Architecture Guide:** Detailed technical documentation in [`docs/DYNAMIC_PRICING_ENGINE.md`](./docs/DYNAMIC_PRICING_ENGINE.md).
 
+### 2.11 Phase 2 - Part 10: Customer Discovery & Booking Flow (Completed)
+- 🧭 **Multi-Journey Convergence to Central Show ID:**
+  - Replaces rigid linear flows (`City → Movie → Theatre → Date → Show → Seats`) with 4 distinct discovery paths that all converge into the central **Show ID**:
+    1. **Journey 1 (City-First):** `City → Movie → Theatre → Date/Time → Show ID → Seats`
+    2. **Journey 2 (Movie-First):** `Movie → City → Theatre → Date/Time → Show ID → Seats`
+    3. **Journey 3 (Theatre-First):** `Theatre → Movie → Showtimes → Show ID → Seats`
+    4. **Journey 4 (Show-First / Deep-Link):** `Promotional Link / QR / Push → Show ID → Seats`
+- 🎯 **Single Show ID Resolution Law:**
+  - Loading `/booking/[showId]` resolves Movie, Theatre, Hall, Reusable Layout, Seat Inventory, Dynamic Pricing, Section Legends, and Capacity Metrics in **one unified snapshot** (`getUnifiedCustomerShowDetails`), eliminating multi-hop client roundtrips.
+- 🏙️ **City Discovery & Geolocation Subsystem:**
+  - Client-side persistent Zustand store (`store/city-store.ts`) managing active city, recent cities, search query, and modal visibility.
+  - Global `CitySelectorModal` with search, popular city chips, and auto-detect placeholder accessible from top navigation.
+- 🎬 **Multi-Facet Movie Discovery (`/movies` & `/movie/[slug]`):**
+  - 5 Discovery Tabs: *Now Showing*, *Coming Soon*, *Trending*, *Recommended*, *Recently Viewed*.
+  - Facet filters for Genre, Language, Format, and Certificate with city-level theatre availability.
+  - 7-Day Date Tab Selector with showtime pills grouped by Theatre.
+- 🏛️ **Multiplex Exhibition Hub (`/theatres` & `/theatre/[slug]`):**
+  - City-aware theatre discovery with geo-distance indicators, screen formats, amenities, and starting ticket prices.
+  - Theatre detail page with 7-day date switcher, auditorium fleet overview, and movies running at the complex with showtime pills linking to `/booking/[showId]`.
+- 🪑 **Interactive 2D Seating Layout (`/booking/[showId]`):**
+  - Multi-show switcher pill bar to toggle alternate daily showtimes.
+  - Curved screen position bar ("Auditorium Screen — All Eyes This Way"), acoustic sweet spot, and emergency exit markers.
+  - Section-colored seat buttons (Silver Blue `#38BDF8`, Gold Yellow `#FBBF24`, Platinum Red `#EF4444`, VIP Purple `#A855F7`, Recliner Green `#10B981`, Royal Suite Rose `#F43F5E`).
+  - Interactive selection state with Amber glow and checkmark, booked (sold) state, wheelchair, and recliner badges.
+  - Section legend bar displaying prices in ₹, total seats, and remaining seats counter.
+  - Real-time Price Summary Sidebar calculating Ticket Subtotal, Convenience Fee (₹35 × seats), GST (18%), and Grand Total in bold Emerald INR.
+- 📚 **Customer Discovery Architecture Guide:** Detailed technical documentation in [`docs/CUSTOMER_DISCOVERY_AND_BOOKING_FLOW.md`](./docs/CUSTOMER_DISCOVERY_AND_BOOKING_FLOW.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -436,6 +464,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🧭 [`docs/CUSTOMER_DISCOVERY_AND_BOOKING_FLOW.md`](./docs/CUSTOMER_DISCOVERY_AND_BOOKING_FLOW.md) — Customer Discovery & Booking Flow Architecture, Multi-Journey Convergence (City, Movie, Theatre, Direct), Unified Single Show ID Snapshot & Interactive 2D Seat Matrix (Phase 2 - Part 10).
 - 💰 [`docs/DYNAMIC_PRICING_ENGINE.md`](./docs/DYNAMIC_PRICING_ENGINE.md) — Dynamic Pricing Engine Architecture, Fundamental Separation Law, Reusable Profiles, Section Hierarchy & Seat Calculation Simulator (Phase 2 - Part 9).
 - 🎟️ [`docs/SHOW_MANAGEMENT_AND_SCHEDULING.md`](./docs/SHOW_MANAGEMENT_AND_SCHEDULING.md) — Show Management System, Screening Event Architecture, Conflict Detection Engine, Reusable Pricing Profiles & Dynamic Seat Inventory (Phase 2 - Part 8).
 - 🎬 [`docs/MOVIE_MANAGEMENT_SYSTEM.md`](./docs/MOVIE_MANAGEMENT_SYSTEM.md) — Movie Management System, Master Entity Architecture, Two-Layer Global Library & Theatre Exhibition Catalog (Phase 2 - Part 7).

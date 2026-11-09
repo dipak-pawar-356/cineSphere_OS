@@ -1,9 +1,14 @@
-import React from "react";
+"use client";
+
+import React, { useState, useMemo, use } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { DUMMY_MOVIES } from "@/lib/constants/movies";
-import { MULTI_TENANT_THEATRES } from "@/data/theatres/multi-tenant-theatres";
-import { DYNAMIC_SHOWS } from "@/data/shows/dynamic-shows";
+import { useCityStore } from "@/store/city-store";
+import {
+  getAllPublishedMovies,
+  getAllPublishedShows,
+  getAllPublishedTheatres,
+} from "@/lib/engine/customer-discovery-engine";
 import { formatDuration } from "@/lib/utils";
 import { FormatBadge } from "@/components/badges/format-badge";
 import { VideoPlaceholder, GalleryPlaceholder } from "@/components/media";
@@ -18,57 +23,111 @@ import {
   Sparkles,
   Ticket,
   MapPin,
-  Compass,
   ArrowRight,
   ShieldCheck,
   Layers,
+  ChevronRight,
+  Armchair,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/utils";
 
 export interface MovieDetailPageProps {
   params: Promise<{ slug: string }>;
 }
 
-export default async function MovieDetailPage({ params }: MovieDetailPageProps) {
-  const { slug } = await params;
+export default function MovieDetailPage({ params }: MovieDetailPageProps) {
+  const { slug } = use(params);
+  const { selectedCity, setCityModalOpen } = useCityStore();
 
-  const movie =
-    DUMMY_MOVIES.find((m) => m.slug === slug) ||
-    DUMMY_MOVIES[0];
+  const [selectedDate, setSelectedDate] = useState("Today");
+  const [selectedFormat, setSelectedFormat] = useState("All");
+  const [selectedLanguage, setSelectedLanguage] = useState("All");
 
-  const relatedMovies = DUMMY_MOVIES.filter((m) => m.id !== movie.id).slice(0, 4);
+  const allMovies = useMemo(() => getAllPublishedMovies(), []);
+  const movie = useMemo(() => {
+    return allMovies.find((m) => m.slug === slug) || allMovies[0];
+  }, [allMovies, slug]);
 
-  // 1. Resolve Shows playing this movie (or fallback to active dynamic shows)
-  const movieShows = DYNAMIC_SHOWS.filter(
-    (s) =>
-      s.movieId === movie.id ||
-      s.movieTitle.toLowerCase().includes(movie.title.toLowerCase()) ||
-      movie.title.toLowerCase().includes(s.movieTitle.toLowerCase())
-  );
+  const allTheatres = useMemo(() => getAllPublishedTheatres(), []);
+  const allShows = useMemo(() => getAllPublishedShows(), []);
 
-  const activeShows = movieShows.length > 0 ? movieShows : DYNAMIC_SHOWS;
+  // Filter shows running this movie in the selected city
+  const cityTheatres = useMemo(() => {
+    return allTheatres.filter(
+      (t) => t.city.toLowerCase() === selectedCity.name.toLowerCase()
+    );
+  }, [allTheatres, selectedCity]);
 
-  // 2. Group shows by Theatre
-  const theatreMap = new Map<string, { theatre: (typeof MULTI_TENANT_THEATRES)[0]; shows: typeof activeShows }>();
+  // Generate 7-day date strip
+  const dateOptions = useMemo(() => {
+    const days = ["Today", "Tomorrow"];
+    const dates = ["Nov 14", "Nov 15", "Nov 16", "Nov 17", "Nov 18", "Nov 19", "Nov 20"];
+    return [
+      { id: "Today", label: "Today", dateText: "Nov 14", dayOfWeek: "Thu" },
+      { id: "Tomorrow", label: "Tomorrow", dateText: "Nov 15", dayOfWeek: "Fri" },
+      { id: "Nov 16", label: "Sat", dateText: "Nov 16", dayOfWeek: "Sat" },
+      { id: "Nov 17", label: "Sun", dateText: "Nov 17", dayOfWeek: "Sun" },
+      { id: "Nov 18", label: "Mon", dateText: "Nov 18", dayOfWeek: "Mon" },
+      { id: "Nov 19", label: "Tue", dateText: "Nov 19", dayOfWeek: "Tue" },
+      { id: "Nov 20", label: "Wed", dateText: "Nov 20", dayOfWeek: "Wed" },
+    ];
+  }, []);
 
-  activeShows.forEach((show) => {
-    const theatre =
-      MULTI_TENANT_THEATRES.find((t) => t.id === show.theatreId) ||
-      MULTI_TENANT_THEATRES[0];
+  // Filter and group shows by Theatre
+  const theatresWithShows = useMemo(() => {
+    const list: {
+      theatre: (typeof allTheatres)[0];
+      shows: typeof allShows;
+    }[] = [];
 
-    if (!theatreMap.has(theatre.id)) {
-      theatreMap.set(theatre.id, { theatre, shows: [] });
+    // Fallback to active theatres if none in current city
+    const targetTheatres = cityTheatres.length > 0 ? cityTheatres : allTheatres.slice(0, 3);
+
+    for (const th of targetTheatres) {
+      let matchingShows = allShows.filter((s) => {
+        const matchesMovie =
+          s.movieId === movie.id ||
+          s.movieTitle.toLowerCase().includes(movie.title.toLowerCase()) ||
+          movie.title.toLowerCase().includes(s.movieTitle.toLowerCase());
+
+        const matchesTheatre = s.theatreId === th.id || s.theatreName.includes(th.name);
+        return matchesMovie && matchesTheatre;
+      });
+
+      // If no exact match, fallback to any available shows for that complex
+      if (matchingShows.length === 0) {
+        matchingShows = allShows.filter((s) => s.theatreId === th.id);
+      }
+
+      if (selectedFormat !== "All") {
+        matchingShows = matchingShows.filter((s) =>
+          s.format.toLowerCase().includes(selectedFormat.toLowerCase())
+        );
+      }
+
+      if (selectedLanguage !== "All") {
+        matchingShows = matchingShows.filter(
+          (s) => s.language.toLowerCase() === selectedLanguage.toLowerCase()
+        );
+      }
+
+      if (matchingShows.length > 0) {
+        list.push({
+          theatre: th,
+          shows: matchingShows,
+        });
+      }
     }
-    theatreMap.get(theatre.id)!.shows.push(show);
-  });
 
-  const theatresPlayingMovie = Array.from(theatreMap.values());
+    return list;
+  }, [cityTheatres, allTheatres, allShows, movie, selectedFormat, selectedLanguage]);
 
   return (
-    <div className="space-y-12 pb-16">
-      {/* 1. LARGE HERO BANNER */}
-      <div className="relative w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#070B12] overflow-hidden">
+    <div className="space-y-12 pb-20">
+      {/* 1. Large Hero Banner */}
+      <div className="relative w-full h-[400px] sm:h-[480px] lg:h-[520px] bg-[#070B12] overflow-hidden">
         <Image
           src={movie.banner}
           alt={movie.title}
@@ -81,7 +140,20 @@ export default async function MovieDetailPage({ params }: MovieDetailPageProps) 
         <div className="absolute inset-0 bg-gradient-to-r from-[#070B12] via-transparent to-[#070B12]" />
 
         {/* Hero Overlay Content */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-end pb-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-end pb-8 relative z-10 space-y-4">
+          {/* Breadcrumb Navigation */}
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-slate-400">
+            <Link href="/" className="hover:text-white transition-colors">
+              Home
+            </Link>
+            <ChevronRight className="w-3 h-3 text-slate-600" />
+            <Link href="/movies" className="hover:text-white transition-colors">
+              Movies
+            </Link>
+            <ChevronRight className="w-3 h-3 text-slate-600" />
+            <span className="text-amber-400 font-semibold truncate max-w-xs">{movie.title}</span>
+          </nav>
+
           <div className="flex flex-col md:flex-row items-start md:items-end gap-6 sm:gap-8 w-full">
             {/* Poster Card */}
             <div className="relative w-36 sm:w-48 lg:w-56 aspect-[2/3] rounded-2xl overflow-hidden border-2 border-[#2A3445] shadow-[0_20px_50px_rgba(0,0,0,0.8)] shrink-0 bg-[#111827]">
@@ -107,8 +179,8 @@ export default async function MovieDetailPage({ params }: MovieDetailPageProps) 
                 <span className="text-xs px-2 py-0.5 rounded bg-[#111827] border border-[#2A3445] text-white font-mono font-bold">
                   {movie.certification}
                 </span>
-                <span className="text-xs text-[#94A3B8]">
-                  Released: {movie.releaseDate}
+                <span className="text-xs text-slate-400">
+                  Release: {movie.releaseDate}
                 </span>
               </div>
 
@@ -116,15 +188,17 @@ export default async function MovieDetailPage({ params }: MovieDetailPageProps) 
                 {movie.title}
               </h1>
 
-              <p className="text-xs sm:text-sm text-[#FBBF24] font-medium italic">
-                &ldquo;{movie.tagline}&rdquo;
-              </p>
+              {movie.shortDescription && (
+                <p className="text-xs sm:text-sm text-amber-400 font-medium italic">
+                  &ldquo;{movie.shortDescription}&rdquo;
+                </p>
+              )}
 
-              <div className="flex flex-wrap items-center gap-4 text-xs text-[#CBD5E1] pt-1">
+              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300 pt-1">
                 <span>{movie.genre.join(", ")}</span>
                 <span>•</span>
                 <span className="flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5 text-[#FBBF24]" />
+                  <Clock className="h-3.5 w-3.5 text-amber-400" />
                   {formatDuration(movie.durationMinutes)}
                 </span>
                 <span>•</span>
@@ -134,8 +208,8 @@ export default async function MovieDetailPage({ params }: MovieDetailPageProps) 
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-3 flex flex-wrap items-center gap-3">
-                <Link href={`/booking/${activeShows[0]?.id || "show-pun-001"}`}>
+              <div className="pt-2 flex flex-wrap items-center gap-3">
+                <a href="#showtimes-section">
                   <Button
                     size="md"
                     variant="primary"
@@ -143,9 +217,9 @@ export default async function MovieDetailPage({ params }: MovieDetailPageProps) 
                   >
                     <Ticket className="h-4 w-4" /> Book Tickets
                   </Button>
-                </Link>
+                </a>
                 <Button variant="outline" size="md" className="gap-2">
-                  <Play className="h-4 w-4 text-[#FBBF24]" />
+                  <Play className="h-4 w-4 text-amber-400" />
                   <span>Watch Trailer</span>
                 </Button>
               </div>
@@ -154,135 +228,250 @@ export default async function MovieDetailPage({ params }: MovieDetailPageProps) 
         </div>
       </div>
 
-      {/* 2. MAIN DETAILS & THEATRE SHOWTIME SCHEDULE */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Synopsis, Cast, Trailer, Gallery */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Synopsis */}
-            <div className="p-6 rounded-2xl bg-[#161F2E] border border-[#2A3445] space-y-3">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Film className="h-4 w-4 text-[#FBBF24]" />
-                <span>Synopsis</span>
-              </h3>
-              <p className="text-sm text-[#CBD5E1] leading-relaxed">
-                {movie.description}
-              </p>
+      {/* 2. SHOWTIMES & THEATRE SELECTION PANEL */}
+      <div id="showtimes-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 scroll-mt-24">
+        {/* Date Selector Strip & Filter Toolbar */}
+        <div className="p-4 rounded-2xl bg-[#111827] border border-[#2A3445] shadow-xl space-y-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#2A3445]/60 pb-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-amber-400" />
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+                Select Screening Date & Circuit
+              </h2>
             </div>
 
-            {/* Official Trailer Video Frame */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Play className="h-4 w-4 text-[#FBBF24]" />
-                  <span>Official Trailer & Featurette</span>
-                </h3>
-                <span className="text-xs text-[#94A3B8]">4K UHD • 60 FPS</span>
-              </div>
-              <VideoPlaceholder title={`${movie.title} — Official Theatrical Trailer`} duration="02:35" />
-            </div>
-
-            {/* Cast & Crew */}
-            <div className="p-6 rounded-2xl bg-[#161F2E] border border-[#2A3445] space-y-4">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Users className="h-4 w-4 text-[#FBBF24]" />
-                <span>Starring Cast</span>
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {movie.cast.map((actor, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-xl bg-[#111827] border border-[#2A3445] flex items-center gap-3"
-                  >
-                    <div className="h-10 w-10 rounded-full bg-[#161F2E] border border-[#2A3445] flex items-center justify-center font-bold text-xs text-[#FBBF24] shrink-0">
-                      {actor.charAt(0)}
-                    </div>
-                    <div className="truncate">
-                      <div className="font-semibold text-white text-xs truncate">{actor}</div>
-                      <div className="text-[10px] text-[#94A3B8]">Lead Role</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Gallery */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-[#FBBF24]" />
-                <span>Theatrical Stills</span>
-              </h3>
-              <GalleryPlaceholder count={4} />
+            {/* City Switcher Pill */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-slate-400">Showing for:</span>
+              <button
+                type="button"
+                onClick={() => setCityModalOpen(true)}
+                className="font-bold text-amber-400 hover:underline flex items-center gap-1"
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>{selectedCity.name}</span>
+                <span className="text-[10px] text-slate-400">(Change)</span>
+              </button>
             </div>
           </div>
 
-          {/* Right Column: Dynamic Theatres & Showtimes */}
-          <div className="space-y-6">
-            <div className="p-6 rounded-3xl bg-[#161F2E] border border-[#2A3445] space-y-6 shadow-2xl">
-              <div className="flex items-center justify-between pb-3 border-b border-[#2A3445]">
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Ticket className="h-4 w-4 text-[#FBBF24]" />
-                  <span>Theatres Playing This Movie</span>
-                </h3>
-                <span className="text-xs text-[#94A3B8] font-mono">Real-Time</span>
+          {/* 7-Day Date Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {dateOptions.map((opt) => {
+              const isSelected = selectedDate === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setSelectedDate(opt.id)}
+                  className={cn(
+                    "p-2.5 rounded-xl border text-center transition-all cursor-pointer min-w-[76px] shrink-0",
+                    isSelected
+                      ? "bg-amber-400 text-slate-950 font-bold border-amber-400 shadow-md shadow-amber-400/20"
+                      : "bg-[#0B0F17] text-slate-300 border-[#2A3445] hover:border-slate-500 hover:bg-[#161F2E]"
+                  )}
+                >
+                  <span className="text-[10px] uppercase font-semibold block">{opt.dayOfWeek}</span>
+                  <span className="text-sm font-extrabold block mt-0.5">{opt.dateText.split(" ")[1]}</span>
+                  <span className="text-[9px] text-slate-400 block">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Format & Language Filters */}
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#2A3445]/60 text-xs">
+            <span className="text-slate-400 font-medium">Filter Formats:</span>
+            {["All", "IMAX 3D", "Dolby Cinema", "Laser 4K", "2D"].map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setSelectedFormat(f)}
+                className={cn(
+                  "px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
+                  selectedFormat === f
+                    ? "bg-amber-400/20 text-amber-300 border-amber-400"
+                    : "bg-[#0B0F17] text-slate-400 border-[#2A3445] hover:text-white"
+                )}
+              >
+                {f}
+              </button>
+            ))}
+
+            <span className="text-slate-400 font-medium ml-2">Language:</span>
+            {["All", "Telugu", "Hindi", "English", "Tamil"].map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => setSelectedLanguage(l)}
+                className={cn(
+                  "px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
+                  selectedLanguage === l
+                    ? "bg-amber-400/20 text-amber-300 border-amber-400"
+                    : "bg-[#0B0F17] text-slate-400 border-[#2A3445] hover:text-white"
+                )}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Theatres Screening This Movie */}
+        <div className="space-y-4">
+          {theatresWithShows.map(({ theatre, shows }) => (
+            <div
+              key={theatre.id}
+              className="p-5 rounded-2xl bg-[#111827] border border-[#2A3445] hover:border-slate-600 transition-all space-y-4 shadow-xl"
+            >
+              {/* Theatre Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#2A3445]/60 pb-3">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-extrabold text-white text-base hover:text-amber-400 transition-colors">
+                      <Link href={`/theatre/${theatre.slug}`}>{theatre.name}</Link>
+                    </h3>
+                    <Badge variant="outline" size="sm" className="text-[10px]">
+                      {theatre.chain}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-1">
+                    <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>{theatre.address} • {theatre.distancePlaceholder}</span>
+                  </p>
+                </div>
+
+                {/* Amenities / Screen Formats */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {theatre.amenities.slice(0, 2).map((amenity) => (
+                    <span
+                      key={amenity}
+                      className="text-[10px] px-2 py-0.5 rounded-full bg-[#161F2E] text-slate-300 border border-[#2A3445]"
+                    >
+                      {amenity}
+                    </span>
+                  ))}
+                </div>
               </div>
 
-              {theatresPlayingMovie.map(({ theatre, shows }) => (
-                <div
-                  key={theatre.id}
-                  className="p-4 rounded-2xl bg-[#111827] border border-[#2A3445] space-y-3"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-bold text-white text-xs hover:text-[#FBBF24] transition-colors">
-                        <Link href={`/theatre/${theatre.slug}`}>
-                          {theatre.name}
-                        </Link>
-                      </h4>
-                      <p className="text-[10px] text-[#94A3B8] flex items-center gap-1 mt-0.5">
-                        <MapPin className="h-3 w-3 text-[#FBBF24] shrink-0" />
-                        <span>{theatre.city} • {theatre.distanceKm || 2.4} km</span>
-                      </p>
-                    </div>
+              {/* Showtimes Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 pt-1">
+                {shows.map((show) => {
+                  const isSoldOut = show.availableSeats <= 0;
+                  const isFastFilling = show.availableSeats < 25;
 
-                    <div className="text-right">
-                      <span className="text-[9px] text-[#94A3B8] block">Starts from</span>
-                      <span className="font-mono text-xs font-bold text-[#FBBF24]">
-                        ₹{Math.min(...shows.map((s) => s.ticketPrice || 200))}
-                      </span>
-                    </div>
-                  </div>
+                  return (
+                    <Link
+                      key={show.id}
+                      href={`/booking/${show.id}`}
+                      className={cn(
+                        "group p-3 rounded-xl border text-center space-y-1 transition-all duration-200 block",
+                        isSoldOut
+                          ? "bg-[#070B12]/60 border-[#2A3445] opacity-50 cursor-not-allowed pointer-events-none"
+                          : "bg-[#0B0F17] border-[#2A3445] hover:border-amber-400 hover:bg-[#161F2E] hover:shadow-lg hover:shadow-amber-400/5 cursor-pointer"
+                      )}
+                    >
+                      <div className="font-mono font-extrabold text-sm text-white group-hover:text-amber-400 transition-colors">
+                        {show.startTime}
+                      </div>
 
-                  {/* Shows for this theatre */}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    {shows.map((show) => (
-                      <Link key={show.id} href={`/booking/${show.id}`} className="group">
-                        <div className="p-2.5 rounded-xl bg-[#070B12] border border-[#2A3445] group-hover:border-[#FBBF24] transition-all text-center space-y-1">
-                          <div className="font-mono font-bold text-xs text-white group-hover:text-[#FBBF24]">
-                            {show.startTime}
-                          </div>
-                          <div className="text-[9px] text-[#94A3B8] truncate">
-                            {show.format} • {show.language}
-                          </div>
-                          <div className="text-[10px] font-mono text-emerald-400 font-semibold">
-                            ₹{show.ticketPrice || 200}
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                      <div className="text-[10px] text-slate-400 font-medium truncate">
+                        {show.format} • {show.language}
+                      </div>
+
+                      <div className="flex items-center justify-center gap-1 pt-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span className="text-[10px] font-mono font-bold text-amber-300">
+                          ₹{show.ticketPrice}
+                        </span>
+                      </div>
+
+                      <div className="text-[9px] text-slate-400 truncate">
+                        {show.hallName}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {theatresWithShows.length === 0 && (
+            <div className="p-12 text-center rounded-2xl bg-[#111827] border border-[#2A3445] space-y-3">
+              <Armchair className="w-10 h-10 text-slate-500 mx-auto" />
+              <h3 className="text-base font-bold text-white">No screening schedules found</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                No shows match the selected date or format filters in {selectedCity.name}. Try changing your date or switching cities.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => setCityModalOpen(true)}>
+                Switch Circuit City
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 3. SYNOPSIS, TRAILERS, AND CAST DETAILS */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            {/* Synopsis */}
+            <div className="p-6 rounded-2xl bg-[#111827] border border-[#2A3445] space-y-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Film className="h-4 w-4 text-amber-400" />
+                <span>Synopsis</span>
+              </h3>
+              <p className="text-sm text-slate-300 leading-relaxed">{movie.synopsis}</p>
             </div>
 
-            {/* Architecture Callout */}
-            <div className="p-4 rounded-2xl bg-[#111827]/80 border border-[#2A3445] space-y-2 text-xs">
-              <div className="flex items-center gap-1.5 text-[#FBBF24] font-bold">
-                <Layers className="h-4 w-4" />
-                <span>Show-Centric Concurrency</span>
+            {/* Trailer */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Play className="h-4 w-4 text-amber-400" />
+                  <span>Official Theatrical Trailer</span>
+                </h3>
+                <span className="text-xs text-slate-400">4K Ultra HD • Spatial Audio</span>
               </div>
-              <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-                Movies do not own seats or pricing. Each show binds this film to a physical hall layout and generates its own seat availability.
+              <VideoPlaceholder title={`${movie.title} — Official Trailer`} duration="02:35" />
+            </div>
+
+            {/* Cast & Crew */}
+            {movie.cast && movie.cast.length > 0 && (
+              <div className="p-6 rounded-2xl bg-[#111827] border border-[#2A3445] space-y-4">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Users className="h-4 w-4 text-amber-400" />
+                  <span>Lead Cast</span>
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {movie.cast.map((actor, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-[#0B0F17] border border-[#2A3445] flex items-center gap-3"
+                    >
+                      <div className="h-9 w-9 rounded-full bg-[#161F2E] border border-[#2A3445] flex items-center justify-center font-bold text-xs text-amber-400 shrink-0">
+                        {actor.charAt(0)}
+                      </div>
+                      <div className="truncate">
+                        <div className="font-semibold text-white text-xs truncate">{actor}</div>
+                        <div className="text-[10px] text-slate-400">Cast</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Architecture Callout */}
+          <div className="space-y-4">
+            <div className="p-5 rounded-2xl bg-[#111827] border border-[#2A3445] space-y-3">
+              <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                <Layers className="w-4 h-4" />
+                <span>Show-Centric Architecture</span>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Movies are canonical master records. When you click any showtime button above, the booking flow resolves the central Show ID connecting this movie to its specific auditorium and dynamic pricing profile.
               </p>
             </div>
           </div>

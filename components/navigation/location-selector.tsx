@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { MapPin, ChevronDown, Check, Globe, Building, Navigation, Search } from "lucide-react";
+import { MapPin, ChevronDown, Check, Globe, Building, Navigation, Search, Sparkles } from "lucide-react";
 import { useClickOutside } from "@/hooks/use-click-outside";
+import { useCityStore } from "@/store/city-store";
 import { cn } from "@/utils";
 
 export interface LocationHierarchy {
@@ -13,21 +14,22 @@ export interface LocationHierarchy {
 }
 
 const PRESET_LOCATIONS: LocationHierarchy[] = [
+  { country: "India", state: "Maharashtra", city: "Pune", area: "Phoenix Marketcity IMAX Circuit" },
+  { country: "India", state: "Maharashtra", city: "Mumbai", area: "BKC PVR Maison & Royale Palladium" },
+  { country: "India", state: "Karnataka", city: "Bengaluru", area: "Forum Mall PVR Luxe" },
+  { country: "India", state: "Delhi NCR", city: "Delhi NCR", area: "Select CITYWALK IMAX" },
+  { country: "India", state: "Telangana", city: "Hyderabad", area: "Inorbit Mall Laser 4K" },
+  { country: "India", state: "Gujarat", city: "Ahmedabad", area: "Palladium Heritage Circuit" },
   { country: "United States", state: "New York", city: "New York", area: "Manhattan AMC Complex" },
   { country: "United States", state: "California", city: "Los Angeles", area: "Century City IMAX" },
-  { country: "United States", state: "California", city: "San Francisco", area: "Metreon Dolby Cinema" },
-  { country: "United States", state: "Illinois", city: "Chicago", area: "River East 21" },
-  { country: "United States", state: "Texas", city: "Dallas", area: "NorthPark Center" },
-  { country: "India", state: "Maharashtra", city: "Mumbai", area: "BKC PVR Maison IMAX" },
-  { country: "India", state: "Karnataka", city: "Bengaluru", area: "Forum Mall PVR Luxe" },
-  { country: "United Kingdom", state: "Greater London", city: "London", area: "BFI IMAX Southbank" },
 ];
 
 export function LocationSelector({ className }: { className?: string }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selected, setSelected] = useState<LocationHierarchy>(PRESET_LOCATIONS[0]);
   const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const { selectedCity, setSelectedCityByName, setCityModalOpen } = useCityStore();
 
   useClickOutside(dropdownRef, () => setIsOpen(false));
 
@@ -49,9 +51,9 @@ export function LocationSelector({ className }: { className?: string }) {
         <MapPin className="h-3.5 w-3.5 text-[#FBBF24] shrink-0" />
         <div className="text-left hidden sm:block">
           <div className="text-[10px] text-[#94A3B8] leading-none">Circuit Hub</div>
-          <div className="font-semibold text-white leading-tight">{selected.city}</div>
+          <div className="font-semibold text-white leading-tight">{selectedCity?.name || "Pune"}</div>
         </div>
-        <span className="sm:hidden font-semibold">{selected.city}</span>
+        <span className="sm:hidden font-semibold">{selectedCity?.name || "Pune"}</span>
         <ChevronDown
           className={cn(
             "h-3.5 w-3.5 text-[#94A3B8] transition-transform duration-200",
@@ -68,7 +70,17 @@ export function LocationSelector({ className }: { className?: string }) {
                 <Globe className="h-3.5 w-3.5 text-[#FBBF24]" />
                 Select Cinema Region
               </span>
-              <span className="text-[10px] text-[#94A3B8] font-mono">Hierarchy: 4-Tier</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  setCityModalOpen(true);
+                }}
+                className="text-[10px] text-amber-400 hover:underline flex items-center gap-1"
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>View All Cities</span>
+              </button>
             </div>
 
             {/* Quick Search */}
@@ -86,14 +98,14 @@ export function LocationSelector({ className }: { className?: string }) {
 
           <div className="max-h-64 overflow-y-auto space-y-1 py-2">
             {filteredLocations.map((loc, i) => {
-              const isSelected = loc.city === selected.city && loc.area === selected.area;
+              const isSelected = selectedCity?.name.toLowerCase() === loc.city.toLowerCase();
 
               return (
                 <button
                   key={i}
                   type="button"
                   onClick={() => {
-                    setSelected(loc);
+                    setSelectedCityByName(loc.city);
                     setIsOpen(false);
                   }}
                   className={cn(
@@ -120,8 +132,17 @@ export function LocationSelector({ className }: { className?: string }) {
 
           {/* Hierarchy Legend */}
           <div className="pt-2 border-t border-[#2A3445] flex items-center justify-between text-[10px] text-[#64748B]">
-            <span>Country • State • City • Area</span>
-            <span className="text-[#FBBF24]">Multi-Circuit</span>
+            <span>Active City: <strong className="text-white">{selectedCity?.name}</strong></span>
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                setCityModalOpen(true);
+              }}
+              className="text-[#FBBF24] hover:underline"
+            >
+              All 12+ Cities →
+            </button>
           </div>
         </div>
       )}

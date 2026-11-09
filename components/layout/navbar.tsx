@@ -8,6 +8,7 @@ import { PUBLIC_NAV_ITEMS } from "@/config/navigation";
 import { ROUTES } from "@/config/routes";
 import { LocationSelector } from "@/components/navigation/location-selector";
 import { SearchDialog } from "@/components/navigation/search-dialog";
+import { CitySelectorModal } from "@/components/navigation/city-selector-modal";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ProfileMenu, NotificationMenu } from "@/components/navigation/dropdown-menu";
 import { cn } from "@/utils";
@@ -144,6 +145,9 @@ export function Navbar() {
 
       {/* Global Search Dialog */}
       <SearchDialog isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+
+      {/* Global City Selector Modal */}
+      <CitySelectorModal />
 
       {/* Mobile Navigation Drawer */}
       <MobileNav
