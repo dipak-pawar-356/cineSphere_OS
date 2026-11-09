@@ -25,6 +25,8 @@ import {
   ExternalLink,
   ChevronRight,
   Eye,
+  Download,
+  Share2,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -387,6 +389,31 @@ export function CustomerTicketsClient({
               </div>
             </div>
 
+            {/* Future Placeholders */}
+            <div className="grid grid-cols-3 gap-1.5 pt-1 text-[10px] text-[#94A3B8]">
+              <button
+                type="button"
+                className="p-1.5 rounded-lg bg-[#111C2E] border border-[#1E2E48] hover:text-white flex flex-col items-center gap-1 transition-colors"
+                title="Download PDF Pass (Phase 2 Placeholder)"
+              >
+                <Download className="w-3.5 h-3.5" /> PDF
+              </button>
+              <button
+                type="button"
+                className="p-1.5 rounded-lg bg-[#111C2E] border border-[#1E2E48] hover:text-white flex flex-col items-center gap-1 transition-colors"
+                title="Share Admission Pass (Phase 2 Placeholder)"
+              >
+                <Share2 className="w-3.5 h-3.5" /> Share
+              </button>
+              <button
+                type="button"
+                className="p-1.5 rounded-lg bg-[#111C2E] border border-[#1E2E48] hover:text-[#FBBF24] flex flex-col items-center gap-1 transition-colors"
+                title="Add to Apple / Google Wallet (Phase 2 Placeholder)"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#FBBF24]" /> Wallet
+              </button>
+            </div>
+
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -408,3 +435,4 @@ export function CustomerTicketsClient({
     </div>
   );
 }
+

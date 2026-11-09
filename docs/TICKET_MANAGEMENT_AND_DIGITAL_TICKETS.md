@@ -117,3 +117,4 @@ The verification script (`scripts/verify-ticket-system.ts`) executed 12 test sui
 10. **Lifecycle Transitions**: `ACTIVE` -> `CANCELLED`; double-cancellation and used-pass cancellation blocked.
 11. **Search & Filter Engine**: Movie title, ticket number, time filters (`UPCOMING`, `PAST`, `TODAY`).
 12. **Immutable Audit Trail**: Append-only event logging for `TICKET_GENERATED`, `TICKET_VIEWED`, `TICKET_CANCELLED`.
+

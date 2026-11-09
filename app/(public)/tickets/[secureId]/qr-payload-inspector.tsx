@@ -101,3 +101,4 @@ export function QrPayloadInspector({ ticket }: QrPayloadInspectorProps) {
     </>
   );
 }
+

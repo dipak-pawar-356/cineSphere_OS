@@ -159,3 +159,4 @@ export interface TicketAuditLog {
   timestamp: string;
   details: Record<string, unknown>;
 }
+

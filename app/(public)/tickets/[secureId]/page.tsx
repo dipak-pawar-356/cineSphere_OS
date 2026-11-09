@@ -123,7 +123,7 @@ export default async function PublicTicketDetailPage({
     <div className="min-h-screen bg-[#070B12] text-white pb-24 pt-6">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
         {/* Navigation & Header Controls */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <Link
             href="/profile/tickets"
             className="inline-flex items-center gap-2 text-xs font-medium text-[#94A3B8] hover:text-[#FBBF24] transition-colors"
@@ -131,11 +131,42 @@ export default async function PublicTicketDetailPage({
             <ArrowLeft className="w-4 h-4" /> Back to My Tickets
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
               <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
               Verified Admission Pass
             </span>
+
+            {/* Future Placeholders: Download, Share, Wallet */}
+            <div className="flex items-center gap-1.5 pl-2 border-l border-[#1E2E48]">
+              <Button
+                variant="outline"
+                size="xs"
+                className="gap-1.5 text-xs border-[#1E2E48] text-[#94A3B8] hover:text-white"
+                title="Download PDF Pass (Phase 2 Placeholder)"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Download</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="xs"
+                className="gap-1.5 text-xs border-[#1E2E48] text-[#94A3B8] hover:text-white"
+                title="Share Admission Pass (Phase 2 Placeholder)"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Share</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="xs"
+                className="gap-1.5 text-xs border-[#1E2E48] text-[#94A3B8] hover:text-white"
+                title="Add to Apple / Google Wallet (Phase 2 Placeholder)"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#FBBF24]" />
+                <span className="hidden sm:inline">Add to Wallet</span>
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -402,3 +433,4 @@ export default async function PublicTicketDetailPage({
     </div>
   );
 }
+
