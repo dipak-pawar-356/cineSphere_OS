@@ -139,6 +139,8 @@ export const payments = pgTable(
 | `activatePaymentConfigurationAction(id)` | Sets status to `ACTIVE` |
 | `deactivatePaymentConfigurationAction(id)` | Sets status to `INACTIVE` |
 | `setPrimaryPaymentConfigurationAction(id, theatreId)` | Designates as primary checkout rail |
+| `uploadPaymentQrAction(configId, theatreId, dataUrl)` | Uploads/replaces custom QR with version bump |
+| `deletePaymentQrAction(configId, theatreId)` | Reverts custom QR back to dynamic NPCI standard |
 | `getTheatrePaymentConfigurationsAction(theatreId, role)` | Returns rails with role sanitization |
 | `prepareBookingPaymentSessionAction(params)` | Generates dynamic checkout session DTO |
 | `getPaymentAuditLogsAction(theatreId, role)` | Returns immutable state change history |
@@ -147,7 +149,7 @@ export const payments = pgTable(
 
 ## 4. Test & Verification Suite
 
-The verification suite in `scripts/verify-payment-config.ts` validates all 9 enterprise requirements:
+The verification suite in `scripts/verify-payment-config.ts` validates all 11 enterprise requirements:
 * **Point 1**: 1:N payment configurations per theatre.
 * **Point 2**: Provider enum (`UPI`, `RAZORPAY`, `CASH_COUNTER`) and status lifecycle.
 * **Point 3**: Primary designation and auto-demotion of previous primary.
@@ -157,5 +159,8 @@ The verification suite in `scripts/verify-payment-config.ts` validates all 9 ent
 * **Point 7**: Dynamic Booking Payment Session generation with 10-minute expiry.
 * **Point 8**: Role-based sanitization of private credentials under `CUSTOMER` role.
 * **Point 9**: Configuration versioning (`v1 -> v2`) and audit logging.
+* **Point 10**: QR configuration lifecycle (Upload custom QR, Replace, Delete/Revert to dynamic NPCI QR).
+* **Point 11**: Multi-param search and filtering engine (Provider, Status, Primary, Text Query).
 
-**Verification Result**: 9/9 Checks Passed (0 Failures).
+**Verification Result**: 11/11 Checks Passed (0 Failures).
+

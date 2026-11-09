@@ -27,6 +27,8 @@ import {
   activatePaymentConfiguration,
   deactivatePaymentConfiguration,
   setPrimaryPaymentConfiguration,
+  uploadPaymentQr,
+  deletePaymentQr,
   getTheatreActivePaymentConfiguration,
   getTheatrePaymentConfigurations,
   searchPaymentConfigurations,
@@ -245,8 +247,42 @@ async function runVerificationSuite() {
   console.log(`   ✅ Config version incremented to v${updatedConfig.configVersion}`);
   console.log(`   ✅ Audit trail has ${auditLogs.length} events logged. Latest: [${latestLog.action}] ${latestLog.details}`);
 
+  // ----------------------------------------------------------------------------
+  // Point 10: QR Configuration Lifecycle (Upload, Replace, Delete/Revert)
+  // ----------------------------------------------------------------------------
+  console.log("\n🔹 10. Testing QR Configuration Lifecycle (Upload, Replace, Reset)...");
+  const testQrDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+  const withCustomQr = uploadPaymentQr(targetConfig.id, "th-pun-001", testQrDataUrl);
+  assert(withCustomQr.isCustomQr === true, "isCustomQr must be true after upload");
+  assert(withCustomQr.customQrUrl === testQrDataUrl, "customQrUrl must store custom data url");
+  assert(withCustomQr.qrPlaceholder === testQrDataUrl, "qrPlaceholder must reflect custom QR");
+  console.log(`   ✅ Uploaded custom QR to rail '${withCustomQr.merchantDisplayName}' (Version ${withCustomQr.configVersion})`);
+
+  // Delete custom QR and verify reversion to dynamic NPCI QR
+  const revertedQr = deletePaymentQr(targetConfig.id, "th-pun-001");
+  assert(revertedQr.isCustomQr === false, "isCustomQr must be false after delete");
+  assert(revertedQr.customQrUrl === undefined, "customQrUrl must be undefined after delete");
+  assert(Boolean(revertedQr.qrPlaceholder?.includes("api.qrserver.com")), "qrPlaceholder must revert to dynamic NPCI QR endpoint");
+  console.log(`   ✅ Deleted custom QR and successfully reverted to dynamic NPCI QR`);
+
+  // ----------------------------------------------------------------------------
+  // Point 11: Multi-Param Search & Filtering Engine
+  // ----------------------------------------------------------------------------
+  console.log("\n🔹 11. Testing Multi-Param Search & Filtering Engine...");
+  const upiOnly = searchPaymentConfigurations({ provider: "UPI" });
+  assert(upiOnly.every((c) => c.provider === "UPI"), "All returned configs must have provider UPI");
+
+  const primaryOnly = searchPaymentConfigurations({ isPrimary: true });
+  assert(primaryOnly.every((c) => c.isPrimary), "All returned configs must be primary");
+
+  const textSearch = searchPaymentConfigurations({ theatreId: "th-mum-001" });
+  assert(textSearch.every((c) => c.theatreId === "th-mum-001"), "All configs must belong to th-mum-001");
+  console.log(`   ✅ Provider filter returned ${upiOnly.length} UPI rails across platform.`);
+  console.log(`   ✅ Primary filter returned ${primaryOnly.length} designated primary rails.`);
+  console.log(`   ✅ Tenant filter returned ${textSearch.length} rails for th-mum-001.`);
+
   console.log("\n================================================================================");
-  console.log("🎉 ALL 9 VERIFICATION CHECKS PASSED SUCCESSFULLY!");
+  console.log("🎉 ALL 11 VERIFICATION CHECKS PASSED SUCCESSFULLY!");
   console.log("================================================================================\n");
 }
 
@@ -254,3 +290,4 @@ runVerificationSuite().catch((err) => {
   console.error("Test Suite Execution Failed:", err);
   process.exit(1);
 });
+

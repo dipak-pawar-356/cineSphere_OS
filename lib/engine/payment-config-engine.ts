@@ -506,7 +506,14 @@ export function updatePaymentConfiguration(
     upiId: updatedUpiId,
     merchantCode: updatedMerchantCode,
     configVersion: existing.configVersion + 1,
-    qrPlaceholder: derived.qrImageUrl,
+    customQrUrl: input.customQrUrl !== undefined ? input.customQrUrl : existing.customQrUrl,
+    isCustomQr: input.isCustomQr !== undefined ? input.isCustomQr : existing.isCustomQr,
+    qrPlaceholder:
+      input.customQrUrl !== undefined
+        ? input.customQrUrl
+        : existing.isCustomQr && existing.customQrUrl
+        ? existing.customQrUrl
+        : derived.qrImageUrl,
     isPrimary: willBePrimary,
     status: input.status !== undefined ? input.status : existing.status,
     bankName: input.bankName !== undefined ? input.bankName.trim() : existing.bankName,
@@ -680,6 +687,107 @@ export function setPrimaryPaymentConfiguration(
 }
 
 /**
+ * Uploads or replaces a custom QR image for a theatre payment configuration.
+ * Still preserves underlying merchant metadata and versioning.
+ */
+export function uploadPaymentQr(
+  configId: string,
+  theatreId: string,
+  qrImageUrl: string,
+  actor: { actorId: string; role: "SUPER_ADMIN" | "THEATRE_ADMIN" | "SYSTEM" } = {
+    actorId: "system",
+    role: "SYSTEM",
+  }
+): PaymentConfiguration {
+  const existing = configurationStore.get(configId);
+  if (!existing) {
+    throw new Error(`Payment configuration '${configId}' not found.`);
+  }
+
+  if (existing.theatreId !== theatreId && actor.role !== "SUPER_ADMIN") {
+    throw new Error("Cross-tenant violation: Cannot upload QR for another theatre's configuration.");
+  }
+
+  const now = new Date().toISOString();
+  const hadPreviousCustomQr = !!existing.customQrUrl;
+
+  const updated: PaymentConfiguration = {
+    ...existing,
+    customQrUrl: qrImageUrl,
+    isCustomQr: true,
+    qrPlaceholder: qrImageUrl,
+    configVersion: existing.configVersion + 1,
+    updatedAt: now,
+  };
+
+  configurationStore.set(configId, updated);
+
+  const action: PaymentAuditAction = hadPreviousCustomQr ? "QR_REPLACED" : "QR_UPLOADED";
+  logPaymentAudit(
+    theatreId,
+    action,
+    actor,
+    `${hadPreviousCustomQr ? "Replaced" : "Uploaded"} custom QR image for '${existing.merchantDisplayName}'`,
+    configId,
+    existing,
+    updated
+  );
+
+  return updated;
+}
+
+/**
+ * Deletes custom QR code and resets to dynamically derived NPCI standard QR.
+ */
+export function deletePaymentQr(
+  configId: string,
+  theatreId: string,
+  actor: { actorId: string; role: "SUPER_ADMIN" | "THEATRE_ADMIN" | "SYSTEM" } = {
+    actorId: "system",
+    role: "SYSTEM",
+  }
+): PaymentConfiguration {
+  const existing = configurationStore.get(configId);
+  if (!existing) {
+    throw new Error(`Payment configuration '${configId}' not found.`);
+  }
+
+  if (existing.theatreId !== theatreId && actor.role !== "SUPER_ADMIN") {
+    throw new Error("Cross-tenant violation: Cannot delete QR for another theatre's configuration.");
+  }
+
+  const derived = deriveUpiQrPayload({
+    upiId: existing.upiId,
+    merchantName: existing.merchantName,
+    merchantCode: existing.merchantCode,
+  });
+
+  const now = new Date().toISOString();
+  const updated: PaymentConfiguration = {
+    ...existing,
+    customQrUrl: undefined,
+    isCustomQr: false,
+    qrPlaceholder: derived.qrImageUrl,
+    configVersion: existing.configVersion + 1,
+    updatedAt: now,
+  };
+
+  configurationStore.set(configId, updated);
+
+  logPaymentAudit(
+    theatreId,
+    "QR_DELETED",
+    actor,
+    `Removed custom QR code and reverted to dynamic NPCI QR for '${existing.merchantDisplayName}'`,
+    configId,
+    existing,
+    updated
+  );
+
+  return updated;
+}
+
+/**
  * Resolves the primary active payment configuration for a theatre.
  * Falls back to any active configuration if no primary is explicitly flagged.
  */
@@ -842,3 +950,4 @@ export function getPaymentAuditLogs(
 
   return auditLogStore.filter((log) => log.theatreId === theatreId);
 }
+

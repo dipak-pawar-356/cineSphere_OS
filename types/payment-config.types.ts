@@ -75,6 +75,8 @@ export interface PaymentConfiguration {
   merchantCode: string; // ISO 18245 Merchant Category Code (MCC). Default: "7832" (Motion Picture Theatres)
   configVersion: number;
   qrPlaceholder?: string;
+  customQrUrl?: string;
+  isCustomQr?: boolean;
   isPrimary: boolean;
   status: PaymentProviderStatus;
   bankName: string;
@@ -113,6 +115,8 @@ export interface CreatePaymentConfigurationInput {
   ifscCode?: string;
   settlementPeriod?: SettlementPeriodType | string;
   description?: string;
+  customQrUrl?: string;
+  isCustomQr?: boolean;
   credentials?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
 }
@@ -134,6 +138,8 @@ export interface UpdatePaymentConfigurationInput {
   ifscCode?: string;
   settlementPeriod?: SettlementPeriodType | string;
   description?: string;
+  customQrUrl?: string;
+  isCustomQr?: boolean;
   credentials?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
 }
@@ -227,6 +233,9 @@ export type PaymentAuditAction =
   | "CONFIG_ARCHIVED"
   | "CONFIG_DELETED"
   | "QR_GENERATED"
+  | "QR_UPLOADED"
+  | "QR_REPLACED"
+  | "QR_DELETED"
   | "PAYMENT_SESSION_PREPARED";
 
 export interface PaymentAuditLog {

@@ -20,6 +20,8 @@ import {
   activatePaymentConfiguration,
   deactivatePaymentConfiguration,
   setPrimaryPaymentConfiguration,
+  uploadPaymentQr,
+  deletePaymentQr,
   getTheatrePaymentConfigurations,
   searchPaymentConfigurations,
   prepareBookingPaymentSession,
@@ -302,6 +304,69 @@ export async function setPrimaryPaymentConfigurationAction(
 }
 
 /**
+ * Server Action: Upload / Replace Custom QR Code
+ */
+export async function uploadPaymentQrAction(
+  configId: string,
+  theatreId: string,
+  qrImageUrl: string,
+  actor: { actorId: string; role: "SUPER_ADMIN" | "THEATRE_ADMIN" | "SYSTEM" } = {
+    actorId: "theatre_admin",
+    role: "THEATRE_ADMIN",
+  }
+): Promise<PaymentActionResponse<PaymentConfiguration>> {
+  try {
+    const config = uploadPaymentQr(configId, theatreId, qrImageUrl, actor);
+    revalidatePath("/theatre/upi");
+    revalidatePath("/theatre/payments");
+
+    return {
+      success: true,
+      data: config,
+      message: `Custom QR uploaded successfully for '${config.merchantDisplayName}'.`,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || "Failed to upload QR code",
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+/**
+ * Server Action: Delete Custom QR Code (Reverts to dynamic NPCI QR)
+ */
+export async function deletePaymentQrAction(
+  configId: string,
+  theatreId: string,
+  actor: { actorId: string; role: "SUPER_ADMIN" | "THEATRE_ADMIN" | "SYSTEM" } = {
+    actorId: "theatre_admin",
+    role: "THEATRE_ADMIN",
+  }
+): Promise<PaymentActionResponse<PaymentConfiguration>> {
+  try {
+    const config = deletePaymentQr(configId, theatreId, actor);
+    revalidatePath("/theatre/upi");
+    revalidatePath("/theatre/payments");
+
+    return {
+      success: true,
+      data: config,
+      message: `Custom QR deleted. Reverted to dynamic standard NPCI QR for '${config.merchantDisplayName}'.`,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || "Failed to delete custom QR",
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+/**
  * Server Action: Query Payment Configurations for a Theatre
  */
 export async function getTheatrePaymentConfigurationsAction(
@@ -376,3 +441,4 @@ export async function getPaymentAuditLogsAction(
     };
   }
 }
+

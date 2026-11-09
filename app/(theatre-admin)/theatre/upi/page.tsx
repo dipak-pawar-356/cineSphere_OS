@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useTransition } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useTransition } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { useTheatreStore } from "@/store/theatre-store";
 import {
@@ -31,6 +31,11 @@ import {
   Banknote,
   DollarSign,
   X,
+  Search,
+  Filter,
+  Upload,
+  RotateCcw,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,6 +58,8 @@ import {
   setPrimaryPaymentConfigurationAction,
   getTheatrePaymentConfigurationsAction,
   getPaymentAuditLogsAction,
+  uploadPaymentQrAction,
+  deletePaymentQrAction,
 } from "@/actions/payment-config-actions";
 import { deriveUpiQrPayload, validateUpiId } from "@/lib/engine/payment-config-engine";
 
@@ -90,9 +97,48 @@ export default function TheatrePaymentConfigHubPage() {
   const [formDescription, setFormDescription] = useState("");
   const [formKeyIdMasked, setFormKeyIdMasked] = useState("");
 
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterProvider, setFilterProvider] = useState<string>("ALL");
+  const [filterStatus, setFilterStatus] = useState<string>("ALL");
+  const [filterPrimaryOnly, setFilterPrimaryOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name">("newest");
+
   // Feedback notifications
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
+
+  // Compute filtered configurations
+  const filteredConfigurations = useMemo(() => {
+    return configurations
+      .filter((cfg) => {
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase();
+          const matchName = cfg.merchantDisplayName?.toLowerCase().includes(q);
+          const matchMerchant = cfg.merchantName?.toLowerCase().includes(q);
+          const matchUpi = cfg.upiId?.toLowerCase().includes(q);
+          const matchProvider = cfg.provider?.toLowerCase().includes(q);
+          if (!matchName && !matchMerchant && !matchUpi && !matchProvider) return false;
+        }
+
+        if (filterProvider !== "ALL" && cfg.provider !== filterProvider) return false;
+        if (filterStatus !== "ALL" && cfg.status !== filterStatus) return false;
+        if (filterPrimaryOnly && !cfg.isPrimary) return false;
+
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.isPrimary && !b.isPrimary) return -1;
+        if (!a.isPrimary && b.isPrimary) return 1;
+        if (sortBy === "name") {
+          return a.merchantDisplayName.localeCompare(b.merchantDisplayName);
+        }
+        if (sortBy === "oldest") {
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        }
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+  }, [configurations, searchQuery, filterProvider, filterStatus, filterPrimaryOnly, sortBy]);
 
   // Fetch configurations on load or when profile.id changes
   const loadConfigurations = useCallback(() => {
@@ -281,6 +327,41 @@ export default function TheatrePaymentConfigHubPage() {
       loadConfigurations();
     } else {
       showError(res.error || "Failed to delete rail.");
+    }
+  };
+
+  // Custom QR Upload / Replace
+  const handleCustomQrUpload = (cfgId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showError("Please upload a valid image file (PNG, JPG, SVG).");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      const res = await uploadPaymentQrAction(cfgId, profile.id, dataUrl);
+      if (res.success) {
+        showSuccess(res.message || "Custom QR uploaded successfully.");
+        loadConfigurations();
+      } else {
+        showError(res.error || "Failed to upload custom QR.");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Delete Custom QR (Revert to Standard NPCI Dynamic QR)
+  const handleResetToDynamicQr = async (cfgId: string) => {
+    const res = await deletePaymentQrAction(cfgId, profile.id);
+    if (res.success) {
+      showSuccess(res.message || "Reverted to dynamic NPCI standard QR.");
+      loadConfigurations();
+    } else {
+      showError(res.error || "Failed to reset QR.");
     }
   };
 
@@ -506,27 +587,131 @@ export default function TheatrePaymentConfigHubPage() {
               </Button>
             </div>
 
-            {configurations.length === 0 ? (
+            {/* Search and Filters Bar */}
+            <div className="p-3.5 rounded-2xl bg-[#111827] border border-[#2A3445] space-y-3">
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="relative flex-1 w-full">
+                  <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#64748B]" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by Merchant, UPI ID, Provider, Rail Name..."
+                    className="w-full pl-9 pr-8 py-2 rounded-xl bg-[#070B12] border border-[#2A3445] text-xs text-white placeholder-[#64748B] focus:outline-none focus:border-[#FBBF24]"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-2.5 text-[#64748B] hover:text-white"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                  <select
+                    value={filterProvider}
+                    onChange={(e) => setFilterProvider(e.target.value)}
+                    className="px-2.5 py-2 rounded-xl bg-[#070B12] border border-[#2A3445] text-xs text-white focus:outline-none"
+                  >
+                    <option value="ALL">All Providers</option>
+                    <option value="UPI">Direct UPI</option>
+                    <option value="RAZORPAY">Razorpay</option>
+                    <option value="PHONEPE">PhonePe</option>
+                    <option value="PAYTM">Paytm</option>
+                    <option value="STRIPE">Stripe</option>
+                    <option value="CASH_COUNTER">Cash Counter</option>
+                  </select>
+
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="px-2.5 py-2 rounded-xl bg-[#070B12] border border-[#2A3445] text-xs text-white focus:outline-none"
+                  >
+                    <option value="ALL">All Status</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                    <option value="DRAFT">Draft</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => setFilterPrimaryOnly(!filterPrimaryOnly)}
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold shrink-0 transition-colors ${
+                      filterPrimaryOnly
+                        ? "bg-[#FBBF24] text-black font-bold"
+                        : "bg-[#070B12] text-[#94A3B8] border border-[#2A3445] hover:text-white"
+                    }`}
+                  >
+                    ★ Primary Only
+                  </button>
+                </div>
+              </div>
+
+              {(searchQuery || filterProvider !== "ALL" || filterStatus !== "ALL" || filterPrimaryOnly) && (
+                <div className="flex items-center justify-between text-[11px] text-[#94A3B8] pt-1 border-t border-[#2A3445]/50">
+                  <span>
+                    Showing {filteredConfigurations.length} of {configurations.length} configured rails
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setFilterProvider("ALL");
+                      setFilterStatus("ALL");
+                      setFilterPrimaryOnly(false);
+                    }}
+                    className="text-[#FBBF24] hover:underline flex items-center gap-1"
+                  >
+                    <RotateCcw className="h-3 w-3" /> Clear filters
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {filteredConfigurations.length === 0 ? (
               <Card variant="elevated" className="p-8 text-center space-y-3">
                 <div className="h-12 w-12 rounded-2xl bg-[#111827] border border-[#2A3445] flex items-center justify-center mx-auto text-[#64748B]">
                   <QrCode className="h-6 w-6" />
                 </div>
-                <h4 className="font-bold text-white text-sm">No Payment Rails Configured</h4>
+                <h4 className="font-bold text-white text-sm">
+                  {configurations.length === 0 ? "No Payment Rails Configured" : "No Matching Payment Rails"}
+                </h4>
                 <p className="text-xs text-[#94A3B8] max-w-sm mx-auto">
-                  Set up a direct UPI VPA or payment gateway rail for {profile.name} to start accepting customer ticket payments.
+                  {configurations.length === 0
+                    ? `Set up a direct UPI VPA or payment gateway rail for ${profile.name} to start accepting customer ticket payments.`
+                    : "No payment configurations matched your active filter criteria."}
                 </p>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => handleOpenCreateModal("UPI")}
-                  className="bg-[#E50914] text-white"
-                >
-                  Configure Primary UPI Rail
-                </Button>
+                {configurations.length === 0 ? (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => handleOpenCreateModal("UPI")}
+                    className="bg-[#E50914] text-white"
+                  >
+                    Configure Primary UPI Rail
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setFilterProvider("ALL");
+                      setFilterStatus("ALL");
+                      setFilterPrimaryOnly(false);
+                    }}
+                    className="border-[#2A3445] text-white"
+                  >
+                    Reset Filter Search
+                  </Button>
+                )}
               </Card>
             ) : (
               <div className="space-y-4">
-                {configurations.map((cfg) => {
+                {filteredConfigurations.map((cfg) => {
                   const isSelectedInSimulator = cfg.id === activeSimulatorConfig?.id;
 
                   return (
@@ -571,6 +756,15 @@ export default function TheatrePaymentConfigHubPage() {
                               >
                                 {cfg.status}
                               </Badge>
+                              {cfg.isCustomQr ? (
+                                <Badge variant="info" size="sm" className="text-[10px] bg-sky-500/10 text-sky-400 border-sky-500/30">
+                                  Custom QR
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" size="sm" className="text-[10px] border-[#2A3445] text-[#94A3B8]">
+                                  NPCI Derived
+                                </Badge>
+                              )}
                               <span className="text-[10px] font-mono text-[#64748B]">v{cfg.configVersion}</span>
                             </div>
                             <p className="text-xs text-[#94A3B8] mt-0.5">{cfg.description || cfg.merchantName}</p>
@@ -578,7 +772,7 @@ export default function TheatrePaymentConfigHubPage() {
                         </div>
 
                         {/* Top action buttons */}
-                        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto flex-wrap">
                           <Button
                             variant="ghost"
                             size="xs"
@@ -623,15 +817,42 @@ export default function TheatrePaymentConfigHubPage() {
                         </div>
                       </div>
 
-                      {/* Bottom Controls */}
-                      <div className="flex items-center justify-between pt-1 text-xs">
-                        <div className="flex items-center gap-2">
+                      {/* Bottom Controls (QR Upload / Replace / Delete + Primary + Status) */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 text-xs border-t border-[#2A3445]/40">
+                        {/* QR Management Controls */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#2A3445] text-xs text-[#CBD5E1] hover:text-white hover:bg-[#111827] transition-colors">
+                            <Upload className="h-3 w-3 text-[#38BDF8]" />
+                            <span>{cfg.isCustomQr ? "Replace QR" : "Upload QR"}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => handleCustomQrUpload(cfg.id, e)}
+                            />
+                          </label>
+
+                          {cfg.isCustomQr && (
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              onClick={() => handleResetToDynamicQr(cfg.id)}
+                              className="text-xs text-amber-400 hover:text-amber-300 gap-1 h-7"
+                              title="Delete custom QR and revert to dynamic NPCI QR"
+                            >
+                              <RotateCcw className="h-3 w-3" /> Reset to Dynamic QR
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Rail Status & Primary Controls */}
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
                           {!cfg.isPrimary && cfg.status === "ACTIVE" && (
                             <Button
                               variant="outline"
                               size="xs"
                               onClick={() => handleSetPrimary(cfg.id)}
-                              className="border-[#FBBF24]/40 text-[#FBBF24] hover:bg-[#FBBF24]/10 gap-1 font-semibold"
+                              className="border-[#FBBF24]/40 text-[#FBBF24] hover:bg-[#FBBF24]/10 gap-1 font-semibold h-7"
                             >
                               <Star className="h-3 w-3" /> Make Primary
                             </Button>
@@ -640,22 +861,22 @@ export default function TheatrePaymentConfigHubPage() {
                             variant="outline"
                             size="xs"
                             onClick={() => handleToggleStatus(cfg)}
-                            className="border-[#2A3445] text-xs text-[#94A3B8]"
+                            className="border-[#2A3445] text-xs text-[#94A3B8] h-7"
                           >
                             {cfg.status === "ACTIVE" ? "Deactivate" : "Activate Rail"}
                           </Button>
-                        </div>
 
-                        {!cfg.isPrimary && (
-                          <Button
-                            variant="ghost"
-                            size="xs"
-                            onClick={() => handleDeleteConfig(cfg.id, cfg.merchantDisplayName)}
-                            className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 gap-1"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" /> Delete
-                          </Button>
-                        )}
+                          {!cfg.isPrimary && (
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              onClick={() => handleDeleteConfig(cfg.id, cfg.merchantDisplayName)}
+                              className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 gap-1 h-7"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Delete
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </Card>
                   );
