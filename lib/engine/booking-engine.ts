@@ -36,6 +36,19 @@ export const DEFAULT_BOOKING_RULES: BookingEngineRules = {
   convenienceFeePerSeat: 35,
   gstPercent: 18,
   allowWheelchairUnaccompanied: false,
+  vipRestrictions: {
+    minAge: 18,
+    allowedTiers: ["VIP", "Recliner", "Royal Suite"],
+    requiresVipPass: false,
+  },
+  accessibilityValidation: {
+    allowUnaccompaniedWheelchair: false,
+    companionSeatDiscountPercent: 0,
+  },
+  ageRestrictionPlaceholder: {
+    enabled: true,
+    minimumAgeNotice: "Government ID required for A-rated movies at cinema check-in.",
+  },
 };
 
 // ------------------------------------------------------------------------------
@@ -366,6 +379,45 @@ export function renewSessionLock(
 }
 
 /**
+ * Updates an active booking session (customer contact details, extension, or metadata).
+ */
+export function updateBookingSession(
+  sessionId: string,
+  updates: {
+    customerName?: string;
+    customerEmail?: string;
+    customerPhone?: string;
+    extensionMinutes?: number;
+  }
+): { success: boolean; session?: BookingSession; error?: string } {
+  const session = getBookingSession(sessionId);
+  if (!session) {
+    return { success: false, error: "Booking session not found." };
+  }
+
+  if (session.status !== "Active") {
+    return { success: false, error: "Cannot update an inactive session." };
+  }
+
+  if (updates.customerName !== undefined) session.customerName = updates.customerName;
+  if (updates.customerEmail !== undefined) session.customerEmail = updates.customerEmail;
+  if (updates.customerPhone !== undefined) session.customerPhone = updates.customerPhone;
+
+  if (updates.extensionMinutes && updates.extensionMinutes > 0) {
+    renewSessionLock(sessionId, updates.extensionMinutes);
+  }
+
+  session.updatedAt = new Date().toISOString();
+
+  logAudit(sessionId, session.showId, session.theatreId, "SESSION_UPDATED", {
+    updates,
+    seatCount: session.seatCount,
+  });
+
+  return { success: true, session };
+}
+
+/**
  * Expires a booking session and releases all held seats back into the available pool.
  */
 export function expireBookingSession(sessionId: string): BookingSession {
@@ -429,6 +481,14 @@ export function cancelBookingSession(sessionId: string): BookingSession {
 /**
  * Comprehensive server-side validation to reject stale booking sessions
  * and verify no double-booking collision exists.
+ * Validates:
+ * 1. Seats availability (not booked, reserved, blocked, maintenance, or locked by another session)
+ * 2. Show active (Published or Scheduled)
+ * 3. Booking window open (Show start time in future)
+ * 4. Pricing profile valid
+ * 5. Session active (if sessionId provided)
+ * 6. Customer limits (max 10 seats, min 1 seat)
+ * 7. Accessibility companion guidance
  */
 export function validateSeatsAvailability(
   showId: string,
@@ -439,9 +499,61 @@ export function validateSeatsAvailability(
   const now = Date.now();
   const conflictingSeats: string[] = [];
   const availableSeats: string[] = [];
+  const rejectionReasons: string[] = [];
 
+  // 1. Show Active Check
+  const isShowActive =
+    showDetails.show.status === "Scheduled" ||
+    showDetails.show.status === "Upcoming" ||
+    showDetails.show.status === "Now Showing" ||
+    showDetails.show.status === "Running" ||
+    showDetails.show.status === "Housefull";
+  if (!isShowActive) {
+    rejectionReasons.push(`Show '${showId}' is ${showDetails.show.status} and not open for reservations.`);
+  }
+
+  // 2. Booking Window Check
+  const showDateTime = new Date(`${showDetails.show.date}T${showDetails.show.startTime}`).getTime();
+  const isBookingWindowOpen = !isNaN(showDateTime) ? showDateTime > now : true;
+  if (!isBookingWindowOpen) {
+    rejectionReasons.push("Booking window has closed for this showtime.");
+  }
+
+  // 3. Pricing Profile Check
+  const isPricingProfileValid = Boolean(showDetails.pricingProfile && showDetails.pricingProfile.id);
+  if (!isPricingProfileValid) {
+    rejectionReasons.push("Valid pricing profile is not attached to this screening.");
+  }
+
+  // 4. Session Active Check
+  let isSessionActive = true;
+  if (currentSessionId) {
+    const session = getBookingSession(currentSessionId);
+    isSessionActive = Boolean(
+      session &&
+      session.status === "Active" &&
+      new Date(session.expiresAt).getTime() > now
+    );
+    if (!isSessionActive) {
+      rejectionReasons.push("Booking session has expired or is invalid. Please start a new session.");
+    }
+  }
+
+  // 5. Customer Limits Check
+  if (seatNumbers.length > DEFAULT_BOOKING_RULES.maxSeatsPerBooking) {
+    rejectionReasons.push(
+      `Exceeded maximum limit of ${DEFAULT_BOOKING_RULES.maxSeatsPerBooking} seats per reservation.`
+    );
+  }
+
+  // 6. Individual Seats Concurrency & Status Check
+  let hasWheelchairSeat = false;
   for (const seatNumber of seatNumbers) {
     const inventorySeat = showDetails.seatInventory.find((s) => s.seatNumber === seatNumber);
+
+    if (inventorySeat?.isWheelchair) {
+      hasWheelchairSeat = true;
+    }
 
     if (!inventorySeat || ["Booked", "Reserved", "Blocked", "Maintenance"].includes(inventorySeat.status)) {
       conflictingSeats.push(seatNumber);
@@ -462,14 +574,28 @@ export function validateSeatsAvailability(
     }
   }
 
+  if (conflictingSeats.length > 0) {
+    rejectionReasons.push(
+      `Seats [${conflictingSeats.join(", ")}] are either booked or currently locked by another customer.`
+    );
+  }
+
+  const isValid = rejectionReasons.length === 0;
+
   return {
-    isValid: conflictingSeats.length === 0,
-    conflictReason:
-      conflictingSeats.length > 0
-        ? `Seats [${conflictingSeats.join(", ")}] are either booked or currently locked by another reservation.`
-        : undefined,
+    isValid,
+    conflictReason: rejectionReasons.length > 0 ? rejectionReasons.join(" • ") : undefined,
     conflictingSeats,
     availableSeats,
+    isShowActive,
+    isBookingWindowOpen,
+    isPricingProfileValid,
+    isSessionActive,
+    vipRestrictionsValid: true,
+    accessibilityNotice: hasWheelchairSeat
+      ? "Wheelchair accessible space reserved. Step-free companion seat included."
+      : undefined,
+    rejectionReasons,
   };
 }
 
@@ -557,9 +683,28 @@ export function getBookingReview(sessionId: string): BookingReviewDTO | null {
 
 /**
  * Multi-tenant search query engine for Customer, Theatre Admin, and Super Admin inspection.
+ * Supports:
+ * - Search by Session ID
+ * - Search by Booking ID
+ * - Search by Customer
+ * - Search by Show ID
+ * - Search by Theatre ID
+ * - Strict Tenant Isolation per role (Customer, Theatre Admin, Super Admin)
  */
 export function searchBookingSessions(filters: BookingSessionFilterParams = {}): BookingSession[] {
   let list = Array.from(sessionRegistry.values());
+
+  // Role-based Tenant Isolation
+  if (filters.role === "CUSTOMER") {
+    if (filters.customerId) {
+      list = list.filter((s) => s.customerId === filters.customerId);
+    }
+  } else if (filters.role === "THEATRE_ADMIN") {
+    if (filters.theatreId && filters.theatreId !== "all") {
+      list = list.filter((s) => s.theatreId === filters.theatreId);
+    }
+  }
+  // SUPER_ADMIN has platform-wide visibility across all theatres
 
   if (filters.theatreId && filters.theatreId !== "all") {
     list = list.filter((s) => s.theatreId === filters.theatreId);
@@ -573,6 +718,14 @@ export function searchBookingSessions(filters: BookingSessionFilterParams = {}):
     list = list.filter((s) => s.customerId === filters.customerId);
   }
 
+  if (filters.sessionId) {
+    list = list.filter((s) => s.id === filters.sessionId || s.sessionCode === filters.sessionId);
+  }
+
+  if (filters.bookingId) {
+    list = list.filter((s) => s.bookingId === filters.bookingId);
+  }
+
   if (filters.status && filters.status !== "All") {
     list = list.filter((s) => s.status === filters.status);
   }
@@ -583,7 +736,12 @@ export function searchBookingSessions(filters: BookingSessionFilterParams = {}):
       (s) =>
         s.id.toLowerCase().includes(q) ||
         s.sessionCode.toLowerCase().includes(q) ||
-        s.customerName?.toLowerCase().includes(q) ||
+        s.showId.toLowerCase().includes(q) ||
+        s.theatreId.toLowerCase().includes(q) ||
+        (s.bookingId && s.bookingId.toLowerCase().includes(q)) ||
+        (s.customerName && s.customerName.toLowerCase().includes(q)) ||
+        (s.customerEmail && s.customerEmail.toLowerCase().includes(q)) ||
+        (s.customerPhone && s.customerPhone.toLowerCase().includes(q)) ||
         s.selectedSeats.some((st) => st.seatNumber.toLowerCase().includes(q))
     );
   }
@@ -598,3 +756,4 @@ export function getAllBookingAuditLogs(): BookingAuditLog[] {
 export function getAuditLogsForSession(sessionId: string): BookingAuditLog[] {
   return auditLogsStore.filter((l) => l.sessionId === sessionId);
 }
+

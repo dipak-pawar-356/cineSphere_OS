@@ -88,6 +88,19 @@ export interface BookingEngineRules {
   convenienceFeePerSeat: number; // default: 35
   gstPercent: number; // default: 18
   allowWheelchairUnaccompanied?: boolean;
+  vipRestrictions?: {
+    minAge?: number;
+    allowedTiers?: string[];
+    requiresVipPass?: boolean;
+  };
+  accessibilityValidation?: {
+    allowUnaccompaniedWheelchair: boolean;
+    companionSeatDiscountPercent?: number;
+  };
+  ageRestrictionPlaceholder?: {
+    enabled: boolean;
+    minimumAgeNotice?: string;
+  };
 }
 
 export type BookingAuditAction =
@@ -95,9 +108,11 @@ export type BookingAuditAction =
   | "SEAT_ADDED"
   | "SEAT_REMOVED"
   | "LOCK_RENEWED"
+  | "SESSION_UPDATED"
   | "SESSION_EXPIRED"
   | "SESSION_CANCELLED"
   | "SESSION_COMPLETED"
+  | "BOOKING_CONFIRMED"
   | "CONFLICT_REJECTED";
 
 export interface BookingAuditLog {
@@ -127,6 +142,13 @@ export interface DoubleBookingValidationResult {
   conflictReason?: string;
   conflictingSeats: string[];
   availableSeats: string[];
+  isShowActive?: boolean;
+  isBookingWindowOpen?: boolean;
+  isPricingProfileValid?: boolean;
+  isSessionActive?: boolean;
+  vipRestrictionsValid?: boolean;
+  accessibilityNotice?: string;
+  rejectionReasons?: string[];
 }
 
 export interface BookingReviewDTO {
@@ -152,7 +174,10 @@ export interface BookingSessionFilterParams {
   theatreId?: string;
   showId?: string;
   customerId?: string;
+  sessionId?: string;
+  bookingId?: string;
   status?: BookingSessionStatus | "All";
   searchQuery?: string;
   date?: string;
+  role?: "CUSTOMER" | "THEATRE_ADMIN" | "SUPER_ADMIN";
 }

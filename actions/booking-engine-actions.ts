@@ -11,6 +11,7 @@ import {
 import {
   createBookingSession,
   getBookingSession,
+  updateBookingSession,
   addSeatToSession,
   removeSeatFromSession,
   renewSessionLock,
@@ -23,6 +24,7 @@ import {
   getAuditLogsForSession,
   getActiveSeatLocksForShow,
 } from "@/lib/engine/booking-engine";
+import { getUnifiedCustomerShowDetails } from "@/lib/engine/customer-discovery-engine";
 
 /**
  * ==============================================================================
@@ -377,7 +379,100 @@ export async function getBookingAuditLogsAction(
   }
 }
 
-// Aliases matching prompt requirements verbatim
-export const calculateTotalAction = getBookingSessionAction;
-export const calculateSessionTotalAction = getBookingSessionAction;
-export const updateBookingSessionAction = renewSessionLockAction;
+/**
+ * Server Action: Update Booking Session (Contact info, extension, metadata)
+ */
+export async function updateBookingSessionAction(
+  sessionId: string,
+  updates: {
+    customerName?: string;
+    customerEmail?: string;
+    customerPhone?: string;
+    extensionMinutes?: number;
+  }
+): Promise<BookingActionResponse<BookingSession>> {
+  try {
+    const res = updateBookingSession(sessionId, updates);
+    if (!res.success || !res.session) {
+      return {
+        success: false,
+        error: res.error || "Failed to update booking session",
+        timestamp: new Date().toISOString(),
+      };
+    }
+    return {
+      success: true,
+      data: res.session,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Error updating session";
+    return {
+      success: false,
+      error: msg,
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+/**
+ * Server Action: Calculate Dynamic Total & Pricing Breakdown
+ */
+export async function calculateTotalAction(params: {
+  showId: string;
+  seatNumbers: string[];
+}): Promise<
+  BookingActionResponse<{
+    seatCount: number;
+    subtotal: number;
+    convenienceFee: number;
+    tax: number;
+    discount: number;
+    grandTotal: number;
+    breakdown: Array<{ seatNumber: string; price: number; sectionName: string }>;
+  }>
+> {
+  try {
+    const showDetails = getUnifiedCustomerShowDetails(params.showId);
+    const breakdown: Array<{ seatNumber: string; price: number; sectionName: string }> = [];
+    let subtotal = 0;
+
+    for (const seatNumber of params.seatNumbers) {
+      const inv = showDetails.seatInventory.find((s) => s.seatNumber === seatNumber);
+      const price = inv ? inv.price : 250;
+      const sectionName = inv ? inv.sectionName : "Standard";
+      breakdown.push({ seatNumber, price, sectionName });
+      subtotal += price;
+    }
+
+    const count = params.seatNumbers.length;
+    const convenienceFee = count * 35;
+    const tax = Math.round((convenienceFee * 18) / 100);
+    const discount = 0;
+    const grandTotal = Math.max(0, subtotal + convenienceFee + tax - discount);
+
+    return {
+      success: true,
+      data: {
+        seatCount: count,
+        subtotal,
+        convenienceFee,
+        tax,
+        discount,
+        grandTotal,
+        breakdown,
+      },
+      timestamp: new Date().toISOString(),
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Error calculating total";
+    return {
+      success: false,
+      error: msg,
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+export const calculateSessionTotalAction = calculateTotalAction;
+

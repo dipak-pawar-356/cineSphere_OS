@@ -117,3 +117,4 @@ $$\text{Session Grand Total} = \text{Tickets Subtotal} + \text{Convenience Fee} 
 | **Session Expired Modal** | Informs user of inventory release with 1-click restart | Verified |
 | **Theatre Admin Oversight** | Live Sessions & Locks tab with supervisor override action | Verified |
 | **Audit Trail** | Tamper-evident logging of all session and lock lifecycle events | Verified |
+
