@@ -341,6 +341,7 @@ function resolveShowContext(showId: string, theatreId?: string) {
     "Hindi";
 
   const certificate = masterMovie?.certificate || "UA 16+";
+  const duration = masterMovie?.durationMinutes ? `${masterMovie.durationMinutes} min` : "166 min";
 
   return {
     theatre,
@@ -352,6 +353,7 @@ function resolveShowContext(showId: string, theatreId?: string) {
     format,
     language,
     certificate,
+    duration,
     showDate: dynamicShow?.showDate || "2027-01-15",
     showTime: dynamicShow?.startTime || "10:30 AM",
   };
@@ -403,6 +405,9 @@ function seedInitialTickets(): void {
     format: ctx1.format,
     language: ctx1.language,
     certificate: ctx1.certificate,
+    duration: ctx1.duration,
+    bookingStatus: b1.bookingStatus,
+    paymentStatus: b1.paymentStatus,
     seatNumber: b1.seats.join(", "),
     seatNumbers: b1.seats,
     seatCount: b1.seats.length,
@@ -469,6 +474,9 @@ function seedInitialTickets(): void {
     format: ctx2.format,
     language: ctx2.language,
     certificate: ctx2.certificate,
+    duration: ctx2.duration,
+    bookingStatus: b2.bookingStatus,
+    paymentStatus: b2.paymentStatus,
     seatNumber: b2.seats.join(", "),
     seatNumbers: b2.seats,
     seatCount: b2.seats.length,
@@ -536,6 +544,9 @@ function seedInitialTickets(): void {
     format: ctx3.format,
     language: ctx3.language,
     certificate: ctx3.certificate,
+    duration: ctx3.duration,
+    bookingStatus: b3.bookingStatus,
+    paymentStatus: b3.paymentStatus,
     seatNumber: b3.seats.join(", "),
     seatNumbers: b3.seats,
     seatCount: b3.seats.length,
@@ -603,6 +614,9 @@ function seedInitialTickets(): void {
     format: ctx4.format,
     language: ctx4.language,
     certificate: ctx4.certificate,
+    duration: ctx4.duration,
+    bookingStatus: b4.bookingStatus,
+    paymentStatus: b4.paymentStatus,
     seatNumber: b4.seats.join(", "),
     seatNumbers: b4.seats,
     seatCount: b4.seats.length,
@@ -778,6 +792,9 @@ export function generateTicketsForBooking(
       format: ctx.format,
       language: ctx.language,
       certificate: ctx.certificate,
+      duration: ctx.duration,
+      bookingStatus: booking.bookingStatus,
+      paymentStatus: booking.paymentStatus,
       seatNumber: booking.seats.join(", "),
       seatNumbers: booking.seats,
       seatCount: booking.seats.length,
@@ -861,6 +878,9 @@ export function generateTicketsForBooking(
         format: ctx.format,
         language: ctx.language,
         certificate: ctx.certificate,
+        duration: ctx.duration,
+        bookingStatus: booking.bookingStatus,
+        paymentStatus: booking.paymentStatus,
         seatNumber: seat,
         seatNumbers: [seat],
         seatCount: 1,

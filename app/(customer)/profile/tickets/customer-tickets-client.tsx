@@ -236,13 +236,18 @@ export function CustomerTicketsClient({
                   </div>
 
                   <div className="space-y-2 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <Badge variant="primary" size="sm">
                         {ticket.format}
                       </Badge>
                       <Badge variant="secondary" size="sm">
                         {ticket.language}
                       </Badge>
+                      {ticket.duration && (
+                        <span className="text-[10px] text-[#94A3B8] flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#111C2E]">
+                          <Clock className="w-3 h-3 text-[#FBBF24]" /> {ticket.duration}
+                        </span>
+                      )}
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                           isCancelled
@@ -254,6 +259,11 @@ export function CustomerTicketsClient({
                       >
                         {ticket.status}
                       </span>
+                      {ticket.paymentStatus && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[#111C2E] border border-[#1E2E48] text-[#10B981]">
+                          {ticket.paymentStatus}
+                        </span>
+                      )}
                     </div>
 
                     <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
@@ -374,8 +384,20 @@ export function CustomerTicketsClient({
 
             <div className="bg-[#111C2E] border border-[#1E2E48] rounded-xl p-3 text-xs font-mono space-y-1 text-left">
               <div className="flex justify-between">
-                <span className="text-[#64748B]">Ticket #:</span>
+                <span className="text-[#64748B]">Ticket ID:</span>
                 <span className="text-[#FBBF24] font-bold">{previewTicket.ticketNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#64748B]">Booking ID:</span>
+                <span className="text-white">{previewTicket.bookingReference}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#64748B]">Payment:</span>
+                <span className="text-[#10B981] font-semibold">{previewTicket.paymentStatus || "PAID"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#64748B]">Booking Status:</span>
+                <span className="text-[#38BDF8]">{previewTicket.bookingStatus || "CONFIRMED"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#64748B]">Seats:</span>

@@ -197,27 +197,47 @@ export default async function PublicTicketDetailPage({
                   <Badge variant="outline" size="sm">
                     {ticket.certificate}
                   </Badge>
+                  {ticket.duration && (
+                    <Badge variant="soft" size="sm" className="gap-1 text-[#94A3B8]">
+                      <Clock className="w-3 h-3 text-[#FBBF24]" />
+                      {ticket.duration}
+                    </Badge>
+                  )}
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-md">
                   {ticket.movieTitle}
                 </h1>
               </div>
 
-              <div className="sm:text-right">
-                <span className="text-[11px] uppercase tracking-wider text-[#94A3B8] font-semibold block">
-                  Ticket Status
-                </span>
-                <span
-                  className={`inline-block px-3 py-1 rounded-full text-xs font-bold tracking-wide mt-1 uppercase ${
-                    isCancelled
-                      ? "bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/30"
-                      : isUsed
-                      ? "bg-[#64748B]/20 text-[#94A3B8] border border-[#64748B]/30"
-                      : "bg-[#FBBF24]/20 text-[#FBBF24] border border-[#FBBF24]/30"
-                  }`}
-                >
-                  {ticket.status}
-                </span>
+              <div className="flex flex-wrap sm:flex-col sm:items-end gap-2">
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-[#94A3B8] font-semibold block sm:text-right">
+                    Ticket Status
+                  </span>
+                  <span
+                    className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide mt-0.5 uppercase ${
+                      isCancelled
+                        ? "bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/30"
+                        : isUsed
+                        ? "bg-[#64748B]/20 text-[#94A3B8] border border-[#64748B]/30"
+                        : "bg-[#FBBF24]/20 text-[#FBBF24] border border-[#FBBF24]/30"
+                    }`}
+                  >
+                    {ticket.status}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {ticket.bookingStatus && (
+                    <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#111C2E] border border-[#1E2E48] text-[#38BDF8]">
+                      Booking: {ticket.bookingStatus}
+                    </span>
+                  )}
+                  {ticket.paymentStatus && (
+                    <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#111C2E] border border-[#1E2E48] text-[#10B981]">
+                      Payment: {ticket.paymentStatus}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>

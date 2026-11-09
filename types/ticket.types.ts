@@ -75,6 +75,9 @@ export interface DigitalTicket {
   format: string; // e.g. "IMAX Laser", "Dolby Atmos", "4DX"
   language: string; // e.g. "Hindi", "English"
   certificate: string; // e.g. "UA 16+", "A", "U"
+  duration?: string; // e.g. "166 min" or "2h 46m"
+  bookingStatus?: "CONFIRMED" | "CANCELLED" | "COMPLETED" | "EXPIRED";
+  paymentStatus?: "PAID" | "PENDING" | "FAILED" | "REFUNDED" | "CANCELLED";
   seatNumber: string; // e.g. "E10" or "E10, E11"
   seatNumbers: string[]; // e.g. ["E10", "E11"]
   seatCount: number;
