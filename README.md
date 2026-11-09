@@ -444,6 +444,39 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Real-time Price Summary Sidebar calculating Ticket Subtotal, Convenience Fee (₹35 × seats), GST (18%), and Grand Total in bold Emerald INR.
 - 📚 **Customer Discovery Architecture Guide:** Detailed technical documentation in [`docs/CUSTOMER_DISCOVERY_AND_BOOKING_FLOW.md`](./docs/CUSTOMER_DISCOVERY_AND_BOOKING_FLOW.md).
 
+### 2.12 Phase 2 - Part 11: Booking Engine & Seat Reservation Architecture (Completed)
+- 🏛️ **3-Tier Inventory & Reservation Layering Model:**
+  - Strictly decouples physical infrastructure from customer reservations:
+    ```
+    Seat Template (Permanent Hall Layout)
+                ↓
+    Show Seat Inventory (One Isolated Inventory per Show)
+                ↓
+    Booking Session (Temporary Customer Session with Temporary Seat Locks)
+                ↓
+    Confirmed Booking (Created strictly AFTER payment confirmation — Phase 2 Part 12)
+    ```
+- 🆔 **Two Distinct Identifiers:**
+  - **Booking Session ID (`sessionCode` / `id`):** Created immediately when entering seat selection. Holds temporary seat locks with a strict countdown timer (10 minutes default).
+  - **Booking ID (`bookingId` / `referenceCode`):** Issued strictly **after** payment confirmation in Part 12.
+- ⏱️ **Temporary Seat Locks & Countdown Expirations:**
+  - Client and server synchronized countdown timer with real-time second-by-second ticks (`store/booking-session-store.ts`).
+  - Interactive `<BookingTimerBadge />` with visual pulse warning (< 120s) and 1-click `+5m` lock extension button.
+  - Automatic release of locked seats when the timer hits zero with an informative `<BookingSessionExpiredModal />`.
+- 🛡️ **Atomic Double-Booking Prevention & Concurrency Protection:**
+  - Concurrency collision guard preventing simultaneous locks on the same seat across multiple guest sessions.
+  - Collision events rejected server-side with audit logging (`CONFLICT_REJECTED`) and real-time conflict banners.
+  - Other users' active locks rendered as distinct disabled locks on the interactive 2D auditorium grid.
+- 💰 **Dynamic Price & Fee Breakdown Pipeline:**
+  - Itemized calculation: Tickets Subtotal + Convenience Fee (₹35 × seats) + Integrated GST (18%) = Grand Total.
+  - Pre-payment snapshot modal (`BookingReviewModal`) detailing film, hall, showtime, locked seats, and payment handoff notice.
+- 🏢 **Theatre Admin Live Booking Engine & Concurrency Monitor (`/theatre/bookings`):**
+  - Segmented view controller toggling between **Live Booking Sessions & Concurrency Locks** and **Confirmed Admissions & Issued Tickets**.
+  - Real-time KPI cards for active sessions, currently locked seats, and collision protection status.
+  - Supervisor override action (`Expire Lock`) to manually release locks and return seats to public sale.
+  - Tamper-evident reservation engine audit trail (`BookingAuditLog`) logging every session lifecycle event.
+- 📚 **Booking Engine Architecture Guide:** Detailed technical documentation in [`docs/BOOKING_ENGINE_AND_RESERVATION_ARCHITECTURE.md`](./docs/BOOKING_ENGINE_AND_RESERVATION_ARCHITECTURE.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -464,6 +497,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🎟️ [`docs/BOOKING_ENGINE_AND_RESERVATION_ARCHITECTURE.md`](./docs/BOOKING_ENGINE_AND_RESERVATION_ARCHITECTURE.md) — Booking Engine & Seat Reservation Architecture, 3-Tier Layering Model, Session vs Booking ID, Concurrency Locks & Audit Trail (Phase 2 - Part 11).
 - 🧭 [`docs/CUSTOMER_DISCOVERY_AND_BOOKING_FLOW.md`](./docs/CUSTOMER_DISCOVERY_AND_BOOKING_FLOW.md) — Customer Discovery & Booking Flow Architecture, Multi-Journey Convergence (City, Movie, Theatre, Direct), Unified Single Show ID Snapshot & Interactive 2D Seat Matrix (Phase 2 - Part 10).
 - 💰 [`docs/DYNAMIC_PRICING_ENGINE.md`](./docs/DYNAMIC_PRICING_ENGINE.md) — Dynamic Pricing Engine Architecture, Fundamental Separation Law, Reusable Profiles, Section Hierarchy & Seat Calculation Simulator (Phase 2 - Part 9).
 - 🎟️ [`docs/SHOW_MANAGEMENT_AND_SCHEDULING.md`](./docs/SHOW_MANAGEMENT_AND_SCHEDULING.md) — Show Management System, Screening Event Architecture, Conflict Detection Engine, Reusable Pricing Profiles & Dynamic Seat Inventory (Phase 2 - Part 8).

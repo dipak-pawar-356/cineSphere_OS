@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -14,6 +14,14 @@ import {
   CustomerSeatDTO,
   CustomerPriceSummaryDTO,
 } from "@/types/customer-discovery.types";
+import { SeatLockDTO } from "@/types/booking-engine.types";
+import { useBookingSessionStore } from "@/store/booking-session-store";
+import { getActiveSeatLocksAction } from "@/actions/booking-engine-actions";
+import {
+  BookingTimerBadge,
+  BookingReviewModal,
+  BookingSessionExpiredModal,
+} from "@/components/booking";
 import { FormatBadge } from "@/components/badges/format-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +48,8 @@ import {
   Ban,
   Wrench,
   Lock,
+  RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/utils";
 
@@ -74,17 +84,63 @@ export default function ShowBookingPage() {
     );
   }, [allShows, show]);
 
-  // 3. Interactive Seat Selection State
-  const [selectedSeatNumbers, setSelectedSeatNumbers] = useState<string[]>([]);
-  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  // 3. Booking Engine Store Integration (Phase 2 Part 11)
+  const {
+    currentSession,
+    isLoading: isSessionLoading,
+    error: sessionError,
+    initSession,
+    selectSeat,
+    deselectSeat,
+    openReviewModal,
+    resetSession,
+    clearError,
+  } = useBookingSessionStore();
+
+  // Active locks by other concurrent users for double-booking conflict prevention
+  const [activeLocks, setActiveLocks] = useState<SeatLockDTO[]>([]);
+  const [bannerError, setBannerError] = useState<string | null>(null);
+
+  const fetchLocks = useCallback(async () => {
+    try {
+      const res = await getActiveSeatLocksAction(showId);
+      if (res.success && res.data) {
+        setActiveLocks(res.data);
+      }
+    } catch {
+      // Background poll failure handled gracefully
+    }
+  }, [showId]);
+
+  // Initialize booking session on mount & fetch locks
+  useEffect(() => {
+    initSession(showId);
+    fetchLocks();
+
+    const interval = setInterval(() => {
+      fetchLocks();
+    }, 15000); // 15s lock refresh poll
+
+    return () => clearInterval(interval);
+  }, [showId, initSession, fetchLocks]);
+
+  // Selected seat numbers derived from active booking session
+  const selectedSeatNumbers = useMemo(() => {
+    if (!currentSession || currentSession.showId !== showId) return [];
+    return currentSession.selectedSeats.map((s) => s.seatNumber);
+  }, [currentSession, showId]);
 
   // 4. Real-time Price Summary Calculation
   const priceSummary: CustomerPriceSummaryDTO = useMemo(() => {
     return calculateCustomerPriceSummary(selectedSeatNumbers, showDetails);
   }, [selectedSeatNumbers, showDetails]);
 
-  // Seat Click Handler
-  const handleSeatClick = (seat: CustomerSeatDTO) => {
+  // Seat Click Handler wired to Booking Engine concurrency locks
+  const handleSeatClick = async (seat: CustomerSeatDTO) => {
+    setBannerError(null);
+    clearError();
+
+    // Check permanent status
     if (
       seat.status === "Booked" ||
       seat.status === "Reserved" ||
@@ -94,19 +150,49 @@ export default function ShowBookingPage() {
       return; // Non-selectable
     }
 
-    setSelectedSeatNumbers((prev) =>
-      prev.includes(seat.seatNumber)
-        ? prev.filter((num) => num !== seat.seatNumber)
-        : [...prev, seat.seatNumber]
+    // Check if locked by another active session
+    const isLockedByOther = activeLocks.some(
+      (lock) =>
+        lock.seatNumber === seat.seatNumber &&
+        lock.lockedBySessionId !== currentSession?.id
     );
+
+    if (isLockedByOther) {
+      setBannerError(
+        `Seat ${seat.seatNumber} is temporarily reserved by another patron. Please select an available seat.`
+      );
+      return;
+    }
+
+    const isCurrentlySelected = selectedSeatNumbers.includes(seat.seatNumber);
+
+    if (isCurrentlySelected) {
+      const res = await deselectSeat(seat.seatNumber);
+      if (!res.success && res.error) {
+        setBannerError(res.error);
+      }
+      fetchLocks();
+    } else {
+      const res = await selectSeat(seat.seatNumber);
+      if (!res.success && res.error) {
+        setBannerError(res.error);
+      }
+      fetchLocks();
+    }
   };
 
-  const handleRemoveSeat = (seatNumber: string) => {
-    setSelectedSeatNumbers((prev) => prev.filter((num) => num !== seatNumber));
+  const handleRemoveSeat = async (seatNumber: string) => {
+    setBannerError(null);
+    await deselectSeat(seatNumber);
+    fetchLocks();
   };
 
-  const handleClearSeats = () => {
-    setSelectedSeatNumbers([]);
+  const handleClearSeats = async () => {
+    setBannerError(null);
+    for (const num of [...selectedSeatNumbers]) {
+      await deselectSeat(num);
+    }
+    fetchLocks();
   };
 
   // Group seats by Section
@@ -126,7 +212,7 @@ export default function ShowBookingPage() {
       {/* 1. TOP BREADCRUMBS & SHOWTIME QUICK SWITCHER BAR */}
       <div className="bg-[#0B1220] border-b border-[#1E293B] sticky top-0 z-30 shadow-lg backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 space-y-2">
-          {/* Breadcrumb row */}
+          {/* Breadcrumb row with Active Lock Timer */}
           <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-[#94A3B8]">
             <nav className="flex items-center gap-1.5 flex-wrap">
               <Link href="/" className="hover:text-white transition-colors">
@@ -137,21 +223,36 @@ export default function ShowBookingPage() {
                 Movies
               </Link>
               <ChevronRight className="h-3 w-3 text-[#64748B]" />
-              <Link href={`/movie/${movie.slug}`} className="hover:text-white transition-colors truncate max-w-[140px]">
+              <Link
+                href={`/movie/${movie.slug}`}
+                className="hover:text-white transition-colors truncate max-w-[140px]"
+              >
                 {movie.title}
               </Link>
               <ChevronRight className="h-3 w-3 text-[#64748B]" />
-              <Link href={`/theatre/${theatre.slug}`} className="hover:text-white transition-colors truncate max-w-[140px]">
+              <Link
+                href={`/theatre/${theatre.slug}`}
+                className="hover:text-white transition-colors truncate max-w-[140px]"
+              >
                 {theatre.name}
               </Link>
               <ChevronRight className="h-3 w-3 text-[#64748B]" />
-              <span className="text-[#FBBF24] font-medium font-mono">{show.startTime} (Seats)</span>
+              <span className="text-[#FBBF24] font-medium font-mono">
+                {show.startTime} (Seats)
+              </span>
             </nav>
 
-            <div className="flex items-center gap-2 text-xs font-mono">
-              <Building2 className="h-3.5 w-3.5 text-[#FBBF24]" />
-              <span className="text-white font-semibold">{theatre.name}</span>
-              <span className="text-[#64748B]">({theatre.city})</span>
+            <div className="flex items-center gap-3">
+              {/* Live Session Timer Badge in Header */}
+              {currentSession && currentSession.status === "Active" && (
+                <BookingTimerBadge showExtendButton={true} />
+              )}
+
+              <div className="flex items-center gap-2 text-xs font-mono hidden md:flex">
+                <Building2 className="h-3.5 w-3.5 text-[#FBBF24]" />
+                <span className="text-white font-semibold">{theatre.name}</span>
+                <span className="text-[#64748B]">({theatre.city})</span>
+              </div>
             </div>
           </div>
 
@@ -168,7 +269,7 @@ export default function ShowBookingPage() {
                     key={s.id}
                     onClick={() => {
                       if (!isActive) {
-                        setSelectedSeatNumbers([]);
+                        resetSession();
                         router.push(`/booking/${s.id}`);
                       }
                     }}
@@ -188,6 +289,28 @@ export default function ShowBookingPage() {
           </div>
         </div>
       </div>
+
+      {/* Real-time Conflict or Validation Warning Banner */}
+      {(bannerError || sessionError) && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <div className="p-3 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-xs text-rose-300 flex items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />
+              <span>{bannerError || sessionError}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setBannerError(null);
+                clearError();
+              }}
+              className="p-1 rounded-lg hover:bg-rose-500/20 text-rose-400 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. SHOW INFORMATION HERO */}
       <div className="relative bg-[#0B1220]/95 border-b border-[#1E293B] py-6">
@@ -233,7 +356,9 @@ export default function ShowBookingPage() {
                     {show.startTime} - {show.endTime}
                   </span>
                   <span>•</span>
-                  <span>{theatre.name}, {theatre.city}</span>
+                  <span>
+                    {theatre.name}, {theatre.city}
+                  </span>
                 </div>
               </div>
             </div>
@@ -250,7 +375,7 @@ export default function ShowBookingPage() {
                 </span>
               </div>
               <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-                Hall layout & geometry are physical venue assets. All ticket pricing, seat occupancy, and availability are dynamically resolved from this single Show ID.
+                Hall layout & geometry are permanent physical venue assets. Temporary seat reservations are managed dynamically per session with double-booking prevention.
               </p>
             </div>
           </div>
@@ -267,7 +392,7 @@ export default function ShowBookingPage() {
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-amber-400 shrink-0" />
                 <span>
-                  <strong>Dynamic Real-Time Inventory:</strong> Seats are updated continuously. Selected seats are reserved for your checkout session.
+                  <strong>Dynamic Concurrency Locks Active:</strong> Clicked seats are reserved exclusively for your session for 10 minutes.
                 </span>
               </div>
               <span className="text-[10px] font-mono uppercase bg-amber-400/20 px-2 py-0.5 rounded font-bold shrink-0">
@@ -364,15 +489,30 @@ export default function ShowBookingPage() {
                               const isReserved = seat.status === "Reserved";
                               const isBlocked = seat.status === "Blocked";
                               const isMaintenance = seat.status === "Maintenance";
-                              const isAvailable = seat.status === "Available";
+
+                              // Check concurrency lock held by another session
+                              const isLockedByOther = activeLocks.some(
+                                (lock) =>
+                                  lock.seatNumber === seat.seatNumber &&
+                                  lock.lockedBySessionId !== currentSession?.id
+                              );
+
+                              const isAvailable =
+                                seat.status === "Available" && !isLockedByOther;
 
                               return (
                                 <button
                                   key={seat.id}
                                   type="button"
-                                  disabled={!isAvailable}
+                                  disabled={(!isAvailable && !isSelected) || isSessionLoading}
                                   onClick={() => handleSeatClick(seat)}
-                                  title={`${seat.seatNumber} • ${seat.sectionName} • ₹${seat.price} (${seat.status})`}
+                                  title={
+                                    isLockedByOther
+                                      ? `${seat.seatNumber} • Temporarily reserved by another customer`
+                                      : `${seat.seatNumber} • ${seat.sectionName} • ₹${seat.price} (${
+                                          isSelected ? "Selected" : seat.status
+                                        })`
+                                  }
                                   className={cn(
                                     "relative h-7 w-7 sm:h-8 sm:w-8 rounded-t-lg rounded-b-md text-[10px] font-mono font-bold transition-all flex items-center justify-center select-none",
                                     // Available state
@@ -382,6 +522,10 @@ export default function ShowBookingPage() {
                                     // Selected state (Amber glow with checkmark)
                                     isSelected &&
                                       "bg-[#FBBF24] text-black border-2 border-white shadow-lg shadow-amber-400/40 scale-105 z-10 cursor-pointer",
+                                    // Locked by other concurrent customer session
+                                    isLockedByOther &&
+                                      !isSelected &&
+                                      "bg-[#161F2E] text-amber-400/90 border border-dashed border-amber-400/60 cursor-not-allowed opacity-80",
                                     // Booked / Sold state
                                     isBooked &&
                                       "bg-[#0D131F] text-[#475569] border border-[#1E293B] cursor-not-allowed opacity-50",
@@ -398,6 +542,8 @@ export default function ShowBookingPage() {
                                 >
                                   {isSelected ? (
                                     <Check className="h-3.5 w-3.5 stroke-[3]" />
+                                  ) : isLockedByOther ? (
+                                    <Lock className="h-3 w-3 text-amber-400" />
                                   ) : isBooked ? (
                                     <X className="h-3 w-3 text-[#475569]" />
                                   ) : isReserved ? (
@@ -469,6 +615,13 @@ export default function ShowBookingPage() {
                 </div>
 
                 <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-t-md rounded-b bg-[#161F2E] border border-dashed border-amber-400/60 flex items-center justify-center">
+                    <Lock className="h-2.5 w-2.5 text-amber-400" />
+                  </div>
+                  <span className="text-amber-300 font-medium">Temporary Lock</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
                   <div className="w-4 h-4 rounded-t-md rounded-b bg-[#0D131F] border border-[#1E293B] opacity-50 flex items-center justify-center">
                     <X className="h-2.5 w-2.5 text-[#475569]" />
                   </div>
@@ -516,6 +669,19 @@ export default function ShowBookingPage() {
           {/* 4. REAL-TIME BOOKING & PRICE SUMMARY SIDEBAR (4 Cols) */}
           <div className="lg:col-span-4 space-y-6 sticky top-24">
             <div className="rounded-3xl bg-[#0B1220] border border-[#1E293B] p-5 sm:p-6 space-y-6 shadow-2xl backdrop-blur-xl">
+              {/* Session Identity & Countdown Header */}
+              <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-mono uppercase text-[#64748B] block font-bold">
+                    Reservation Session
+                  </span>
+                  <span className="font-mono font-bold text-xs text-white">
+                    {currentSession?.sessionCode || "SES-INITIALIZING"}
+                  </span>
+                </div>
+                <BookingTimerBadge showExtendButton={true} />
+              </div>
+
               {/* Movie & Show Info Card */}
               <div className="flex gap-4 border-b border-[#1E293B] pb-4">
                 <div className="relative h-20 w-14 rounded-xl overflow-hidden shrink-0 border border-[#2A3445] shadow-md">
@@ -566,11 +732,12 @@ export default function ShowBookingPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono uppercase text-[#94A3B8] font-semibold">
-                    Selected Seats ({priceSummary.seatCount})
+                    Selected Seats ({selectedSeatNumbers.length})
                   </span>
-                  {priceSummary.seatCount > 0 && (
+                  {selectedSeatNumbers.length > 0 && (
                     <button
                       type="button"
+                      disabled={isSessionLoading}
                       onClick={handleClearSeats}
                       className="text-[11px] text-[#94A3B8] hover:text-rose-400 transition-colors cursor-pointer"
                     >
@@ -579,9 +746,9 @@ export default function ShowBookingPage() {
                   )}
                 </div>
 
-                {priceSummary.seatCount > 0 ? (
+                {selectedSeatNumbers.length > 0 ? (
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    {priceSummary.selectedSeats.map((item) => (
+                    {(currentSession?.selectedSeats || []).map((item) => (
                       <div
                         key={item.seatId}
                         className="flex items-center justify-between p-2.5 rounded-xl bg-[#111827] border border-[#2A3445] text-xs"
@@ -601,6 +768,7 @@ export default function ShowBookingPage() {
                           </span>
                           <button
                             type="button"
+                            disabled={isSessionLoading}
                             onClick={() => handleRemoveSeat(item.seatNumber)}
                             className="text-[#64748B] hover:text-white transition-colors"
                           >
@@ -613,7 +781,7 @@ export default function ShowBookingPage() {
                 ) : (
                   <div className="p-4 rounded-xl bg-[#111827] border border-dashed border-[#2A3445] text-center space-y-1">
                     <p className="text-xs text-[#94A3B8]">
-                      Click seats on the auditorium map to select your tickets.
+                      Click seats on the auditorium map to reserve your tickets.
                     </p>
                     <p className="text-[10px] text-[#64748B]">
                       Max 10 seats per booking session
@@ -623,12 +791,12 @@ export default function ShowBookingPage() {
               </div>
 
               {/* Price Calculation Summary */}
-              {priceSummary.seatCount > 0 && (
+              {selectedSeatNumbers.length > 0 && (
                 <div className="space-y-2.5 border-t border-[#1E293B] pt-4 text-xs">
                   <div className="flex justify-between text-[#94A3B8]">
                     <span>Tickets Subtotal</span>
                     <span className="font-mono text-white font-semibold">
-                      ₹{priceSummary.seatSubtotal}
+                      ₹{currentSession?.subtotal ?? priceSummary.seatSubtotal}
                     </span>
                   </div>
 
@@ -636,25 +804,25 @@ export default function ShowBookingPage() {
                     <span className="flex items-center gap-1">
                       <span>Convenience Fee</span>
                       <span className="text-[10px] text-[#64748B]">
-                        (₹{priceSummary.convenienceFeePerSeat} × {priceSummary.seatCount})
+                        (₹35 × {selectedSeatNumbers.length})
                       </span>
                     </span>
                     <span className="font-mono text-white">
-                      ₹{priceSummary.convenienceFeeTotal}
+                      ₹{currentSession?.convenienceFee ?? priceSummary.convenienceFeeTotal}
                     </span>
                   </div>
 
                   <div className="flex justify-between text-[#94A3B8]">
-                    <span>Integrated GST ({priceSummary.gstPercent}%)</span>
+                    <span>Integrated GST (18%)</span>
                     <span className="font-mono text-white">
-                      ₹{priceSummary.gstTaxTotal}
+                      ₹{currentSession?.tax ?? priceSummary.gstTaxTotal}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center border-t border-[#1E293B] pt-3 text-base font-bold text-white">
                     <span>Grand Total</span>
                     <span className="font-mono text-xl font-black text-[#FBBF24]">
-                      ₹{priceSummary.grandTotal}
+                      ₹{currentSession?.grandTotal ?? priceSummary.grandTotal}
                     </span>
                   </div>
                 </div>
@@ -665,19 +833,19 @@ export default function ShowBookingPage() {
                 <Button
                   variant="primary"
                   size="lg"
-                  disabled={priceSummary.seatCount === 0}
-                  onClick={() => setIsSuccessModalOpen(true)}
+                  disabled={selectedSeatNumbers.length === 0 || isSessionLoading}
+                  onClick={openReviewModal}
                   className="w-full font-bold shadow-xl shadow-amber-400/20 text-sm gap-2"
                 >
                   <Ticket className="h-4 w-4" />
                   <span>
-                    Proceed to Reserve ({priceSummary.seatCount}{" "}
-                    {priceSummary.seatCount === 1 ? "Seat" : "Seats"})
+                    Proceed to Reserve ({selectedSeatNumbers.length}{" "}
+                    {selectedSeatNumbers.length === 1 ? "Seat" : "Seats"})
                   </span>
                 </Button>
 
                 <p className="text-[10px] text-center text-[#64748B]">
-                  Per architectural specifications: Booking confirmation & UPI payment execute in Phase 2 Part 11.
+                  Temporary seat lock holds your reservation for 10 minutes. Confirmed Booking ID is issued strictly after payment confirmation.
                 </p>
               </div>
             </div>
@@ -685,83 +853,11 @@ export default function ShowBookingPage() {
         </div>
       </div>
 
-      {/* 5. ARCHITECTURAL HANDOFF MODAL (PHASE 2 PART 10 COMPLETION) */}
-      {isSuccessModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-[#0B1220] border border-[#2A3445] rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-6 shadow-2xl relative">
-            <div className="text-center space-y-2">
-              <div className="h-14 w-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto shadow-lg">
-                <CheckCircle2 className="h-8 w-8" />
-              </div>
-              <h3 className="text-xl font-black text-white">
-                Customer Discovery & Selection Complete
-              </h3>
-              <p className="text-xs text-[#94A3B8]">
-                All 4 discovery journeys have successfully converged into the central Show ID ({show.id}).
-              </p>
-            </div>
+      {/* 5. PRE-PAYMENT BOOKING REVIEW MODAL (PHASE 2 PART 11) */}
+      <BookingReviewModal />
 
-            {/* Resolved Show Summary Box */}
-            <div className="p-4 rounded-2xl bg-[#111827] border border-[#2A3445] space-y-2.5 text-xs">
-              <div className="flex justify-between items-center text-[11px] text-[#94A3B8]">
-                <span>Show Code</span>
-                <span className="font-mono font-bold text-white">{show.showCode}</span>
-              </div>
-              <div className="flex justify-between items-center text-[11px] text-[#94A3B8]">
-                <span>Film & Format</span>
-                <span className="font-bold text-white">{movie.title} ({show.format})</span>
-              </div>
-              <div className="flex justify-between items-center text-[11px] text-[#94A3B8]">
-                <span>Venue & Screen</span>
-                <span className="text-white">{theatre.name} • {show.hallName}</span>
-              </div>
-              <div className="flex justify-between items-center text-[11px] text-[#94A3B8]">
-                <span>Selected Seats ({priceSummary.seatCount})</span>
-                <span className="font-mono font-bold text-[#FBBF24]">
-                  {selectedSeatNumbers.join(", ")}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-sm font-bold text-white border-t border-[#1E293B] pt-2">
-                <span>Total Amount</span>
-                <span className="text-emerald-400 font-mono text-base">
-                  ₹{priceSummary.grandTotal}
-                </span>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-amber-400/10 border border-amber-400/20 text-xs text-amber-300 flex items-start gap-2">
-              <Info className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-              <p className="text-[11px] leading-relaxed">
-                <strong>Phase 2 Part 10 Scope Boundary:</strong> Booking confirmation, concurrency lock timers, direct UPI payment gateways, QR tickets, and Three.js 3D seats belong to subsequent parts.
-              </p>
-            </div>
-
-            <div className="space-y-2.5">
-              <Button
-                variant="primary"
-                size="md"
-                className="w-full font-bold shadow-lg"
-                onClick={() => {
-                  setIsSuccessModalOpen(false);
-                }}
-              >
-                Back to Seat Map
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-xs text-[#94A3B8] border-[#2A3445]"
-                onClick={() => {
-                  setIsSuccessModalOpen(false);
-                  router.push("/movies");
-                }}
-              >
-                Explore Other Movies
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 6. EXPIRATION CONCURRENCY MODAL */}
+      <BookingSessionExpiredModal onRestart={() => initSession(showId)} />
     </div>
   );
 }
