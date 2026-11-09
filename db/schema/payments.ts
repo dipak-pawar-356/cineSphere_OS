@@ -6,10 +6,13 @@ import {
   decimal,
   timestamp,
   jsonb,
+  integer,
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import {
+  paymentProviderEnum,
+  paymentProviderStatusEnum,
   paymentStatusEnum,
   paymentMethodEnum,
   settlementPeriodEnum,
@@ -20,6 +23,7 @@ import { theatres } from "./theatres";
  * ==============================================================================
  * CineSphere OS - Multi-Tenant Payment Configurations & Ledger Schema
  * Payment rails strictly belong to the hosting Theatre, NEVER to Platform
+ * Separates Payment Configurations from Payment Transactions
  * ==============================================================================
  */
 
@@ -31,18 +35,26 @@ export const paymentConfigurations = pgTable(
       .$defaultFn(() => crypto.randomUUID()),
     theatreId: varchar("theatre_id", { length: 36 })
       .notNull()
-      .unique()
       .references(() => theatres.id, { onDelete: "cascade" }),
-    upiId: varchar("upi_id", { length: 100 }).notNull(),
     businessName: varchar("business_name", { length: 150 }).notNull(),
     merchantName: varchar("merchant_name", { length: 150 }).notNull(),
+    merchantDisplayName: varchar("merchant_display_name", { length: 150 }),
+    provider: paymentProviderEnum("provider").notNull().default("UPI"),
+    upiId: varchar("upi_id", { length: 100 }).notNull(),
+    merchantCode: varchar("merchant_code", { length: 20 }).notNull().default("7832"), // MCC 7832: Motion Picture Theatres
+    configVersion: integer("config_version").notNull().default(1),
     qrPlaceholder: text("qr_placeholder").notNull(),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    status: paymentProviderStatusEnum("status").notNull().default("ACTIVE"),
     bankName: varchar("bank_name", { length: 100 }).notNull().default("HDFC Bank"),
     accountNumberMasked: varchar("account_number_masked", { length: 50 }),
     ifscCode: varchar("ifsc_code", { length: 20 }),
     settlementPeriod: settlementPeriodEnum("settlement_period")
       .notNull()
       .default("T_PLUS_1_DAILY"),
+    description: text("description"),
+    credentials: jsonb("credentials").$type<Record<string, unknown>>().default({}),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
     
     // Future Gateway Rail Credentials (Encrypted/Masked)
     razorpayKeyId: varchar("razorpay_key_id", { length: 120 }),
@@ -59,7 +71,9 @@ export const paymentConfigurations = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex("payment_configurations_theatre_id_idx").on(table.theatreId),
+    index("payment_configurations_theatre_id_idx").on(table.theatreId),
+    index("payment_configurations_provider_idx").on(table.provider),
+    index("payment_configurations_status_idx").on(table.status),
     index("payment_configurations_upi_id_idx").on(table.upiId),
   ]
 );

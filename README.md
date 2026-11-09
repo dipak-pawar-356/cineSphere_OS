@@ -477,6 +477,30 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Tamper-evident reservation engine audit trail (`BookingAuditLog`) logging every session lifecycle event.
 - 📚 **Booking Engine Architecture Guide:** Detailed technical documentation in [`docs/BOOKING_ENGINE_AND_RESERVATION_ARCHITECTURE.md`](./docs/BOOKING_ENGINE_AND_RESERVATION_ARCHITECTURE.md).
 
+### 2.13 Phase 2 - Part 12: Theatre Payment Configuration & Architecture (Completed)
+- 💳 **Clean Architectural Separation of Configuration from Transactions:**
+  - Decouples the physical theatre entity from payment rails and payment transactions:
+    ```
+    Platform → Theatre → Payment Configuration (1:N) → Payment Provider → Booking → Payment Transaction
+    ```
+- ⚡ **The Dynamic QR Invariant (Zero Static Image Blobs):**
+  - Storing static QR images is replaced with dynamic NPCI UPI Intent URI generation on the fly:
+    `upi://pay?pa=${upiId}&pn=${merchantName}&mc=7832&cu=INR&am=${amount}&tr=${ref}&tn=${note}`
+  - Renders QR dynamically from metadata (Merchant Name, UPI ID, MCC 7832, Version), guaranteeing zero staleness upon VPA or price changes.
+- 🎯 **Multi-Rail & Multi-Provider Orchestration:**
+  - Supports 1:N payment configurations per theatre (e.g. Primary Box Office UPI, F&B Concessions Stand UPI, Razorpay Gateway, PhonePe Direct, Stripe International, Cash Counter Drawer).
+  - Primary Rail designation with automatic demotion of previous primary configuration.
+- 🛡️ **Multi-Tenant Isolation & Role Security:**
+  - Theatre Admins manage strictly their own cinema's payment rails; cross-tenant updates/deletions throw strict authorization violations.
+  - Customer role automatically sanitizes private credentials, secret keys, and internal settlement bank accounts.
+- 📜 **Configuration Versioning & Audit Ledger:**
+  - Automated version increments (`configVersion: v1 -> v2`) and tamper-evident audit logs (`PaymentAuditLog`) tracking all state transitions.
+- 🖥️ **Theatre Admin Payment Hub (`/theatre/upi` & `/theatre/payments`):**
+  - Multi-rail configuration manager with live dynamic QR previewer and test amount synthesizer.
+  - Direct integration cards for supplementary gateways (Razorpay, PhonePe, Paytm, Stripe, Cash Drawer).
+  - Multi-rail daily settlement reconciliation tracking volume, count, and zero-MDR UPI advantages.
+- 📚 **Payment Architecture Guide:** Detailed technical documentation in [`docs/THEATRE_PAYMENT_CONFIGURATION_ARCHITECTURE.md`](./docs/THEATRE_PAYMENT_CONFIGURATION_ARCHITECTURE.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -497,6 +521,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 💳 [`docs/THEATRE_PAYMENT_CONFIGURATION_ARCHITECTURE.md`](./docs/THEATRE_PAYMENT_CONFIGURATION_ARCHITECTURE.md) — Theatre Payment Configuration & Payment Architecture, 1:N Rails, Dynamic NPCI QR Derivation, Multi-Tenant Isolation & Audit Trail (Phase 2 - Part 12).
 - 🎟️ [`docs/BOOKING_ENGINE_AND_RESERVATION_ARCHITECTURE.md`](./docs/BOOKING_ENGINE_AND_RESERVATION_ARCHITECTURE.md) — Booking Engine & Seat Reservation Architecture, 3-Tier Layering Model, Session vs Booking ID, Concurrency Locks & Audit Trail (Phase 2 - Part 11).
 - 🧭 [`docs/CUSTOMER_DISCOVERY_AND_BOOKING_FLOW.md`](./docs/CUSTOMER_DISCOVERY_AND_BOOKING_FLOW.md) — Customer Discovery & Booking Flow Architecture, Multi-Journey Convergence (City, Movie, Theatre, Direct), Unified Single Show ID Snapshot & Interactive 2D Seat Matrix (Phase 2 - Part 10).
 - 💰 [`docs/DYNAMIC_PRICING_ENGINE.md`](./docs/DYNAMIC_PRICING_ENGINE.md) — Dynamic Pricing Engine Architecture, Fundamental Separation Law, Reusable Profiles, Section Hierarchy & Seat Calculation Simulator (Phase 2 - Part 9).

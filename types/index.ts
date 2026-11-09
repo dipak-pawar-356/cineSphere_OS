@@ -21,3 +21,4 @@ export * from "./report.types";
 export * from "./dashboard.types";
 export * from "./faq.types";
 export * from "./navigation.types";
+export * from "./payment-config.types";

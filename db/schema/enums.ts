@@ -171,20 +171,51 @@ export const bookingStatusEnum = pgEnum("booking_status", [
   "EXPIRED",
 ]);
 
+export const paymentProviderEnum = pgEnum("payment_provider", [
+  "UPI",
+  "RAZORPAY",
+  "PHONEPE",
+  "PAYTM",
+  "STRIPE",
+  "CASH_COUNTER",
+  "CORPORATE_BILLING",
+  "GIFT_CARD",
+  "FUTURE_PROVIDER",
+]);
+
+export const paymentProviderStatusEnum = pgEnum("payment_provider_status", [
+  "DRAFT",
+  "ACTIVE",
+  "INACTIVE",
+  "DISABLED",
+  "ARCHIVED",
+]);
+
 export const paymentStatusEnum = pgEnum("payment_status", [
-  "PAID",
   "PENDING",
-  "REFUNDED",
+  "AUTHORIZED",
+  "CAPTURED",
+  "PAID",
   "FAILED",
+  "CANCELLED",
+  "REFUNDED",
+  "PARTIALLY_REFUNDED",
+  "EXPIRED",
 ]);
 
 export const paymentMethodEnum = pgEnum("payment_method", [
   "UPI",
+  "CARDS",
   "CREDIT_CARD",
   "DEBIT_CARD",
   "NET_BANKING",
-  "CASH",
   "WALLET",
+  "EMI",
+  "CASH_COUNTER",
+  "CASH",
+  "CORPORATE_BILLING",
+  "GIFT_VOUCHER",
+  "MEMBERSHIP_WALLET",
 ]);
 
 export const ticketStatusEnum = pgEnum("ticket_status", [

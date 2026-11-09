@@ -10,3 +10,4 @@ export * from "./booking-engine";
 export * from "./customer-discovery-engine";
 export * from "./pricing-engine";
 export * from "./scheduling-engine";
+export * from "./payment-config-engine";
