@@ -46,6 +46,7 @@ export default function TheatresPage() {
 
   const [activeFilter, setActiveFilter] = useState("All Complexes");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [filterByCityOnly, setFilterByCityOnly] = useState(false);
 
   // Fetch all published venues
@@ -115,6 +116,23 @@ export default function TheatresPage() {
       (t) => t.city.toLowerCase() === selectedCity.name.toLowerCase()
     ).length;
   }, [allTheatres, selectedCity]);
+
+  // Search Suggestions (Interactive autocomplete)
+  const theatreSuggestions = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return ["CineSphere Grand Cinemas", "PVR ICON", "INOX Megaplex", "IMAX Laser", "Dolby Cinema"];
+    }
+    const q = searchQuery.toLowerCase().trim();
+    return allTheatres
+      .filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          t.chain.toLowerCase().includes(q) ||
+          t.city.toLowerCase().includes(q)
+      )
+      .slice(0, 5)
+      .map((t) => t.name);
+  }, [searchQuery, allTheatres]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -196,6 +214,8 @@ export default function TheatresPage() {
               type="text"
               placeholder="Search by complex name, street, city, or cinema circuit..."
               value={searchQuery}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[#070B12] border border-[#2A3445] text-xs text-white placeholder-[#64748B] focus:outline-none focus:border-[#FBBF24]"
             />
@@ -207,6 +227,30 @@ export default function TheatresPage() {
               >
                 <X className="h-4 w-4" />
               </button>
+            )}
+
+            {/* Interactive Search Suggestions Dropdown */}
+            {isSearchFocused && theatreSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1.5 rounded-xl bg-[#0B1220] border border-[#2A3445] p-2 shadow-2xl z-30 space-y-1">
+                <div className="text-[10px] font-mono text-slate-500 uppercase px-2 py-0.5">
+                  {searchQuery ? "Matching Complexes & Circuits" : "Popular Complexes"}
+                </div>
+                {theatreSuggestions.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setSearchQuery(s);
+                      setIsSearchFocused(false);
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-200 hover:text-white hover:bg-[#161F2E] flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span>{s}</span>
+                    <Search className="w-3 h-3 text-slate-500" />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 

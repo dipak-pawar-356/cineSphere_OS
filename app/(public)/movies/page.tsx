@@ -59,6 +59,7 @@ export default function MoviesPage() {
 
   const [activeTab, setActiveTab] = useState<MovieTab>("Now Showing");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [selectedLanguage, setSelectedLanguage] = useState("All");
   const [selectedFormat, setSelectedFormat] = useState("All");
@@ -167,6 +168,23 @@ export default function MoviesPage() {
   }, [filteredMovies, currentPage]);
 
   const totalPages = Math.max(1, Math.ceil(filteredMovies.length / pageSize));
+
+  // Search Suggestions (Interactive autocomplete)
+  const searchSuggestions = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return ["Pushpa 2", "Kantara", "Gladiator II", "Dune", "Action", "IMAX"];
+    }
+    const q = searchQuery.toLowerCase().trim();
+    return allMovies
+      .filter(
+        (m) =>
+          m.title.toLowerCase().includes(q) ||
+          m.genre.some((g) => g.toLowerCase().includes(q)) ||
+          (m.director && m.director.toLowerCase().includes(q))
+      )
+      .slice(0, 5)
+      .map((m) => m.title);
+  }, [searchQuery, allMovies]);
 
   const resetFilters = () => {
     setSelectedGenre("All");
@@ -277,6 +295,8 @@ export default function MoviesPage() {
               type="text"
               placeholder="Search by movie title, genre, director, or cast..."
               value={searchQuery}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
@@ -291,6 +311,31 @@ export default function MoviesPage() {
               >
                 <X className="w-3.5 h-3.5" />
               </button>
+            )}
+
+            {/* Interactive Search Suggestions Dropdown */}
+            {isSearchFocused && searchSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1.5 rounded-xl bg-[#0B1220] border border-[#2A3445] p-2 shadow-2xl z-30 space-y-1">
+                <div className="text-[10px] font-mono text-slate-500 uppercase px-2 py-0.5">
+                  {searchQuery ? "Matching Titles & Categories" : "Popular Searches"}
+                </div>
+                {searchSuggestions.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setSearchQuery(s);
+                      setIsSearchFocused(false);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-200 hover:text-white hover:bg-[#161F2E] flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span>{s}</span>
+                    <Search className="w-3 h-3 text-slate-500" />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
