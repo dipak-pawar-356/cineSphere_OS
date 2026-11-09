@@ -13,3 +13,4 @@ export * from "./scheduling-engine";
 export * from "./payment-config-engine";
 export * from "./ticket-engine";
 export * from "./notification-engine";
+export * from "./analytics-engine";

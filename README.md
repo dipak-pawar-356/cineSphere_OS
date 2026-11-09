@@ -550,6 +550,26 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - **Super Admin Portal (`/dashboard/notifications`):** Platform-wide incident notifications, security advisories, onboarding review triggers, and live dispatch audit trail stream.
 - 📚 **Notification System Guide:** Detailed architecture in [`docs/NOTIFICATION_AND_COMMUNICATION_SYSTEM.md`](./docs/NOTIFICATION_AND_COMMUNICATION_SYSTEM.md).
 
+### 2.16 Phase 2 - Part 15: Reporting, Analytics & Business Intelligence (Completed)
+- 📊 **Decoupled Analytics Layer Architecture:**
+  - Dashboards **never** query raw transactional tables directly on refresh; pre-aggregated summary entities (`analyticsSummaries`, `reportSnapshots`) eliminate database lock contention and scale to millions of bookings.
+- 📐 **Centralized KPI Calculation Engine:**
+  - Standardized mathematical formulas across all dashboards: Occupancy %, Average Ticket Price (ATP), Average Booking Value (ABV), Revenue per Available Seat (RevPAS), Revenue per Show, Conversion Rate, Cancellation Rate, and Customer LTV.
+- 🏢 **Tenant-Isolated Theatre Admin Analytics (`/theatre/analytics`):**
+  - Live operational KPI cards, movie box office share, hall and section fill rates, peak operating hours (18:00 & 21:00 spikes), payment method breakdown (NPCI UPI 68%, Cards 24%), customer cohort velocity, and live telemetry placeholders.
+- 🌐 **Super Admin Platform Control Plane (`/dashboard/analytics`):**
+  - Cross-circuit national performance (25 multiplexes, ₹8.45 Cr revenue), metropolitan market shares (Mumbai, Bengaluru, Delhi NCR, Pune, Hyderabad), and top-grossing movie titles.
+- 🔍 **Hierarchical Performance Trace Navigator:**
+  - Natural drill-down hierarchy:
+    ```
+    Platform → Theatre → Hall → Show → Booking → Ticket
+    ```
+- 📈 **Reusable Zero-Dependency Chart Components:**
+  - Pure SVG & Tailwind components: `AreaChart`, `LineChart`, `BarChart`, `DonutChart`, `PieChart`, `HeatmapChart`, and `TrendMetricCard`.
+- 📋 **Configurable Reports Engine (`/theatre/reports` & `/dashboard/reports`):**
+  - Point-in-time immutable report snapshot generation with customizable dimensions, metrics, and date ranges.
+- 📚 **Reporting & BI Architecture Guide:** Detailed technical documentation in [`docs/REPORTING_ANALYTICS_AND_BUSINESS_INTELLIGENCE.md`](./docs/REPORTING_ANALYTICS_AND_BUSINESS_INTELLIGENCE.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -570,6 +590,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 📊 [`docs/REPORTING_ANALYTICS_AND_BUSINESS_INTELLIGENCE.md`](./docs/REPORTING_ANALYTICS_AND_BUSINESS_INTELLIGENCE.md) — Reporting, Analytics & Business Intelligence Architecture, Decoupled Aggregation Marts, Centralized KPI Engine, Hierarchical Trace Navigator & Configurable Snapshots (Phase 2 - Part 15).
 - 🔔 [`docs/NOTIFICATION_AND_COMMUNICATION_SYSTEM.md`](./docs/NOTIFICATION_AND_COMMUNICATION_SYSTEM.md) — Centralized Notification & Communication System, Event-Driven Decoupled Bus, Template Engine, Multi-Channel Manifest & Preferences Matrix (Phase 2 - Part 14).
 - 🎟️ [`docs/TICKET_MANAGEMENT_AND_DIGITAL_TICKETS.md`](./docs/TICKET_MANAGEMENT_AND_DIGITAL_TICKETS.md) — Digital Ticket Management & QR Architecture, 4-Tier Identifier Separation, Dynamic QR Payload, Multi-Ticket Strategies & Public URL Security (Phase 2 - Part 13).
 - 💳 [`docs/THEATRE_PAYMENT_CONFIGURATION_ARCHITECTURE.md`](./docs/THEATRE_PAYMENT_CONFIGURATION_ARCHITECTURE.md) — Theatre Payment Configuration & Payment Architecture, 1:N Rails, Dynamic NPCI QR Derivation, Multi-Tenant Isolation & Audit Trail (Phase 2 - Part 12).

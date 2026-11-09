@@ -22,7 +22,7 @@ import {
 } from "./movies";
 import { shows, showPricing, seatInventory } from "./shows";
 import { bookingSessions, bookings, bookingSeats, tickets } from "./bookings";
-import { auditLogs, notifications, reports, notificationPreferences } from "./operations";
+import { auditLogs, notifications, reports, notificationPreferences, analyticsSummaries, reportSnapshots } from "./operations";
 import { mediaLibrary, systemSettings } from "./system";
 
 /**
@@ -533,6 +533,24 @@ export const reportsRelations = relations(reports, ({ one }) => ({
   }),
   generator: one(users, {
     fields: [reports.generatedBy],
+    references: [users.id],
+  }),
+}));
+
+export const analyticsSummariesRelations = relations(analyticsSummaries, ({ one }) => ({
+  theatre: one(theatres, {
+    fields: [analyticsSummaries.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const reportSnapshotsRelations = relations(reportSnapshots, ({ one }) => ({
+  theatre: one(theatres, {
+    fields: [reportSnapshots.theatreId],
+    references: [theatres.id],
+  }),
+  generator: one(users, {
+    fields: [reportSnapshots.generatedBy],
     references: [users.id],
   }),
 }));
