@@ -171,16 +171,13 @@ export function getBookingSession(sessionId: string): BookingSession | null {
     return expireBookingSession(sessionId);
   }
 
-  // Update real-time remaining seconds
-  const remainingSecs = Math.max(
+  // Update real-time remaining seconds directly on the active session
+  session.timeRemainingSeconds = Math.max(
     0,
     Math.floor((new Date(session.expiresAt).getTime() - Date.now()) / 1000)
   );
 
-  return {
-    ...session,
-    timeRemainingSeconds: remainingSecs,
-  };
+  return session;
 }
 
 /**
