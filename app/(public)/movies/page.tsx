@@ -27,10 +27,17 @@ import {
   Calendar,
   X,
   Eye,
+  Heart,
 } from "lucide-react";
 import { cn } from "@/utils";
 
-type MovieTab = "Now Showing" | "Coming Soon" | "Trending" | "Recommended" | "Recently Viewed";
+type MovieTab =
+  | "Now Showing"
+  | "Coming Soon"
+  | "Trending"
+  | "Recommended"
+  | "Recently Viewed"
+  | "Favorites";
 
 const GENRES = [
   "All",
@@ -57,20 +64,41 @@ export default function MoviesPage() {
   const [selectedFormat, setSelectedFormat] = useState("All");
   const [selectedCertificate, setSelectedCertificate] = useState("All");
   const [recentlyViewedSlugs, setRecentlyViewedSlugs] = useState<string[]>([]);
+  const [favoriteSlugs, setFavoriteSlugs] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
 
-  // Load recently viewed from localStorage
+  // Load recently viewed & favorites from localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem("cinesphere_recent_movies");
       if (stored) {
         setRecentlyViewedSlugs(JSON.parse(stored));
       }
+      const favs = localStorage.getItem("cinesphere_favorite_movies");
+      if (favs) {
+        setFavoriteSlugs(JSON.parse(favs));
+      }
     } catch {
       // Fallback
     }
   }, []);
+
+  const toggleFavorite = (slug: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFavoriteSlugs((prev) => {
+      const updated = prev.includes(slug)
+        ? prev.filter((s) => s !== slug)
+        : [...prev, slug];
+      try {
+        localStorage.setItem("cinesphere_favorite_movies", JSON.stringify(updated));
+      } catch {
+        // Fallback
+      }
+      return updated;
+    });
+  };
 
   const allMovies = useMemo(() => getAllPublishedMovies(), []);
 
@@ -89,6 +117,8 @@ export default function MoviesPage() {
       list = list.filter((m) => m.isFeatured || m.rating >= 8.5);
     } else if (activeTab === "Recently Viewed") {
       list = list.filter((m) => recentlyViewedSlugs.includes(m.slug));
+    } else if (activeTab === "Favorites") {
+      list = list.filter((m) => favoriteSlugs.includes(m.slug));
     }
 
     // 2. Facet Filtering
@@ -127,6 +157,7 @@ export default function MoviesPage() {
     selectedCertificate,
     searchQuery,
     recentlyViewedSlugs,
+    favoriteSlugs,
   ]);
 
   // Paginated Movies
@@ -200,6 +231,7 @@ export default function MoviesPage() {
             { id: "Trending", label: "Trending", icon: Flame },
             { id: "Recommended", label: "Recommended", icon: Sparkles },
             { id: "Recently Viewed", label: "Recently Viewed", icon: Eye },
+            { id: "Favorites", label: "Favorites", icon: Heart },
           ] as const
         ).map((tab) => {
           const isActive = activeTab === tab.id;
@@ -224,6 +256,11 @@ export default function MoviesPage() {
               {tab.id === "Recently Viewed" && recentlyViewedSlugs.length > 0 && (
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-amber-400">
                   {recentlyViewedSlugs.length}
+                </span>
+              )}
+              {tab.id === "Favorites" && favoriteSlugs.length > 0 && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-950 text-rose-400 border border-rose-800">
+                  {favoriteSlugs.length}
                 </span>
               )}
             </button>
@@ -390,9 +427,25 @@ export default function MoviesPage() {
                   <span>{movie.rating.toFixed(1)}</span>
                 </div>
 
-                {/* Certificate */}
-                <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/80 border border-slate-700 text-slate-300 text-[10px] font-bold font-mono">
-                  {movie.certification}
+                {/* Favorite Toggle & Certificate */}
+                <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
+                  <button
+                    type="button"
+                    onClick={(e) => toggleFavorite(movie.slug, e)}
+                    className="p-1 rounded-md bg-black/80 backdrop-blur-md border border-slate-700 hover:border-rose-400 text-slate-300 hover:text-rose-400 transition-colors cursor-pointer"
+                    title={favoriteSlugs.includes(movie.slug) ? "Remove from Favorites" : "Add to Favorites"}
+                  >
+                    <Heart
+                      className={cn(
+                        "w-3 h-3 transition-colors",
+                        favoriteSlugs.includes(movie.slug) && "fill-rose-500 text-rose-500"
+                      )}
+                    />
+                  </button>
+
+                  <div className="px-2 py-0.5 rounded-md bg-black/80 border border-slate-700 text-slate-300 text-[10px] font-bold font-mono">
+                    {movie.certification}
+                  </div>
                 </div>
 
                 {/* Starting Price Pill */}
@@ -512,6 +565,22 @@ export default function MoviesPage() {
           </Button>
         </div>
       )}
+
+      {/* 7. Infinite Scroll & Discovery Mode Indicator */}
+      <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>
+            Displaying page <strong className="text-white">{currentPage}</strong> of <strong className="text-white">{totalPages}</strong> ({filteredMovies.length} total releases matching current filters)
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-[#111827] border border-[#2A3445] text-slate-300">
+            Infinite Scroll Mode: Ready
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

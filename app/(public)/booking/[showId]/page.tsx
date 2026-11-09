@@ -37,6 +37,9 @@ import {
   AlertCircle,
   MapPin,
   HelpCircle,
+  Ban,
+  Wrench,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/utils";
 
@@ -82,7 +85,12 @@ export default function ShowBookingPage() {
 
   // Seat Click Handler
   const handleSeatClick = (seat: CustomerSeatDTO) => {
-    if (seat.status === "Booked" || seat.status === "Reserved") {
+    if (
+      seat.status === "Booked" ||
+      seat.status === "Reserved" ||
+      seat.status === "Blocked" ||
+      seat.status === "Maintenance"
+    ) {
       return; // Non-selectable
     }
 
@@ -354,6 +362,8 @@ export default function ShowBookingPage() {
                               const isSelected = selectedSeatNumbers.includes(seat.seatNumber);
                               const isBooked = seat.status === "Booked";
                               const isReserved = seat.status === "Reserved";
+                              const isBlocked = seat.status === "Blocked";
+                              const isMaintenance = seat.status === "Maintenance";
                               const isAvailable = seat.status === "Available";
 
                               return (
@@ -364,26 +374,38 @@ export default function ShowBookingPage() {
                                   onClick={() => handleSeatClick(seat)}
                                   title={`${seat.seatNumber} • ${seat.sectionName} • ₹${seat.price} (${seat.status})`}
                                   className={cn(
-                                    "relative h-7 w-7 sm:h-8 sm:w-8 rounded-t-lg rounded-b-md text-[10px] font-mono font-bold transition-all flex items-center justify-center cursor-pointer select-none",
+                                    "relative h-7 w-7 sm:h-8 sm:w-8 rounded-t-lg rounded-b-md text-[10px] font-mono font-bold transition-all flex items-center justify-center select-none",
                                     // Available state
                                     isAvailable &&
                                       !isSelected &&
-                                      "bg-[#161F2E] text-[#CBD5E1] border border-[#2A3445] hover:border-amber-400 hover:text-white hover:scale-105 shadow-sm",
+                                      "bg-[#161F2E] text-[#CBD5E1] border border-[#2A3445] hover:border-amber-400 hover:text-white hover:scale-105 shadow-sm cursor-pointer",
                                     // Selected state (Amber glow with checkmark)
                                     isSelected &&
-                                      "bg-[#FBBF24] text-black border-2 border-white shadow-lg shadow-amber-400/40 scale-105 z-10",
+                                      "bg-[#FBBF24] text-black border-2 border-white shadow-lg shadow-amber-400/40 scale-105 z-10 cursor-pointer",
                                     // Booked / Sold state
                                     isBooked &&
                                       "bg-[#0D131F] text-[#475569] border border-[#1E293B] cursor-not-allowed opacity-50",
                                     // Reserved state
                                     isReserved &&
-                                      "bg-[#0D131F] text-[#475569] border border-dashed border-[#2A3445] cursor-not-allowed opacity-60"
+                                      "bg-[#0D131F] text-[#475569] border border-dashed border-[#2A3445] cursor-not-allowed opacity-60",
+                                    // Blocked state
+                                    isBlocked &&
+                                      "bg-rose-950/20 text-rose-500 border border-rose-900/40 cursor-not-allowed opacity-50",
+                                    // Maintenance state
+                                    isMaintenance &&
+                                      "bg-amber-950/20 text-amber-500 border border-amber-900/40 cursor-not-allowed opacity-50"
                                   )}
                                 >
                                   {isSelected ? (
                                     <Check className="h-3.5 w-3.5 stroke-[3]" />
                                   ) : isBooked ? (
                                     <X className="h-3 w-3 text-[#475569]" />
+                                  ) : isReserved ? (
+                                    <Lock className="h-2.5 w-2.5 text-[#64748B]" />
+                                  ) : isBlocked ? (
+                                    <Ban className="h-2.5 w-2.5 text-rose-500/80" />
+                                  ) : isMaintenance ? (
+                                    <Wrench className="h-2.5 w-2.5 text-amber-500/80" />
                                   ) : seat.isWheelchair ? (
                                     <Accessibility className="h-3.5 w-3.5 text-sky-400" />
                                   ) : seat.isRecliner ? (
@@ -433,7 +455,7 @@ export default function ShowBookingPage() {
               </div>
 
               {/* Status Guide */}
-              <div className="flex flex-wrap items-center gap-3 sm:gap-5 border-t border-[#1E293B] pt-3 text-[#94A3B8]">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 border-t border-[#1E293B] pt-3 text-[#94A3B8]">
                 <div className="flex items-center gap-1.5">
                   <div className="w-4 h-4 rounded-t-md rounded-b border border-[#2A3445] bg-[#161F2E]" />
                   <span>Available</span>
@@ -451,6 +473,27 @@ export default function ShowBookingPage() {
                     <X className="h-2.5 w-2.5 text-[#475569]" />
                   </div>
                   <span>Sold Out</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-t-md rounded-b bg-[#0D131F] border border-dashed border-[#2A3445] flex items-center justify-center">
+                    <Lock className="h-2 w-2 text-[#64748B]" />
+                  </div>
+                  <span>Reserved</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-t-md rounded-b bg-rose-950/40 border border-rose-900/60 flex items-center justify-center">
+                    <Ban className="h-2 w-2 text-rose-500" />
+                  </div>
+                  <span>Blocked</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-t-md rounded-b bg-amber-950/40 border border-amber-900/60 flex items-center justify-center">
+                    <Wrench className="h-2 w-2 text-amber-500" />
+                  </div>
+                  <span>Maintenance</span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
