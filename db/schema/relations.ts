@@ -21,7 +21,7 @@ import {
   movieTrailers,
 } from "./movies";
 import { shows, showPricing, seatInventory } from "./shows";
-import { bookings, bookingSeats, tickets } from "./bookings";
+import { bookingSessions, bookings, bookingSeats, tickets } from "./bookings";
 import { auditLogs, notifications, reports } from "./operations";
 import { mediaLibrary, systemSettings } from "./system";
 
@@ -408,6 +408,29 @@ export const seatInventoryRelations = relations(seatInventory, ({ one, many }) =
 // ------------------------------------------------------------------------------
 // Booking & Ticket Relations
 // ------------------------------------------------------------------------------
+export const bookingSessionsRelations = relations(bookingSessions, ({ one }) => ({
+  customer: one(users, {
+    fields: [bookingSessions.customerId],
+    references: [users.id],
+  }),
+  show: one(shows, {
+    fields: [bookingSessions.showId],
+    references: [shows.id],
+  }),
+  theatre: one(theatres, {
+    fields: [bookingSessions.theatreId],
+    references: [theatres.id],
+  }),
+  hall: one(halls, {
+    fields: [bookingSessions.hallId],
+    references: [halls.id],
+  }),
+  booking: one(bookings, {
+    fields: [bookingSessions.bookingId],
+    references: [bookings.id],
+  }),
+}));
+
 export const bookingsRelations = relations(bookings, ({ one, many }) => ({
   customer: one(users, {
     fields: [bookings.customerId],

@@ -155,6 +155,14 @@ export const showStatusEnum = pgEnum("show_status", [
 // ------------------------------------------------------------------------------
 // Booking, Payment & Ticket Enums
 // ------------------------------------------------------------------------------
+export const bookingSessionStatusEnum = pgEnum("booking_session_status", [
+  "ACTIVE",
+  "EXPIRED",
+  "CANCELLED",
+  "COMPLETED",
+  "ABANDONED",
+]);
+
 export const bookingStatusEnum = pgEnum("booking_status", [
   "CONFIRMED",
   "CHECKED_IN",

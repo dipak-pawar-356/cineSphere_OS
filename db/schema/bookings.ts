@@ -6,10 +6,12 @@ import {
   decimal,
   timestamp,
   jsonb,
+  integer,
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import {
+  bookingSessionStatusEnum,
   bookingStatusEnum,
   paymentStatusEnum,
   ticketStatusEnum,
@@ -22,10 +24,60 @@ import { shows, seatInventory } from "./shows";
 
 /**
  * ==============================================================================
- * CineSphere OS - Bookings, Reserved Seats & Issued Tickets Schema
+ * CineSphere OS - Bookings, Temporary Sessions & Issued Tickets Schema
  * Customer reservations, multi-seat breakdown, and verified entry tickets
  * ==============================================================================
  */
+
+/**
+ * Ephemeral customer booking session holding temporary seat reservation locks.
+ * Strictly decoupled from permanent confirmed bookings.
+ */
+export const bookingSessions = pgTable(
+  "booking_sessions",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    sessionCode: varchar("session_code", { length: 50 }).notNull().unique(), // e.g. "SES-202611-9281"
+    customerId: varchar("customer_id", { length: 36 })
+      .references(() => users.id, { onDelete: "set null" }),
+    customerName: varchar("customer_name", { length: 150 }),
+    customerEmail: varchar("customer_email", { length: 255 }),
+    customerPhone: varchar("customer_phone", { length: 20 }),
+    ipAddress: varchar("ip_address", { length: 45 }),
+    showId: varchar("show_id", { length: 36 })
+      .notNull()
+      .references(() => shows.id, { onDelete: "cascade" }),
+    theatreId: varchar("theatre_id", { length: 36 })
+      .notNull()
+      .references(() => theatres.id, { onDelete: "cascade" }),
+    hallId: varchar("hall_id", { length: 36 })
+      .notNull()
+      .references(() => halls.id, { onDelete: "cascade" }),
+    status: bookingSessionStatusEnum("status").notNull().default("ACTIVE"),
+    subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull().default("0.00"),
+    convenienceFee: decimal("convenience_fee", { precision: 10, scale: 2 }).notNull().default("0.00"),
+    tax: decimal("tax", { precision: 10, scale: 2 }).notNull().default("0.00"),
+    discount: decimal("discount", { precision: 10, scale: 2 }).notNull().default("0.00"),
+    grandTotal: decimal("grand_total", { precision: 10, scale: 2 }).notNull().default("0.00"),
+    seatCount: integer("seat_count").notNull().default(0),
+    selectedSeatsData: jsonb("selected_seats_data").$type<Array<Record<string, unknown>>>().default([]),
+    isLocked: boolean("is_locked").notNull().default(false),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    bookingId: varchar("booking_id", { length: 36 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("booking_sessions_code_idx").on(table.sessionCode),
+    index("booking_sessions_show_id_idx").on(table.showId),
+    index("booking_sessions_theatre_id_idx").on(table.theatreId),
+    index("booking_sessions_customer_id_idx").on(table.customerId),
+    index("booking_sessions_status_idx").on(table.status),
+    index("booking_sessions_expires_at_idx").on(table.expiresAt),
+  ]
+);
 
 export const bookings = pgTable(
   "bookings",
