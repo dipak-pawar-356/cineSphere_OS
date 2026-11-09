@@ -5,6 +5,7 @@ import {
   CustomerDiscoveryFilters,
   CustomerMovieDTO,
   CustomerPriceSummaryDTO,
+  CustomerSeatDTO,
   CustomerShowDetailsResponse,
   CustomerShowDTO,
   CustomerTheatreDTO,
@@ -102,6 +103,23 @@ export async function fetchCustomerShowDetailsAction(
   return {
     success: true,
     data: details,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/**
+ * Server Action: Fetch Show Seat Inventory
+ * Resolves the generated seats from the Show Seat Inventory.
+ */
+export async function fetchSeatInventoryAction(
+  showId: string
+): Promise<DiscoveryActionResponse<CustomerSeatDTO[]>> {
+  const safeShowId = showId?.trim() || "show-pun-001";
+  const details = getUnifiedCustomerShowDetails(safeShowId);
+
+  return {
+    success: true,
+    data: details.seatInventory,
     timestamp: new Date().toISOString(),
   };
 }
