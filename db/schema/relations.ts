@@ -9,6 +9,10 @@ import {
   hallManagers,
   staff,
   customers,
+  theatreLifecycle,
+  theatreStatusHistory,
+  theatreApprovals,
+  theatreSlugHistory,
 } from "./theatres";
 import { paymentConfigurations, payments } from "./payments";
 import { halls, hallLayouts, hallSections, seatTemplates } from "./halls";
@@ -170,6 +174,57 @@ export const theatresRelations = relations(theatres, ({ one, many }) => ({
   theatreAmenities: many(theatreAmenities),
   mediaAssets: many(mediaLibrary),
   settings: many(systemSettings),
+  lifecycle: one(theatreLifecycle, {
+    fields: [theatres.id],
+    references: [theatreLifecycle.theatreId],
+  }),
+  statusHistory: many(theatreStatusHistory),
+  approvals: many(theatreApprovals),
+  slugHistory: many(theatreSlugHistory),
+}));
+
+export const theatreLifecycleRelations = relations(theatreLifecycle, ({ one }) => ({
+  theatre: one(theatres, {
+    fields: [theatreLifecycle.theatreId],
+    references: [theatres.id],
+  }),
+  lastTransitionUser: one(users, {
+    fields: [theatreLifecycle.lastTransitionBy],
+    references: [users.id],
+  }),
+}));
+
+export const theatreStatusHistoryRelations = relations(theatreStatusHistory, ({ one }) => ({
+  theatre: one(theatres, {
+    fields: [theatreStatusHistory.theatreId],
+    references: [theatres.id],
+  }),
+  changer: one(users, {
+    fields: [theatreStatusHistory.changedBy],
+    references: [users.id],
+  }),
+}));
+
+export const theatreApprovalsRelations = relations(theatreApprovals, ({ one }) => ({
+  theatre: one(theatres, {
+    fields: [theatreApprovals.theatreId],
+    references: [theatres.id],
+  }),
+  approver: one(users, {
+    fields: [theatreApprovals.approverId],
+    references: [users.id],
+  }),
+}));
+
+export const theatreSlugHistoryRelations = relations(theatreSlugHistory, ({ one }) => ({
+  theatre: one(theatres, {
+    fields: [theatreSlugHistory.theatreId],
+    references: [theatres.id],
+  }),
+  changer: one(users, {
+    fields: [theatreSlugHistory.changedBy],
+    references: [users.id],
+  }),
 }));
 
 export const amenitiesRelations = relations(amenities, ({ many }) => ({

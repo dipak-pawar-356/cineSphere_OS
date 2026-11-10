@@ -51,11 +51,23 @@ export const staffStatusEnum = pgEnum("staff_status", [
 // Multi-Tenant & Theatre Enums
 // ------------------------------------------------------------------------------
 export const theatreStatusEnum = pgEnum("theatre_status", [
+  "DRAFT",
+  "PENDING_APPROVAL",
+  "APPROVED",
   "ACTIVE",
+  "INACTIVE",
+  "SUSPENDED",
+  "ARCHIVED",
+  "SOFT_DELETED",
   "MAINTENANCE",
   "RENOVATING",
-  "PENDING_APPROVAL",
-  "SUSPENDED",
+]);
+
+export const theatreApprovalStatusEnum = pgEnum("theatre_approval_status", [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "REVISION_REQUESTED",
 ]);
 
 export const pricingTierEnum = pgEnum("pricing_tier", [

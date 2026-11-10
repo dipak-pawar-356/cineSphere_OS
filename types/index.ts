@@ -25,4 +25,5 @@ export * from "./payment-config.types";
 export * from "./ticket.types";
 export * from "./analytics.types";
 export * from "./security-hardening.types";
+export * from "./theatre-lifecycle.types";
 

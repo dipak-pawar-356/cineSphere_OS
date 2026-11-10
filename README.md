@@ -602,6 +602,24 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Production-ready endpoints: `/api/health` (deep diagnostics), `/api/health/live` (container liveness), and `/api/health/ready` (database readiness).
 - 📚 **Enterprise Security Guide:** Detailed technical documentation in [`docs/ENTERPRISE_SECURITY_AND_PLATFORM_HARDENING.md`](./docs/ENTERPRISE_SECURITY_AND_PLATFORM_HARDENING.md).
 
+### 2.18 Phase 3 - Part 1: Theatre Lifecycle Management (Completed)
+- 🔄 **Finite State Machine Governance (`ALLOWED_TRANSITIONS`):**
+  - Strictly enforces lifecycle progression: `DRAFT` → `PENDING_APPROVAL` → `APPROVED` → `ACTIVE` ↔ `SUSPENDED` → `ARCHIVED` → `SOFT_DELETED` (plus `INACTIVE`), preventing shortcut transitions into live production.
+- 🗄️ **Normalized Lifecycle Schema (`db/schema/theatres.ts`):**
+  - Extends `theatres` with `publicId`, `approvalStatus`, optimistic locking `version`, suspension/archival/soft-delete fields, plus dedicated `theatreLifecycle`, `theatreStatusHistory`, `theatreApprovals`, and `theatreSlugHistory` tables.
+- ✅ **Multi-Stage KYC Approval & Revision Loop:**
+  - Formal onboarding review workflow supporting `APPROVE`, `REJECT`, and `REQUEST_REVISION` with reviewer comments and append-only `theatreApprovals` ledger records.
+- ⛔ **Operational Lockouts, Archival & Soft Delete Invariants:**
+  - `SUSPENDED` strictly locks bookings, shows, and payment processing (`allowBookings`, `allowShows`, `allowPayments`).
+  - `ARCHIVED` puts multiplexes into read-only mode (`isReadOnly = true`) while preserving restore capability.
+  - `SOFT_DELETED` never performs destructive deletion, records `deletedBy`, `deletedAt`, and `deleteReason`, and explicitly blocks deletion while a complex is `ACTIVE`.
+- 🔗 **Unique Slug Management & Optimistic Concurrency:**
+  - Auto-generates collision-free slugs (`cineplex-royal-satara-satara`), validates manual overrides against active and historical slugs (`theatreSlugHistory`), and enforces `expectedVersion` optimistic locking (`ConflictError` on stale edits).
+- 🔒 **Multi-Tenant Field RBAC & Portal Integration:**
+  - `SUPER_ADMIN` oversees platform-wide fleet search, filtering, pagination, and transitions in `/dashboard/theatres` and `/dashboard/theatres/[id]`.
+  - `THEATRE_ADMIN` views read-only lifecycle governance and edits strictly permitted profile fields (`TheatreAdminEditableFields`) on their assigned complex in `/theatre/profile`.
+- 📚 **Theatre Lifecycle Guide:** Detailed technical documentation in [`docs/THEATRE_LIFECYCLE_MANAGEMENT.md`](./docs/THEATRE_LIFECYCLE_MANAGEMENT.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -622,6 +640,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🏛️ [`docs/THEATRE_LIFECYCLE_MANAGEMENT.md`](./docs/THEATRE_LIFECYCLE_MANAGEMENT.md) — Theatre Lifecycle Governance, Finite State Machine (`DRAFT` → `PENDING_APPROVAL` → `APPROVED` → `ACTIVE` ↔ `SUSPENDED` → `ARCHIVED` → `SOFT_DELETED`), Approval Workflows, Operational Lockouts, Slug History & Optimistic Locking (Phase 3 - Part 1).
 - 🛡️ [`docs/ENTERPRISE_SECURITY_AND_PLATFORM_HARDENING.md`](./docs/ENTERPRISE_SECURITY_AND_PLATFORM_HARDENING.md) — Enterprise Security Architecture, Layered Defense Pipeline, Domain Service & Repository Pattern, Booking Optimistic Locking, Threat Monitoring & Health Probes (Phase 2 - Part 16).
 - 📊 [`docs/REPORTING_ANALYTICS_AND_BUSINESS_INTELLIGENCE.md`](./docs/REPORTING_ANALYTICS_AND_BUSINESS_INTELLIGENCE.md) — Reporting, Analytics & Business Intelligence Architecture, Decoupled Aggregation Marts, Centralized KPI Engine, Hierarchical Trace Navigator & Configurable Snapshots (Phase 2 - Part 15).
 - 🔔 [`docs/NOTIFICATION_AND_COMMUNICATION_SYSTEM.md`](./docs/NOTIFICATION_AND_COMMUNICATION_SYSTEM.md) — Centralized Notification & Communication System, Event-Driven Decoupled Bus, Template Engine, Multi-Channel Manifest & Preferences Matrix (Phase 2 - Part 14).

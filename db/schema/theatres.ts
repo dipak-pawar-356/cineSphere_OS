@@ -12,6 +12,7 @@ import {
 } from "drizzle-orm/pg-core";
 import {
   theatreStatusEnum,
+  theatreApprovalStatusEnum,
   pricingTierEnum,
   loyaltyTierEnum,
   staffShiftEnum,
@@ -74,17 +75,30 @@ export const theatres = pgTable(
     bookingTerms: jsonb("booking_terms").$type<string[]>().default([]),
     cancellationRules: jsonb("cancellation_rules").$type<string[]>().default([]),
     refundRules: jsonb("refund_rules").$type<string[]>().default([]),
+    publicId: varchar("public_id", { length: 32 }).unique(),
+    approvalStatus: theatreApprovalStatusEnum("approval_status").notNull().default("APPROVED"),
+    version: integer("version").notNull().default(1),
     createdBy: varchar("created_by", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
+    suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+    suspendedBy: varchar("suspended_by", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
+    suspensionReason: text("suspension_reason"),
+    suspensionEndTime: timestamp("suspension_end_time", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    archivedBy: varchar("archived_by", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
     isDeleted: boolean("is_deleted").notNull().default(false),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedBy: varchar("deleted_by", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
+    deleteReason: text("delete_reason"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("theatres_slug_idx").on(table.slug),
+    uniqueIndex("theatres_public_id_idx").on(table.publicId),
     index("theatres_city_idx").on(table.city),
     index("theatres_state_idx").on(table.state),
     index("theatres_status_idx").on(table.status),
+    index("theatres_approval_status_idx").on(table.approvalStatus),
     index("theatres_pricing_tier_idx").on(table.pricingTier),
     index("theatres_is_deleted_idx").on(table.isDeleted),
   ]
@@ -235,4 +249,115 @@ export const customers = pgTable(
     index("customers_loyalty_tier_idx").on(table.loyaltyTier),
   ]
 );
+
+/**
+ * ==============================================================================
+ * Theatre Lifecycle Governance Entities (Phase 3 - Part 1)
+ * Supports State Machine enforcement, Approval Workflows, Status History & Slugs
+ * ==============================================================================
+ */
+
+export const theatreLifecycle = pgTable(
+  "theatre_lifecycle",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    theatreId: varchar("theatre_id", { length: 36 })
+      .notNull()
+      .unique()
+      .references(() => theatres.id, { onDelete: "cascade" }),
+    currentState: theatreStatusEnum("current_state").notNull().default("DRAFT"),
+    previousState: theatreStatusEnum("previous_state"),
+    approvalState: theatreApprovalStatusEnum("approval_state").notNull().default("PENDING"),
+    allowBookings: boolean("allow_bookings").notNull().default(false),
+    allowShows: boolean("allow_shows").notNull().default(false),
+    allowPayments: boolean("allow_payments").notNull().default(false),
+    isReadOnly: boolean("is_read_only").notNull().default(false),
+    defaultConfiguration: jsonb("default_configuration").$type<Record<string, unknown>>().default({}),
+    lastTransitionAt: timestamp("last_transition_at", { withTimezone: true }).defaultNow().notNull(),
+    lastTransitionBy: varchar("last_transition_by", { length: 36 })
+      .references(() => users.id, { onDelete: "set null" }),
+    version: integer("version").notNull().default(1),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("theatre_lifecycle_theatre_idx").on(table.theatreId),
+    index("theatre_lifecycle_state_idx").on(table.currentState),
+    index("theatre_lifecycle_approval_idx").on(table.approvalState),
+  ]
+);
+
+export const theatreStatusHistory = pgTable(
+  "theatre_status_history",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    theatreId: varchar("theatre_id", { length: 36 })
+      .notNull()
+      .references(() => theatres.id, { onDelete: "cascade" }),
+    fromStatus: theatreStatusEnum("from_status"),
+    toStatus: theatreStatusEnum("to_status").notNull(),
+    reason: text("reason"),
+    changedBy: varchar("changed_by", { length: 36 })
+      .references(() => users.id, { onDelete: "set null" }),
+    changedByRole: varchar("changed_by_role", { length: 50 }).notNull().default("SUPER_ADMIN"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("theatre_status_history_theatre_idx").on(table.theatreId),
+    index("theatre_status_history_to_status_idx").on(table.toStatus),
+    index("theatre_status_history_created_at_idx").on(table.createdAt),
+  ]
+);
+
+export const theatreApprovals = pgTable(
+  "theatre_approvals",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    theatreId: varchar("theatre_id", { length: 36 })
+      .notNull()
+      .references(() => theatres.id, { onDelete: "cascade" }),
+    status: theatreApprovalStatusEnum("status").notNull().default("PENDING"),
+    approverId: varchar("approver_id", { length: 36 })
+      .references(() => users.id, { onDelete: "set null" }),
+    approverName: varchar("approver_name", { length: 150 }),
+    comments: text("comments"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("theatre_approvals_theatre_idx").on(table.theatreId),
+    index("theatre_approvals_status_idx").on(table.status),
+    index("theatre_approvals_created_at_idx").on(table.createdAt),
+  ]
+);
+
+export const theatreSlugHistory = pgTable(
+  "theatre_slug_history",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    theatreId: varchar("theatre_id", { length: 36 })
+      .notNull()
+      .references(() => theatres.id, { onDelete: "cascade" }),
+    oldSlug: varchar("old_slug", { length: 150 }).notNull(),
+    newSlug: varchar("new_slug", { length: 150 }).notNull(),
+    changedBy: varchar("changed_by", { length: 36 })
+      .references(() => users.id, { onDelete: "set null" }),
+    redirectEnabled: boolean("redirect_enabled").notNull().default(true), // Future SEO 301 redirect placeholder
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("theatre_slug_history_theatre_idx").on(table.theatreId),
+    index("theatre_slug_history_old_slug_idx").on(table.oldSlug),
+  ]
+);
+
 

@@ -1,17 +1,13 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
-import { usePlatformStore, type ManagedTheatre, type TheatreApprovalStatus } from "@/store/platform-store";
 import {
   Building2,
   Plus,
   MapPin,
-  Layers,
   Search,
-  Filter,
-  Star,
   ExternalLink,
   CheckCircle2,
   XCircle,
@@ -22,147 +18,274 @@ import {
   Edit,
   Eye,
   CreditCard,
-  UserCheck,
-  Calendar,
+  Archive,
+  RotateCcw,
+  Send,
   X,
-  ChevronDown,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  ManagedTheatreEntity,
+  TheatreLifecycleState,
+  TheatreApprovalState,
+  CreateTheatreInput,
+  UpdateTheatreInput,
+  PaginatedTheatresResult,
+} from "@/types/theatre-lifecycle.types";
+import {
+  searchTheatresLifecycleAction,
+  createTheatreLifecycleAction,
+  updateTheatreLifecycleAction,
+  submitTheatreForApprovalAction,
+  approveTheatreLifecycleAction,
+  rejectTheatreLifecycleAction,
+  requestTheatreRevisionAction,
+  activateTheatreLifecycleAction,
+  suspendTheatreLifecycleAction,
+  resumeTheatreLifecycleAction,
+  archiveTheatreLifecycleAction,
+  restoreTheatreLifecycleAction,
+  softDeleteTheatreLifecycleAction,
+} from "@/actions/theatre-lifecycle-actions";
+import {
+  LifecycleStatusBadge,
+  ApprovalStatusBadge,
+  CreateEditTheatreModal,
+  LifecycleActionModal,
+  LifecycleModalActionType,
+} from "@/components/theatre-lifecycle";
+
+const SUPER_ADMIN_ACTOR = {
+  userId: "usr-super-1",
+  name: "Vikram Singhania",
+  role: "SUPER_ADMIN" as const,
+};
 
 export default function SuperAdminTheatresManagementPage() {
-  const {
-    theatres,
-    approveTheatre,
-    rejectTheatre,
-    suspendTheatre,
-    activateTheatre,
-    deleteTheatre,
-  } = usePlatformStore();
+  const [data, setData] = useState<PaginatedTheatresResult | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // Filter, Search & Sort states
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterTier, setFilterTier] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<"name" | "halls" | "revenue" | "date">("name");
+  const [filterStatus, setFilterStatus] = useState<TheatreLifecycleState | "ALL">("ALL");
+  const [filterApproval, setFilterApproval] = useState<TheatreApprovalState | "ALL">("ALL");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [sortBy, setSortBy] = useState<"name" | "city" | "createdAt" | "status" | "hallCount">("name");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
 
-  // Rejection modal state
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
-  const [selectedTheatreId, setSelectedTheatreId] = useState<string | null>(null);
-  const [rejectionReason, setRejectionReason] = useState("");
+  // Modals
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [editingTheatre, setEditingTheatre] = useState<ManagedTheatreEntity | null>(null);
 
-  // Feedback banner state
-  const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [lifecycleModalOpen, setLifecycleModalOpen] = useState(false);
+  const [lifecycleActionType, setLifecycleActionType] = useState<LifecycleModalActionType | null>(null);
+  const [targetTheatre, setTargetTheatre] = useState<ManagedTheatreEntity | null>(null);
+  const [isMutating, setIsMutating] = useState(false);
 
-  const showNotice = (msg: string) => {
-    setActionNotice(msg);
-    setTimeout(() => setActionNotice(null), 4000);
+  // Toast feedback banner
+  const [actionNotice, setActionNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const showNotice = (text: string, type: "success" | "error" = "success") => {
+    setActionNotice({ type, text });
+    setTimeout(() => setActionNotice(null), 5000);
   };
 
-  // Filter & Search Logic
-  const filteredTheatres = useMemo(() => {
-    return theatres
-      .filter((th) => {
-        // Search query
-        if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase();
-          const matchName = th.name.toLowerCase().includes(q);
-          const matchChain = th.chain.toLowerCase().includes(q);
-          const matchCity = th.city.toLowerCase().includes(q);
-          const matchAdmin = th.adminName.toLowerCase().includes(q);
-          if (!matchName && !matchChain && !matchCity && !matchAdmin) return false;
-        }
+  const loadTheatres = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await searchTheatresLifecycleAction(
+        {
+          query: searchQuery.trim() || undefined,
+          status: filterStatus,
+          approvalStatus: filterApproval,
+          includeDeleted,
+          createdFrom: createdFrom || undefined,
+          sortBy,
+          page: currentPage,
+          pageSize,
+        },
+        SUPER_ADMIN_ACTOR
+      );
+      if (res.success && res.data) {
+        setData(res.data);
+      } else if (!res.success && res.error) {
+        showNotice(res.error.message, "error");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery, filterStatus, filterApproval, includeDeleted, createdFrom, sortBy, currentPage]);
 
-        // Status filter
-        if (filterStatus !== "all") {
-          if (filterStatus === "pending" && th.status !== "Pending Approval") return false;
-          if (filterStatus === "active" && th.status !== "Active") return false;
-          if (filterStatus === "suspended" && th.status !== "Suspended") return false;
-          if (filterStatus === "rejected" && th.status !== "Rejected") return false;
-        }
+  useEffect(() => {
+    void loadTheatres();
+  }, [loadTheatres]);
 
-        // Tier filter
-        if (filterTier !== "all") {
-          if (th.pricingTier.toLowerCase() !== filterTier.toLowerCase()) return false;
-        }
-
-        return true;
-      })
-      .sort((a, b) => {
-        if (sortBy === "name") return a.name.localeCompare(b.name);
-        if (sortBy === "halls") return b.hallCount - a.hallCount;
-        if (sortBy === "revenue") return b.grossRevenueMonthly - a.grossRevenueMonthly;
-        if (sortBy === "date") return b.registeredDate.localeCompare(a.registeredDate);
-        return 0;
-      });
-  }, [theatres, searchQuery, filterStatus, filterTier, sortBy]);
-
-  // Pagination Logic
-  const totalPages = Math.ceil(filteredTheatres.length / pageSize) || 1;
-  const paginatedTheatres = filteredTheatres.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
-
-  const handleApprove = (id: string, name: string) => {
-    approveTheatre(id);
-    showNotice(`Operational license approved for "${name}". Operator credentials active.`);
+  const handleCreateTheatre = async (input: CreateTheatreInput) => {
+    const res = await createTheatreLifecycleAction(input, SUPER_ADMIN_ACTOR);
+    if (res.success && res.data) {
+      showNotice(`Created multi-tenant cinema "${res.data.name}" (${res.data.status}) · Slug /${res.data.slug}`);
+      await loadTheatres();
+      return { success: true };
+    }
+    return { success: false, error: res.error?.message || "Failed to create theatre." };
   };
 
-  const handleOpenReject = (id: string) => {
-    setSelectedTheatreId(id);
-    setRejectionReason("");
-    setRejectModalOpen(true);
+  const handleEditTheatre = async (theatreId: string, input: UpdateTheatreInput) => {
+    const res = await updateTheatreLifecycleAction({ ...input, theatreId }, SUPER_ADMIN_ACTOR);
+    if (res.success && res.data) {
+      showNotice(`Updated "${res.data.name}" cleanly to version v${res.data.version}.`);
+      await loadTheatres();
+      return { success: true };
+    }
+    return { success: false, error: res.error?.message || "Failed to update theatre." };
   };
 
-  const handleConfirmReject = () => {
-    if (selectedTheatreId) {
-      rejectTheatre(selectedTheatreId, rejectionReason);
-      setRejectModalOpen(false);
-      showNotice("Theatre registration rejected. Formal notification logged.");
+  const handleImmediateTransition = async (
+    action: "submit" | "activate" | "resume",
+    theatre: ManagedTheatreEntity
+  ) => {
+    setIsMutating(true);
+    try {
+      let res;
+      if (action === "submit") {
+        res = await submitTheatreForApprovalAction({ theatreId: theatre.id }, SUPER_ADMIN_ACTOR);
+      } else if (action === "activate") {
+        res = await activateTheatreLifecycleAction({ theatreId: theatre.id }, SUPER_ADMIN_ACTOR);
+      } else {
+        res = await resumeTheatreLifecycleAction({ theatreId: theatre.id }, SUPER_ADMIN_ACTOR);
+      }
+
+      if (res.success && res.data) {
+        showNotice(`"${res.data.name}" transitioned cleanly to ${res.data.status}.`);
+        await loadTheatres();
+      } else {
+        showNotice(res.error?.message || "State transition failed.", "error");
+      }
+    } finally {
+      setIsMutating(false);
     }
   };
 
-  const handleSuspend = (id: string, name: string) => {
-    suspendTheatre(id);
-    showNotice(`Ticketing suspended for "${name}". Booking ingress locked.`);
+  const openActionModal = (type: LifecycleModalActionType, theatre: ManagedTheatreEntity) => {
+    setLifecycleActionType(type);
+    setTargetTheatre(theatre);
+    setLifecycleModalOpen(true);
   };
 
-  const handleActivate = (id: string, name: string) => {
-    activateTheatre(id);
-    showNotice(`Restored active booking state for "${name}".`);
-  };
+  const handleConfirmLifecycleModal = async (payload: {
+    reason?: string;
+    endTimePlaceholder?: string;
+  }) => {
+    if (!targetTheatre || !lifecycleActionType) return;
+    setIsMutating(true);
 
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`Are you sure you want to completely de-register and remove "${name}" from CineSphere OS?`)) {
-      deleteTheatre(id);
-      showNotice(`Theatre "${name}" removed from platform.`);
+    try {
+      let res;
+      switch (lifecycleActionType) {
+        case "APPROVE":
+          res = await approveTheatreLifecycleAction(
+            { theatreId: targetTheatre.id, comments: payload.reason },
+            SUPER_ADMIN_ACTOR
+          );
+          break;
+        case "REJECT":
+          res = await rejectTheatreLifecycleAction(
+            { theatreId: targetTheatre.id, comments: payload.reason || "Rejected by Super Admin" },
+            SUPER_ADMIN_ACTOR
+          );
+          break;
+        case "REQUEST_REVISION":
+          res = await requestTheatreRevisionAction(
+            { theatreId: targetTheatre.id, comments: payload.reason || "Compliance revision requested" },
+            SUPER_ADMIN_ACTOR
+          );
+          break;
+        case "SUSPEND":
+          res = await suspendTheatreLifecycleAction(
+            {
+              theatreId: targetTheatre.id,
+              reason: payload.reason || "Administrative suspension",
+              endTimePlaceholder: payload.endTimePlaceholder,
+            },
+            SUPER_ADMIN_ACTOR
+          );
+          break;
+        case "ARCHIVE":
+          res = await archiveTheatreLifecycleAction(
+            { theatreId: targetTheatre.id, reason: payload.reason },
+            SUPER_ADMIN_ACTOR
+          );
+          break;
+        case "RESTORE":
+          res = await restoreTheatreLifecycleAction(
+            { theatreId: targetTheatre.id },
+            SUPER_ADMIN_ACTOR
+          );
+          break;
+        case "SOFT_DELETE":
+          res = await softDeleteTheatreLifecycleAction(
+            { theatreId: targetTheatre.id, deleteReason: payload.reason || "Decommissioned" },
+            SUPER_ADMIN_ACTOR
+          );
+          break;
+      }
+
+      if (res?.success && res.data) {
+        showNotice(`Lifecycle transition completed: "${res.data.name}" is now ${res.data.status}.`);
+        setLifecycleModalOpen(false);
+        await loadTheatres();
+      } else {
+        showNotice(res?.error?.message || "Action failed due to business rule violation.", "error");
+      }
+    } finally {
+      setIsMutating(false);
     }
   };
 
-  // Metrics summary
-  const totalCount = theatres.length;
-  const pendingCount = theatres.filter((t) => t.status === "Pending Approval").length;
-  const activeCount = theatres.filter((t) => t.status === "Active").length;
-  const suspendedCount = theatres.filter((t) => t.status === "Suspended").length;
+  const metrics = data?.summaryMetrics || {
+    totalActiveFleets: 0,
+    draftCount: 0,
+    pendingApprovalCount: 0,
+    approvedCount: 0,
+    activeCount: 0,
+    suspendedCount: 0,
+    archivedCount: 0,
+    softDeletedCount: 0,
+  };
+
+  const items = data?.items || [];
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Multi-Tenant Cinema Theatres Management"
-        subtitle="Full Operational Governance, KYC Validation, Approval Workflows & Tenant Partitions"
-        badge={`${totalCount} Total Chains`}
+        subtitle="Full Lifecycle Governance: Onboarding Drafts, KYC Approvals, Operational Lockouts, Archival & Soft Delete"
+        badge={`${metrics.totalActiveFleets} Active Fleet Properties`}
         badgeVariant="primary"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => {
+                setFormMode("create");
+                setEditingTheatre(null);
+                setFormModalOpen(true);
+              }}
+              variant="primary"
+              size="sm"
+              className="gap-1.5 text-xs font-bold"
+            >
+              <Plus className="h-3.5 w-3.5" /> Onboard Theatre
+            </Button>
             <Link href="/dashboard/subscriptions">
               <Button variant="outline" size="sm" className="gap-2 border-[#2A3445] text-xs font-semibold">
                 <CreditCard className="h-3.5 w-3.5" /> Subscription Tiers
               </Button>
             </Link>
             <Link href="/dashboard/cities">
-              <Button variant="primary" size="sm" className="gap-2 text-xs font-bold">
+              <Button variant="outline" size="sm" className="gap-2 border-[#2A3445] text-xs font-semibold">
                 <MapPin className="h-3.5 w-3.5" /> Metro Jurisdictions
               </Button>
             </Link>
@@ -170,158 +293,197 @@ export default function SuperAdminTheatresManagementPage() {
         }
       />
 
-      {/* Action Notification Toast Banner */}
+      {/* Action Feedback Banner */}
       {actionNotice && (
-        <div className="p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 text-xs font-semibold flex items-center justify-between shadow-xl">
+        <div
+          role="status"
+          aria-live="polite"
+          className={`p-4 rounded-2xl border text-xs font-semibold flex items-center justify-between shadow-xl ${
+            actionNotice.type === "error"
+              ? "bg-rose-950/80 border-rose-500/40 text-rose-200"
+              : "bg-emerald-950/80 border-emerald-500/40 text-emerald-200"
+          }`}
+        >
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-            <span>{actionNotice}</span>
+            {actionNotice.type === "error" ? (
+              <AlertTriangle className="h-4 w-4 text-rose-400" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+            )}
+            <span>{actionNotice.text}</span>
           </div>
-          <button onClick={() => setActionNotice(null)} className="text-emerald-400 hover:text-white">
+          <button
+            onClick={() => setActionNotice(null)}
+            aria-label="Dismiss notification banner"
+            className="hover:text-white"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
       )}
 
-      {/* KPI Status Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div
-          onClick={() => setFilterStatus("all")}
-          className={`cursor-pointer p-4 rounded-2xl border transition-all ${
-            filterStatus === "all" ? "bg-[#1E293B] border-[#FBBF24]" : "bg-[#161F2E] border-[#2A3445] hover:border-[#64748B]"
-          }`}
-        >
-          <div className="text-[10px] uppercase font-bold text-[#94A3B8]">Total Theatres</div>
-          <div className="text-2xl font-extrabold font-mono text-white mt-1">{totalCount}</div>
-          <div className="text-[11px] text-[#94A3B8] mt-0.5">Global Fleet</div>
-        </div>
-
-        <div
-          onClick={() => setFilterStatus("pending")}
-          className={`cursor-pointer p-4 rounded-2xl border transition-all ${
-            filterStatus === "pending" ? "bg-amber-950/50 border-amber-500" : "bg-[#161F2E] border-[#2A3445] hover:border-amber-500/50"
-          }`}
-        >
-          <div className="text-[10px] uppercase font-bold text-amber-400 flex items-center gap-1.5">
-            <AlertTriangle className="h-3 w-3" /> Pending Approvals
-          </div>
-          <div className="text-2xl font-extrabold font-mono text-amber-400 mt-1">{pendingCount}</div>
-          <div className="text-[11px] text-amber-300/80 mt-0.5">Requires KYC Review</div>
-        </div>
-
-        <div
-          onClick={() => setFilterStatus("active")}
-          className={`cursor-pointer p-4 rounded-2xl border transition-all ${
-            filterStatus === "active" ? "bg-emerald-950/50 border-emerald-500" : "bg-[#161F2E] border-[#2A3445] hover:border-emerald-500/50"
-          }`}
-        >
-          <div className="text-[10px] uppercase font-bold text-emerald-400 flex items-center gap-1.5">
-            <CheckCircle2 className="h-3 w-3" /> Active Circuits
-          </div>
-          <div className="text-2xl font-extrabold font-mono text-emerald-400 mt-1">{activeCount}</div>
-          <div className="text-[11px] text-emerald-300/80 mt-0.5">Live Ticketing Allowed</div>
-        </div>
-
-        <div
-          onClick={() => setFilterStatus("suspended")}
-          className={`cursor-pointer p-4 rounded-2xl border transition-all ${
-            filterStatus === "suspended" ? "bg-rose-950/50 border-rose-500" : "bg-[#161F2E] border-[#2A3445] hover:border-rose-500/50"
-          }`}
-        >
-          <div className="text-[10px] uppercase font-bold text-rose-400 flex items-center gap-1.5">
-            <PauseCircle className="h-3 w-3" /> Suspended
-          </div>
-          <div className="text-2xl font-extrabold font-mono text-rose-400 mt-1">{suspendedCount}</div>
-          <div className="text-[11px] text-rose-300/80 mt-0.5">Lockout Active</div>
-        </div>
+      {/* Lifecycle KPI Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {[
+          { key: "ALL", label: "All Theatres", count: metrics.totalActiveFleets, color: "text-white", tone: "border-[#2A3445]" },
+          { key: "DRAFT", label: "Drafts", count: metrics.draftCount, color: "text-slate-300", tone: "border-slate-500/40" },
+          { key: "PENDING_APPROVAL", label: "Pending Review", count: metrics.pendingApprovalCount, color: "text-amber-400", tone: "border-amber-500/40" },
+          { key: "ACTIVE", label: "Active", count: metrics.activeCount, color: "text-emerald-400", tone: "border-emerald-500/40" },
+          { key: "SUSPENDED", label: "Suspended", count: metrics.suspendedCount, color: "text-rose-400", tone: "border-rose-500/40" },
+          { key: "ARCHIVED", label: "Archived", count: metrics.archivedCount, color: "text-[#94A3B8]", tone: "border-[#2A3445]" },
+        ].map((kpi) => (
+          <button
+            key={kpi.key}
+            onClick={() => {
+              setFilterStatus(kpi.key as TheatreLifecycleState | "ALL");
+              setCurrentPage(1);
+            }}
+            className={`text-left p-4 rounded-2xl border transition-all ${
+              filterStatus === kpi.key
+                ? "bg-[#1E293B] border-[#FBBF24]"
+                : `bg-[#161F2E] ${kpi.tone} hover:border-[#64748B]`
+            }`}
+          >
+            <div className="text-[10px] uppercase font-bold text-[#94A3B8]">{kpi.label}</div>
+            <div className={`text-2xl font-extrabold font-mono mt-1 ${kpi.color}`}>{kpi.count}</div>
+          </button>
+        ))}
       </div>
 
-      {/* Filter, Search & Sorting Bar */}
-      <div className="p-4 rounded-2xl bg-[#161F2E] border border-[#2A3445] flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* Status Pills */}
-        <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-[#111827] border border-[#2A3445] text-xs">
-          {[
-            { id: "all", label: "All" },
-            { id: "pending", label: `Pending (${pendingCount})` },
-            { id: "active", label: `Active (${activeCount})` },
-            { id: "suspended", label: "Suspended" },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                setFilterStatus(item.id);
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-lg transition-colors font-medium ${
-                filterStatus === item.id
-                  ? "bg-[#FBBF24] text-[#070B12] font-bold"
-                  : "text-[#94A3B8] hover:text-white"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {/* Search Box */}
-          <div className="relative flex-1 md:w-64">
+      {/* Multi-Faceted Search, Date & Status Filters */}
+      <div className="p-4 rounded-2xl bg-[#161F2E] border border-[#2A3445] space-y-3">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#64748B]" />
             <input
               type="text"
+              aria-label="Search theatres by name, slug, city, chain, or administrator"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Search theatre, chain, city..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-white placeholder-[#64748B] focus:outline-none focus:border-[#FBBF24]"
+              placeholder="Search by Theatre Name, Slug (/inox-kolhapur), City, Status, or Admin..."
+              className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-white placeholder-[#64748B] focus:outline-none focus:border-[#FBBF24]"
             />
           </div>
 
-          {/* Sort Selector */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-3 py-1.5 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-white focus:outline-none cursor-pointer"
-          >
-            <option value="name">Sort by Name</option>
-            <option value="halls">Sort by Screens</option>
-            <option value="revenue">Sort by Revenue</option>
-            <option value="date">Sort by Date</option>
-          </select>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Lifecycle Status Select */}
+            <select
+              aria-label="Filter by lifecycle status"
+              value={filterStatus}
+              onChange={(e) => {
+                setFilterStatus(e.target.value as TheatreLifecycleState | "ALL");
+                setCurrentPage(1);
+              }}
+              className="px-3 py-2 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-white"
+            >
+              <option value="ALL">All Lifecycle States</option>
+              <option value="DRAFT">Draft</option>
+              <option value="PENDING_APPROVAL">Pending Approval</option>
+              <option value="APPROVED">Approved</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="SUSPENDED">Suspended</option>
+              <option value="ARCHIVED">Archived</option>
+              <option value="SOFT_DELETED">Soft Deleted</option>
+            </select>
+
+            {/* Approval Filter */}
+            <select
+              aria-label="Filter by approval status"
+              value={filterApproval}
+              onChange={(e) => {
+                setFilterApproval(e.target.value as TheatreApprovalState | "ALL");
+                setCurrentPage(1);
+              }}
+              className="px-3 py-2 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-white"
+            >
+              <option value="ALL">All Approvals</option>
+              <option value="PENDING">Pending Review</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="REVISION_REQUESTED">Revision Requested</option>
+            </select>
+
+            {/* Created Date Filter */}
+            <input
+              type="date"
+              aria-label="Created after date"
+              value={createdFrom}
+              onChange={(e) => {
+                setCreatedFrom(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-white"
+            />
+
+            {/* Sort By */}
+            <select
+              aria-label="Sort theatres"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="px-3 py-2 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-white"
+            >
+              <option value="name">Sort: Name</option>
+              <option value="city">Sort: City</option>
+              <option value="status">Sort: Status</option>
+              <option value="hallCount">Sort: Screens</option>
+              <option value="createdAt">Sort: Created Date</option>
+            </select>
+
+            {/* Include Soft Deleted Toggle */}
+            <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-[#CBD5E1] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeDeleted}
+                onChange={(e) => {
+                  setIncludeDeleted(e.target.checked);
+                  setCurrentPage(1);
+                }}
+              />
+              <span>Show Deleted ({metrics.softDeletedCount})</span>
+            </label>
+          </div>
         </div>
       </div>
 
-      {/* Theatres Data Table */}
+      {/* Theatres Lifecycle Table */}
       <div className="rounded-3xl bg-[#161F2E] border border-[#2A3445] overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-[#111827] text-[#94A3B8] font-bold uppercase tracking-wider text-[10px] border-b border-[#2A3445]">
               <tr>
-                <th className="py-4 px-5">Theatre / Complex</th>
-                <th className="py-4 px-5">City & State</th>
-                <th className="py-4 px-5">Screens</th>
-                <th className="py-4 px-5">Status</th>
-                <th className="py-4 px-5">SaaS Plan</th>
+                <th className="py-4 px-5">Theatre / Slug</th>
+                <th className="py-4 px-5">Location</th>
+                <th className="py-4 px-5">Lifecycle Status</th>
+                <th className="py-4 px-5">Approval</th>
                 <th className="py-4 px-5">Operator Admin</th>
-                <th className="py-4 px-5">Registration</th>
-                <th className="py-4 px-5 text-right">Approval Actions</th>
+                <th className="py-4 px-5">Version</th>
+                <th className="py-4 px-5 text-right">Governance Controls</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#2A3445]/60 text-[#CBD5E1]">
-              {paginatedTheatres.length === 0 ? (
+              {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-[#94A3B8]">
-                    No cinema theatres matching your current search and filter criteria.
+                  <td colSpan={7} className="py-12 text-center text-[#94A3B8]">
+                    Loading multi-tenant theatre lifecycle registry...
+                  </td>
+                </tr>
+              ) : items.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-[#94A3B8]">
+                    No cinema theatres match your current search and filter criteria.
                   </td>
                 </tr>
               ) : (
-                paginatedTheatres.map((th) => (
+                items.map((th) => (
                   <tr key={th.id} className="hover:bg-[#111827]/50 transition-colors">
                     <td className="py-4 px-5">
                       <div className="font-bold text-white flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-lg bg-[#070B12] border border-[#2A3445] flex items-center justify-center text-[#FBBF24] font-black shrink-0">
+                        <div className="h-8 w-8 rounded-lg bg-[#070B12] border border-[#2A3445] flex items-center justify-center text-[#FBBF24] shrink-0">
                           <Building2 className="h-4 w-4" />
                         </div>
                         <div>
@@ -332,43 +494,24 @@ export default function SuperAdminTheatresManagementPage() {
                             <span>{th.name}</span>
                             <ExternalLink className="h-3 w-3 text-[#64748B]" />
                           </Link>
-                          <div className="text-[10px] text-[#64748B] font-mono">{th.chain} · {th.id}</div>
+                          <div className="text-[10px] text-[#64748B] font-mono">
+                            /{th.slug} · {th.publicId}
+                          </div>
                         </div>
                       </div>
                     </td>
 
                     <td className="py-4 px-5">
-                      <div className="text-white font-medium flex items-center gap-1">
-                        <MapPin className="h-3 w-3 text-[#FBBF24]" />
-                        <span>{th.city}</span>
-                      </div>
-                      <div className="text-[10px] text-[#94A3B8]">{th.state}</div>
-                    </td>
-
-                    <td className="py-4 px-5 font-mono text-white font-bold">
-                      {th.hallCount} Screens
+                      <div className="text-white font-medium">{th.city}</div>
+                      <div className="text-[10px] text-[#94A3B8]">{th.state}, {th.country}</div>
                     </td>
 
                     <td className="py-4 px-5">
-                      <Badge
-                        variant={
-                          th.status === "Active"
-                            ? "success"
-                            : th.status === "Pending Approval"
-                            ? "warning"
-                            : th.status === "Suspended"
-                            ? "danger"
-                            : "secondary"
-                        }
-                        size="sm"
-                      >
-                        {th.status}
-                      </Badge>
+                      <LifecycleStatusBadge status={th.status} size="sm" />
                     </td>
 
                     <td className="py-4 px-5">
-                      <span className="font-bold text-white text-[11px]">{th.subscriptionPlan}</span>
-                      <div className="text-[10px] text-[#64748B]">Renews: {th.subscriptionRenewal}</div>
+                      <ApprovalStatusBadge status={th.approvalStatus} size="sm" />
                     </td>
 
                     <td className="py-4 px-5">
@@ -376,54 +519,72 @@ export default function SuperAdminTheatresManagementPage() {
                       <div className="text-[10px] text-[#94A3B8]">{th.adminEmail}</div>
                     </td>
 
-                    <td className="py-4 px-5 font-mono text-[#94A3B8] text-[11px]">
-                      {th.registeredDate}
+                    <td className="py-4 px-5 font-mono text-[#FBBF24] font-bold">
+                      v{th.version}
                     </td>
 
-                    {/* Operational Action Controls */}
                     <td className="py-4 px-5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex flex-wrap items-center justify-end gap-1.5">
                         <Link href={`/dashboard/theatres/${th.id}`}>
                           <Button variant="outline" size="sm" className="h-7 px-2 border-[#2A3445] text-xs gap-1 hover:text-[#FBBF24]">
-                            <Eye className="h-3 w-3" /> View
+                            <Eye className="h-3 w-3" /> Inspect
                           </Button>
                         </Link>
 
-                        {th.status === "Pending Approval" && (
+                        {!th.capabilities.isReadOnly && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setFormMode("edit");
+                              setEditingTheatre(th);
+                              setFormModalOpen(true);
+                            }}
+                            className="h-7 px-2 border-[#2A3445] text-xs gap-1"
+                          >
+                            <Edit className="h-3 w-3" /> Edit
+                          </Button>
+                        )}
+
+                        {th.status === "DRAFT" && (
+                          <Button
+                            disabled={isMutating}
+                            onClick={() => void handleImmediateTransition("submit", th)}
+                            variant="primary"
+                            size="sm"
+                            className="h-7 px-2.5 text-xs font-bold gap-1"
+                          >
+                            <Send className="h-3 w-3" /> Submit
+                          </Button>
+                        )}
+
+                        {th.status === "PENDING_APPROVAL" && (
                           <>
                             <Button
-                              onClick={() => handleApprove(th.id, th.name)}
+                              disabled={isMutating}
+                              onClick={() => openActionModal("APPROVE", th)}
                               variant="primary"
                               size="sm"
-                              className="h-7 px-2.5 text-xs font-bold gap-1 bg-emerald-500 hover:bg-emerald-600 text-black border-0"
+                              className="h-7 px-2 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-black border-0 gap-1"
                             >
                               <CheckCircle2 className="h-3.5 w-3.5" /> Approve
                             </Button>
                             <Button
-                              onClick={() => handleOpenReject(th.id)}
+                              disabled={isMutating}
+                              onClick={() => openActionModal("REJECT", th)}
                               variant="outline"
                               size="sm"
-                              className="h-7 px-2 text-xs font-bold gap-1 border-rose-500/40 text-rose-400 hover:bg-rose-500/10"
+                              className="h-7 px-2 text-xs border-rose-500/40 text-rose-400 hover:bg-rose-500/10 gap-1"
                             >
                               <XCircle className="h-3.5 w-3.5" /> Reject
                             </Button>
                           </>
                         )}
 
-                        {th.status === "Active" && (
+                        {(th.status === "APPROVED" || th.status === "INACTIVE") && (
                           <Button
-                            onClick={() => handleSuspend(th.id, th.name)}
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-2 text-xs border-[#2A3445] text-rose-400 hover:bg-rose-500/10 gap-1"
-                          >
-                            <PauseCircle className="h-3.5 w-3.5" /> Suspend
-                          </Button>
-                        )}
-
-                        {th.status === "Suspended" && (
-                          <Button
-                            onClick={() => handleActivate(th.id, th.name)}
+                            disabled={isMutating}
+                            onClick={() => void handleImmediateTransition("activate", th)}
                             variant="primary"
                             size="sm"
                             className="h-7 px-2 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-black border-0 gap-1"
@@ -432,14 +593,67 @@ export default function SuperAdminTheatresManagementPage() {
                           </Button>
                         )}
 
-                        <Button
-                          onClick={() => handleDelete(th.id, th.name)}
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-[#64748B] hover:text-rose-400 hover:bg-rose-500/10"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        {th.status === "ACTIVE" && (
+                          <Button
+                            disabled={isMutating}
+                            onClick={() => openActionModal("SUSPEND", th)}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs border-[#2A3445] text-rose-400 hover:bg-rose-500/10 gap-1"
+                          >
+                            <PauseCircle className="h-3.5 w-3.5" /> Suspend
+                          </Button>
+                        )}
+
+                        {th.status === "SUSPENDED" && (
+                          <Button
+                            disabled={isMutating}
+                            onClick={() => void handleImmediateTransition("resume", th)}
+                            variant="primary"
+                            size="sm"
+                            className="h-7 px-2 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-black border-0 gap-1"
+                          >
+                            <PlayCircle className="h-3.5 w-3.5" /> Resume
+                          </Button>
+                        )}
+
+                        {th.status !== "ARCHIVED" && th.status !== "SOFT_DELETED" && (
+                          <Button
+                            disabled={isMutating}
+                            onClick={() => openActionModal("ARCHIVE", th)}
+                            variant="ghost"
+                            size="sm"
+                            title="Archive (Read-Only)"
+                            className="h-7 w-7 p-0 text-[#94A3B8] hover:text-white"
+                          >
+                            <Archive className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+
+                        {th.status === "ARCHIVED" && (
+                          <Button
+                            disabled={isMutating}
+                            onClick={() => openActionModal("RESTORE", th)}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs border-emerald-500/40 text-emerald-400 gap-1"
+                          >
+                            <RotateCcw className="h-3 w-3" /> Restore
+                          </Button>
+                        )}
+
+                        {th.status !== "SOFT_DELETED" && (
+                          <Button
+                            disabled={isMutating}
+                            onClick={() => openActionModal("SOFT_DELETE", th)}
+                            variant="ghost"
+                            size="sm"
+                            title="Soft Delete"
+                            className="h-7 w-7 p-0 text-[#64748B] hover:text-rose-400 hover:bg-rose-500/10"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -452,13 +666,13 @@ export default function SuperAdminTheatresManagementPage() {
         {/* Pagination Footer */}
         <div className="p-4 bg-[#111827]/70 border-t border-[#2A3445] flex items-center justify-between text-xs text-[#94A3B8]">
           <span className="font-mono text-[11px]">
-            Showing {(currentPage - 1) * pageSize + 1} to{" "}
-            {Math.min(currentPage * pageSize, filteredTheatres.length)} of {filteredTheatres.length} filtered theatres
+            Showing {items.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to{" "}
+            {(currentPage - 1) * pageSize + items.length} of {data?.total || 0} properties
           </span>
           <div className="flex items-center gap-2">
             <Button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={!data?.hasPrev}
               variant="outline"
               size="sm"
               className="h-7 px-2.5 text-xs border-[#2A3445]"
@@ -466,11 +680,11 @@ export default function SuperAdminTheatresManagementPage() {
               Previous
             </Button>
             <span className="font-mono font-bold text-white">
-              Page {currentPage} of {totalPages}
+              Page {currentPage} of {data?.totalPages || 1}
             </span>
             <Button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+              disabled={!data?.hasNext}
               variant="outline"
               size="sm"
               className="h-7 px-2.5 text-xs border-[#2A3445]"
@@ -481,55 +695,25 @@ export default function SuperAdminTheatresManagementPage() {
         </div>
       </div>
 
-      {/* Formal Rejection Reason Modal */}
-      {rejectModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-3xl bg-[#0B1220] border border-[#2A3445] p-6 space-y-5 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#2A3445] pb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-rose-500" /> Reject Theatre Application
-              </h3>
-              <button
-                onClick={() => setRejectModalOpen(false)}
-                className="text-[#94A3B8] hover:text-white"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      {/* Reusable Modals */}
+      <CreateEditTheatreModal
+        isOpen={formModalOpen}
+        mode={formMode}
+        initialTheatre={editingTheatre}
+        actorRole="SUPER_ADMIN"
+        onClose={() => setFormModalOpen(false)}
+        onSaveCreate={handleCreateTheatre}
+        onSaveEdit={handleEditTheatre}
+      />
 
-            <p className="text-xs text-[#94A3B8]">
-              State the regulatory, safety, or documentation reason for rejecting this cinema operator application. The applicant will be formally notified.
-            </p>
-
-            <textarea
-              rows={3}
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              placeholder="e.g. Fire NOC certificate missing or GSTIN state code mismatch..."
-              className="w-full p-3 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-white placeholder-[#64748B] focus:outline-none focus:border-rose-500"
-            />
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setRejectModalOpen(false)}
-                className="border-[#2A3445] text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleConfirmReject}
-                className="bg-rose-600 hover:bg-rose-700 text-white border-0 text-xs font-bold"
-              >
-                Confirm Rejection
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <LifecycleActionModal
+        isOpen={lifecycleModalOpen}
+        actionType={lifecycleActionType}
+        theatreName={targetTheatre?.name || ""}
+        onClose={() => setLifecycleModalOpen(false)}
+        onConfirm={handleConfirmLifecycleModal}
+        isSubmitting={isMutating}
+      />
     </div>
   );
 }

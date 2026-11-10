@@ -1,8 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { useTheatreStore, type TheatreProfileState } from "@/store/theatre-store";
+import {
+  getTheatreLifecycleDetailAction,
+  updateTheatreLifecycleAction,
+} from "@/actions/theatre-lifecycle-actions";
+import {
+  ManagedTheatreEntity,
+  UpdateTheatreInput,
+} from "@/types/theatre-lifecycle.types";
+import {
+  LifecycleStatusBadge,
+  CreateEditTheatreModal,
+} from "@/components/theatre-lifecycle";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +40,37 @@ export default function TheatreProfilePage() {
   const { profile, updateProfile } = useTheatreStore();
 
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [lifecycleModalOpen, setLifecycleModalOpen] = useState(false);
+  const [lifecycleTheatre, setLifecycleTheatre] = useState<ManagedTheatreEntity | null>(null);
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
+
+  const loadLifecycleEntity = useCallback(async () => {
+    const res = await getTheatreLifecycleDetailAction(
+      { theatreId: "th-pun-001" },
+      { userId: "usr-theatre-1", role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+    );
+    if (res.success && res.data) {
+      setLifecycleTheatre(res.data.theatre);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadLifecycleEntity();
+  }, [loadLifecycleEntity]);
+
+  const handleLifecycleSaveEdit = async (theatreId: string, input: UpdateTheatreInput) => {
+    const res = await updateTheatreLifecycleAction(
+      { ...input, theatreId },
+      { userId: "usr-theatre-1", role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+    );
+    if (res.success && res.data) {
+      setLifecycleTheatre(res.data);
+      setFeedbackNotice(`Lifecycle profile updated to version v${res.data.version} cleanly.`);
+      setTimeout(() => setFeedbackNotice(null), 4000);
+      return { success: true };
+    }
+    return { success: false, error: res.error?.message || "Update failed" };
+  };
 
   // Form edit state
   const [formData, setFormData] = useState<TheatreProfileState>({ ...profile });
@@ -85,16 +127,48 @@ export default function TheatreProfilePage() {
         badge={profile.status}
         badgeVariant={profile.status === "Active" ? "success" : "warning"}
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleEditClick}
-            className="gap-2 border-[#2A3445] text-white hover:border-[#FBBF24]/50"
-          >
-            <Edit className="h-4 w-4 text-[#FBBF24]" /> Edit Profile
-          </Button>
+          <div className="flex items-center gap-2">
+            {lifecycleTheatre && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLifecycleModalOpen(true)}
+                className="gap-2 border-[#2A3445] text-xs font-semibold text-white hover:border-[#FBBF24]/50"
+              >
+                <ShieldCheck className="h-4 w-4 text-emerald-400" /> Governance Profile (v{lifecycleTheatre.version})
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEditClick}
+              className="gap-2 border-[#2A3445] text-white hover:border-[#FBBF24]/50"
+            >
+              <Edit className="h-4 w-4 text-[#FBBF24]" /> Edit Profile
+            </Button>
+          </div>
         }
       />
+
+      {lifecycleTheatre && (
+        <div className="p-4 rounded-2xl bg-[#111827] border border-[#2A3445] flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3">
+            <LifecycleStatusBadge status={lifecycleTheatre.status} size="sm" />
+            <span className="font-mono text-[#94A3B8]">
+              Public ID: <strong className="text-white">{lifecycleTheatre.publicId}</strong> · Slug:{" "}
+              <strong className="text-[#FBBF24]">/{lifecycleTheatre.slug}</strong>
+            </span>
+          </div>
+          <div className="flex items-center gap-4 text-[11px] font-mono">
+            <span className={lifecycleTheatre.capabilities.allowBookings ? "text-emerald-400" : "text-rose-400"}>
+              Bookings: {lifecycleTheatre.capabilities.allowBookings ? "Active" : "Locked"}
+            </span>
+            <span className={lifecycleTheatre.capabilities.allowPayments ? "text-emerald-400" : "text-rose-400"}>
+              Payments: {lifecycleTheatre.capabilities.allowPayments ? "Active" : "Locked"}
+            </span>
+          </div>
+        </div>
+      )}
 
       {feedbackNotice && (
         <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2 text-xs text-emerald-400">
@@ -514,6 +588,15 @@ export default function TheatreProfilePage() {
           </div>
         </div>
       )}
+
+      <CreateEditTheatreModal
+        isOpen={lifecycleModalOpen}
+        mode="edit"
+        initialTheatre={lifecycleTheatre}
+        actorRole="THEATRE_ADMIN"
+        onClose={() => setLifecycleModalOpen(false)}
+        onSaveEdit={handleLifecycleSaveEdit}
+      />
     </div>
   );
 }

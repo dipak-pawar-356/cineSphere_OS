@@ -1,4 +1,5 @@
 export * from "./security-hardening-actions";
+export * from "./theatre-lifecycle-actions";
 export * from "./analytics-actions";
 export * from "./booking-engine-actions";
 export * from "./customer-discovery-actions";
