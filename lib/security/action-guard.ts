@@ -217,3 +217,73 @@ export function createProtectedAction<TInput, TOutput>(
   };
 }
 
+/**
+ * Lightweight Server Action Guard compatible with standard `{ success, data, error: string }` contracts.
+ * Enforces input sanitization, rate limiting, latency tracking, and redacted error responses.
+ */
+export async function runHardenedOperation<TInput, TResult>(
+  config: {
+    actionName: string;
+    rawInput: TInput;
+    rateLimitCategory?: RateLimitCategory;
+    rateLimitKey?: string;
+    successMessage?: string;
+  },
+  fn: (sanitizedInput: TInput) => Promise<TResult> | TResult
+): Promise<{
+  success: boolean;
+  data?: TResult;
+  message?: string;
+  error?: string;
+  timestamp: string;
+}> {
+  const correlationId = `corr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const timestamp = new Date().toISOString();
+  const logger = createLogger(config.actionName);
+
+  try {
+    const sanitizedInput = sanitizeObject(config.rawInput);
+
+    if (config.rateLimitCategory) {
+      const rateKey = config.rateLimitKey || "session-default";
+      const rateResult = checkRateLimit(rateKey, config.rateLimitCategory);
+      if (!rateResult.allowed) {
+        recordSecurityEvent({
+          eventType: "RATE_LIMIT_TRIGGERED",
+          severity: "MEDIUM",
+          requestPath: config.actionName,
+          details: `Rate limit exceeded on '${config.actionName}'`,
+          metadata: { correlationId, category: config.rateLimitCategory },
+        });
+        throw new RateLimitError(
+          `Too many requests. Retry after ${rateResult.retryAfterSec}s.`,
+          rateResult.retryAfterSec,
+          correlationId
+        );
+      }
+    }
+
+    const data = await withPerformanceTracking(
+      config.actionName,
+      async () => fn(sanitizedInput),
+      { correlationId }
+    );
+
+    return {
+      success: true,
+      data,
+      message: config.successMessage,
+      timestamp,
+    };
+  } catch (error) {
+    logger.error("API", `Operation '${config.actionName}' failed`, { correlationId, error });
+    const formatted = formatErrorResponse(error, process.env.NODE_ENV === "production", correlationId);
+    return {
+      success: false,
+      error: formatted.error.message,
+      timestamp,
+    };
+  }
+}
+
+

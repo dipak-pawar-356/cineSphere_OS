@@ -27,6 +27,8 @@ import {
   prepareBookingPaymentSession,
   getPaymentAuditLogs,
 } from "@/lib/engine/payment-config-engine";
+import { runHardenedOperation } from "@/lib/security/action-guard";
+import { BusinessRuleError } from "@/lib/errors/app-error";
 
 /**
  * ==============================================================================
@@ -84,30 +86,22 @@ export async function validateUpiAction(
 export async function deriveUpiQrAction(
   params: DeriveUpiPayloadParams
 ): Promise<PaymentActionResponse<DerivedUpiDetails>> {
-  try {
-    const validation = validateUpiId(params.upiId);
-    if (!validation.isValid) {
-      return {
-        success: false,
-        error: validation.error,
-        timestamp: new Date().toISOString(),
-      };
+  return runHardenedOperation(
+    {
+      actionName: "deriveUpiQrAction",
+      rawInput: params,
+      rateLimitCategory: "PAYMENT_REQUEST",
+      rateLimitKey: params.upiId || "upi-derive",
+      successMessage: "Derived NPCI UPI Intent URI and QR code successfully.",
+    },
+    (sanitized) => {
+      const validation = validateUpiId(sanitized.upiId);
+      if (!validation.isValid) {
+        throw new BusinessRuleError(validation.error || "Invalid UPI VPA syntax");
+      }
+      return deriveUpiQrPayload(sanitized);
     }
-
-    const derived = deriveUpiQrPayload(params);
-    return {
-      success: true,
-      data: derived,
-      message: "Derived NPCI UPI Intent URI and QR code successfully.",
-      timestamp: new Date().toISOString(),
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || "Failed to derive UPI payload",
-      timestamp: new Date().toISOString(),
-    };
-  }
+  );
 }
 
 /**
@@ -120,24 +114,20 @@ export async function createPaymentConfigurationAction(
     role: "THEATRE_ADMIN",
   }
 ): Promise<PaymentActionResponse<PaymentConfiguration>> {
-  try {
-    const config = createPaymentConfiguration(input, actor);
-    revalidatePath("/theatre/upi");
-    revalidatePath("/theatre/payments");
-
-    return {
-      success: true,
-      data: config,
-      message: `Payment rail '${config.merchantDisplayName}' created successfully.`,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || "Failed to create payment configuration",
-      timestamp: new Date().toISOString(),
-    };
-  }
+  return runHardenedOperation(
+    {
+      actionName: "createPaymentConfigurationAction",
+      rawInput: input,
+      rateLimitCategory: "ADMIN_API",
+      rateLimitKey: `${actor.actorId}:${input.theatreId}`,
+    },
+    (sanitized) => {
+      const config = createPaymentConfiguration(sanitized, actor);
+      revalidatePath("/theatre/upi");
+      revalidatePath("/theatre/payments");
+      return config;
+    }
+  );
 }
 
 /**
@@ -151,24 +141,20 @@ export async function updatePaymentConfigurationAction(
     role: "THEATRE_ADMIN",
   }
 ): Promise<PaymentActionResponse<PaymentConfiguration>> {
-  try {
-    const config = updatePaymentConfiguration(id, input, actor);
-    revalidatePath("/theatre/upi");
-    revalidatePath("/theatre/payments");
-
-    return {
-      success: true,
-      data: config,
-      message: `Payment rail '${config.merchantDisplayName}' updated to Version ${config.configVersion}.`,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || "Failed to update payment configuration",
-      timestamp: new Date().toISOString(),
-    };
-  }
+  return runHardenedOperation(
+    {
+      actionName: "updatePaymentConfigurationAction",
+      rawInput: input,
+      rateLimitCategory: "ADMIN_API",
+      rateLimitKey: `${actor.actorId}:${id}`,
+    },
+    (sanitized) => {
+      const config = updatePaymentConfiguration(id, sanitized, actor);
+      revalidatePath("/theatre/upi");
+      revalidatePath("/theatre/payments");
+      return config;
+    }
+  );
 }
 
 /**

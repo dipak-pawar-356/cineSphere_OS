@@ -25,6 +25,9 @@ import {
   getActiveSeatLocksForShow,
 } from "@/lib/engine/booking-engine";
 import { getUnifiedCustomerShowDetails } from "@/lib/engine/customer-discovery-engine";
+import { runHardenedOperation } from "@/lib/security/action-guard";
+import { validateServerInput, BookingSessionRequestSchema, SeatSelectionRequestSchema } from "@/lib/security/validation-schemas";
+import { BusinessRuleError } from "@/lib/errors/app-error";
 
 /**
  * ==============================================================================
@@ -44,7 +47,7 @@ export interface BookingActionResponse<T> {
 }
 
 /**
- * Server Action: Initialize a new Booking Session
+ * Server Action: Initialize a new Booking Session (Hardened with Input Sanitization & Rate Limiting)
  */
 export async function createBookingSessionAction(params: {
   showId: string;
@@ -53,29 +56,18 @@ export async function createBookingSessionAction(params: {
   customerEmail?: string;
   customerPhone?: string;
 }): Promise<BookingActionResponse<BookingSession>> {
-  try {
-    if (!params.showId) {
-      return {
-        success: false,
-        error: "showId is required to start a booking session",
-        timestamp: new Date().toISOString(),
-      };
+  return runHardenedOperation(
+    {
+      actionName: "createBookingSessionAction",
+      rawInput: params,
+      rateLimitCategory: "BOOKING_REQUEST",
+      rateLimitKey: params.customerId || params.showId || "guest-booking",
+    },
+    (sanitized) => {
+      const validated = validateServerInput(BookingSessionRequestSchema, sanitized);
+      return createBookingSession(validated);
     }
-
-    const session = createBookingSession(params);
-    return {
-      success: true,
-      data: session,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Failed to create booking session";
-    return {
-      success: false,
-      error: msg,
-      timestamp: new Date().toISOString(),
-    };
-  }
+  );
 }
 
 /**
@@ -116,29 +108,22 @@ export async function addSeatToSessionAction(
   sessionId: string,
   seatNumber: string
 ): Promise<BookingActionResponse<BookingSession>> {
-  try {
-    const result = addSeatToSession(sessionId, seatNumber);
-    if (!result.success || !result.session) {
-      return {
-        success: false,
-        error: result.error || "Failed to add seat to session",
-        timestamp: new Date().toISOString(),
-      };
+  return runHardenedOperation(
+    {
+      actionName: "addSeatToSessionAction",
+      rawInput: { sessionId, seatId: seatNumber },
+      rateLimitCategory: "BOOKING_REQUEST",
+      rateLimitKey: sessionId || "guest-seat",
+    },
+    (sanitized) => {
+      const validated = validateServerInput(SeatSelectionRequestSchema, sanitized);
+      const result = addSeatToSession(validated.sessionId, validated.seatId);
+      if (!result.success || !result.session) {
+        throw new BusinessRuleError(result.error || "Failed to add seat to session");
+      }
+      return result.session;
     }
-
-    return {
-      success: true,
-      data: result.session,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Failed to add seat";
-    return {
-      success: false,
-      error: msg,
-      timestamp: new Date().toISOString(),
-    };
-  }
+  );
 }
 
 /**
@@ -148,29 +133,22 @@ export async function removeSeatFromSessionAction(
   sessionId: string,
   seatNumber: string
 ): Promise<BookingActionResponse<BookingSession>> {
-  try {
-    const result = removeSeatFromSession(sessionId, seatNumber);
-    if (!result.success || !result.session) {
-      return {
-        success: false,
-        error: result.error || "Failed to remove seat from session",
-        timestamp: new Date().toISOString(),
-      };
+  return runHardenedOperation(
+    {
+      actionName: "removeSeatFromSessionAction",
+      rawInput: { sessionId, seatId: seatNumber },
+      rateLimitCategory: "BOOKING_REQUEST",
+      rateLimitKey: sessionId || "guest-seat",
+    },
+    (sanitized) => {
+      const validated = validateServerInput(SeatSelectionRequestSchema, sanitized);
+      const result = removeSeatFromSession(validated.sessionId, validated.seatId);
+      if (!result.success || !result.session) {
+        throw new BusinessRuleError(result.error || "Failed to remove seat from session");
+      }
+      return result.session;
     }
-
-    return {
-      success: true,
-      data: result.session,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Failed to remove seat";
-    return {
-      success: false,
-      error: msg,
-      timestamp: new Date().toISOString(),
-    };
-  }
+  );
 }
 
 /**
