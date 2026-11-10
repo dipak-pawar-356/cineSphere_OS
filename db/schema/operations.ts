@@ -3,6 +3,7 @@ import {
   varchar,
   text,
   boolean,
+  integer,
   timestamp,
   jsonb,
   index,
@@ -18,6 +19,10 @@ import {
   notificationChannelEnum,
   reportCategoryEnum,
   reportStatusEnum,
+  securityEventTypeEnum,
+  securitySeverityEnum,
+  logSeverityEnum,
+  systemHealthStatusEnum,
 } from "./enums";
 import { users } from "./users";
 import { theatres } from "./theatres";
@@ -224,4 +229,96 @@ export const reportSnapshots = pgTable(
     index("report_snapshots_created_at_idx").on(table.createdAt),
   ]
 );
+
+/**
+ * ==============================================================================
+ * CineSphere OS - Security Events, Structured Logs & Health Telemetry
+ * Production-ready observability, intrusion logging and platform hardening
+ * ==============================================================================
+ */
+
+export const securityEvents = pgTable(
+  "security_events",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    eventType: securityEventTypeEnum("event_type").notNull(),
+    severity: securitySeverityEnum("severity").notNull().default("MEDIUM"),
+    actorId: varchar("actor_id", { length: 36 })
+      .references(() => users.id, { onDelete: "set null" }),
+    actorRole: varchar("actor_role", { length: 50 }),
+    theatreId: varchar("theatre_id", { length: 36 })
+      .references(() => theatres.id, { onDelete: "cascade" }),
+    ipAddress: varchar("ip_address", { length: 50 }),
+    userAgent: text("user_agent"),
+    requestPath: varchar("request_path", { length: 255 }),
+    details: text("details").notNull(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+    isResolved: boolean("is_resolved").notNull().default(false),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("security_events_type_idx").on(table.eventType),
+    index("security_events_severity_idx").on(table.severity),
+    index("security_events_theatre_idx").on(table.theatreId),
+    index("security_events_created_at_idx").on(table.createdAt),
+    index("security_events_is_resolved_idx").on(table.isResolved),
+  ]
+);
+
+export const structuredLogs = pgTable(
+  "structured_logs",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    requestId: varchar("request_id", { length: 64 }).notNull(),
+    correlationId: varchar("correlation_id", { length: 64 }).notNull(),
+    traceId: varchar("trace_id", { length: 64 }),
+    userId: varchar("user_id", { length: 36 })
+      .references(() => users.id, { onDelete: "set null" }),
+    userRole: varchar("user_role", { length: 50 }),
+    theatreId: varchar("theatre_id", { length: 36 })
+      .references(() => theatres.id, { onDelete: "set null" }),
+    severity: logSeverityEnum("severity").notNull().default("INFO"),
+    category: varchar("category", { length: 50 }).notNull().default("SYSTEM"),
+    module: varchar("module", { length: 50 }).notNull(),
+    message: text("message").notNull(),
+    durationMs: integer("duration_ms"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+    errorData: jsonb("error_data").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("structured_logs_correlation_id_idx").on(table.correlationId),
+    index("structured_logs_request_id_idx").on(table.requestId),
+    index("structured_logs_severity_idx").on(table.severity),
+    index("structured_logs_category_idx").on(table.category),
+    index("structured_logs_theatre_idx").on(table.theatreId),
+    index("structured_logs_created_at_idx").on(table.createdAt),
+  ]
+);
+
+export const systemHealthMetrics = pgTable(
+  "system_health_metrics",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    nodeEnv: varchar("node_env", { length: 50 }).notNull().default("production"),
+    status: systemHealthStatusEnum("status").notNull().default("HEALTHY"),
+    dbLatencyMs: integer("db_latency_ms").notNull().default(0),
+    activeSessions: integer("active_sessions").notNull().default(0),
+    memoryHeapUsedMb: integer("memory_heap_used_mb").notNull().default(0),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("system_health_metrics_status_idx").on(table.status),
+    index("system_health_metrics_created_at_idx").on(table.createdAt),
+  ]
+);
+
 

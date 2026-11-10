@@ -1,23 +1,24 @@
 /**
- * CineSphere OS - Enterprise Structured Logger Placeholder
+ * CineSphere OS - Enterprise Structured Logger Bridge (Phase 2 - Part 16)
  */
+
+import { createLogger } from "@/lib/observability/structured-logger";
+
+const structuredLogger = createLogger("LegacyLogger");
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
 export const logger = {
   debug: (message: string, context?: Record<string, unknown>) => {
-    if (process.env.NODE_ENV !== "production") {
-      console.debug(`[DEBUG] ${message}`, context || "");
-    }
+    structuredLogger.debug("SYSTEM", message, { metadata: context });
   },
   info: (message: string, context?: Record<string, unknown>) => {
-    console.info(`[INFO] ${message}`, context || "");
+    structuredLogger.info("SYSTEM", message, { metadata: context });
   },
   warn: (message: string, context?: Record<string, unknown>) => {
-    console.warn(`[WARN] ${message}`, context || "");
+    structuredLogger.warn("SYSTEM", message, { metadata: context });
   },
   error: (message: string, error?: unknown, context?: Record<string, unknown>) => {
-    console.error(`[ERROR] ${message}`, error, context || "");
+    structuredLogger.error("SYSTEM", message, { error, metadata: context });
   },
 };
-

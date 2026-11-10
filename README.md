@@ -570,6 +570,38 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Point-in-time immutable report snapshot generation with customizable dimensions, metrics, and date ranges.
 - 📚 **Reporting & BI Architecture Guide:** Detailed technical documentation in [`docs/REPORTING_ANALYTICS_AND_BUSINESS_INTELLIGENCE.md`](./docs/REPORTING_ANALYTICS_AND_BUSINESS_INTELLIGENCE.md).
 
+### 2.17 Phase 2 - Part 16: Enterprise Security, Production Readiness & Platform Hardening (Completed)
+- 🛡️ **8-Tier Layered Security Pipeline:**
+  - Strict defense-in-depth: $\text{Client Security} \to \text{Edge Security} \to \text{Application Security} \to \text{Business Authorization} \to \text{Tenant Isolation} \to \text{Database Protection} \to \text{Observability} \to \text{Performance Optimization}$.
+- 🧩 **Domain Service & Repository Architecture Pattern:**
+  - Decouples Next.js React Server Actions from database tables:
+    ```
+    UI → Server Actions (@/actions/*) → Domain Services (@/lib/services/*) → Repositories (@/lib/repositories/*) → Drizzle ORM → PostgreSQL
+    ```
+  - Isolates core business rules (booking validation, pricing resolution, payment configuration lookup, optimistic locking, and tenant checks) from framework transport details.
+- 🧹 **Comprehensive Input Sanitization Engine:**
+  - Sanitizes Strings, HTML, URLs, Emails, Phone Numbers, Search Queries, Headers, and nested Objects while strictly neutralizing Prototype Pollution (`__proto__`, `prototype`, `constructor`), XSS script tags, SQL injection characters, and CRLF response splitting.
+- 🔒 **CSRF & Request Origin Defense:**
+  - Double-submit cryptographic CSRF tokens with timing-safe comparison (`verifyCsrfToken`) and host-origin validation across state-changing HTTP methods.
+- ⏱️ **Sliding-Window Rate Limiting Engine:**
+  - Per-action bucket thresholds (Login: 5/15m, Registration: 3/h, Booking: 15/m, Payment: 10/m, Admin: 120/m, Public: 100/m) with automatic retry countdowns and `RATE_LIMIT_TRIGGERED` security event emission.
+- 🌐 **Enterprise Hardened Security Headers:**
+  - Strict Content-Security-Policy (CSP), HSTS (`max-age=63072000`), X-Content-Type-Options (`nosniff`), X-Frame-Options (`DENY`), Permissions-Policy, Cross-Origin-Opener-Policy, and Cross-Origin-Resource-Policy.
+- 🏢 **Multi-Tenant Boundary Enforcement:**
+  - Theatre Admins are strictly scoped to their assigned multiplex complex (`th-pun-001`). Cross-tenant access attempts immediately throw `TenantAccessError` and record tamper-evident `TENANT_VIOLATION` security events.
+- 🔄 **Booking Optimistic Locking Concurrency:**
+  - Version-based concurrency column (`version: integer`) preventing lost updates or race conditions, accompanied by automatic exponential jitter retry loops (`executeWithOptimisticRetry`).
+- 💳 **Payment Architecture Abstraction:**
+  - Maintains strict abstraction: $\text{Platform} \to \text{Theatre} \to \text{Payment Configuration} \to \text{Booking} \to \text{Transaction}$.
+  - The booking engine never references raw UPI VPAs or merchant secrets; resolves active rails (UPI, Razorpay, PhonePe, Paytm, Stripe) dynamically.
+- 📝 **Structured JSON Logging & Credential Scrubbing:**
+  - Structured logs with Correlation IDs, Request IDs, Log Levels (`DEBUG` to `FATAL`), Categories, and automatic scrubbing of passwords, tokens, secrets, and card numbers.
+- 🚨 **Intrusion & Security Events Tracker:**
+  - Live monitoring for failed logins, permission violations, cross-tenant breaches, rate limit triggers, and optimistic locking collisions with resolution workflows.
+- 🩺 **System Health & Observability Probes:**
+  - Production-ready endpoints: `/api/health` (deep diagnostics), `/api/health/live` (container liveness), and `/api/health/ready` (database readiness).
+- 📚 **Enterprise Security Guide:** Detailed technical documentation in [`docs/ENTERPRISE_SECURITY_AND_PLATFORM_HARDENING.md`](./docs/ENTERPRISE_SECURITY_AND_PLATFORM_HARDENING.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -590,6 +622,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🛡️ [`docs/ENTERPRISE_SECURITY_AND_PLATFORM_HARDENING.md`](./docs/ENTERPRISE_SECURITY_AND_PLATFORM_HARDENING.md) — Enterprise Security Architecture, Layered Defense Pipeline, Domain Service & Repository Pattern, Booking Optimistic Locking, Threat Monitoring & Health Probes (Phase 2 - Part 16).
 - 📊 [`docs/REPORTING_ANALYTICS_AND_BUSINESS_INTELLIGENCE.md`](./docs/REPORTING_ANALYTICS_AND_BUSINESS_INTELLIGENCE.md) — Reporting, Analytics & Business Intelligence Architecture, Decoupled Aggregation Marts, Centralized KPI Engine, Hierarchical Trace Navigator & Configurable Snapshots (Phase 2 - Part 15).
 - 🔔 [`docs/NOTIFICATION_AND_COMMUNICATION_SYSTEM.md`](./docs/NOTIFICATION_AND_COMMUNICATION_SYSTEM.md) — Centralized Notification & Communication System, Event-Driven Decoupled Bus, Template Engine, Multi-Channel Manifest & Preferences Matrix (Phase 2 - Part 14).
 - 🎟️ [`docs/TICKET_MANAGEMENT_AND_DIGITAL_TICKETS.md`](./docs/TICKET_MANAGEMENT_AND_DIGITAL_TICKETS.md) — Digital Ticket Management & QR Architecture, 4-Tier Identifier Separation, Dynamic QR Payload, Multi-Ticket Strategies & Public URL Security (Phase 2 - Part 13).

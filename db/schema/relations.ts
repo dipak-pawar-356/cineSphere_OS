@@ -22,7 +22,16 @@ import {
 } from "./movies";
 import { shows, showPricing, seatInventory } from "./shows";
 import { bookingSessions, bookings, bookingSeats, tickets } from "./bookings";
-import { auditLogs, notifications, reports, notificationPreferences, analyticsSummaries, reportSnapshots } from "./operations";
+import {
+  auditLogs,
+  notifications,
+  reports,
+  notificationPreferences,
+  analyticsSummaries,
+  reportSnapshots,
+  securityEvents,
+  structuredLogs,
+} from "./operations";
 import { mediaLibrary, systemSettings } from "./system";
 
 /**
@@ -576,4 +585,27 @@ export const systemSettingsRelations = relations(systemSettings, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const securityEventsRelations = relations(securityEvents, ({ one }) => ({
+  theatre: one(theatres, {
+    fields: [securityEvents.theatreId],
+    references: [theatres.id],
+  }),
+  actor: one(users, {
+    fields: [securityEvents.actorId],
+    references: [users.id],
+  }),
+}));
+
+export const structuredLogsRelations = relations(structuredLogs, ({ one }) => ({
+  theatre: one(theatres, {
+    fields: [structuredLogs.theatreId],
+    references: [theatres.id],
+  }),
+  user: one(users, {
+    fields: [structuredLogs.userId],
+    references: [users.id],
+  }),
+}));
+
 

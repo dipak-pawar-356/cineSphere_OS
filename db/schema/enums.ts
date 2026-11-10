@@ -319,3 +319,41 @@ export const auditActionEnum = pgEnum("audit_action", [
   "EXPORT",
 ]);
 
+// ------------------------------------------------------------------------------
+// Security Events & Hardening Enums (Phase 2 - Part 16)
+// ------------------------------------------------------------------------------
+export const securityEventTypeEnum = pgEnum("security_event_type", [
+  "FAILED_LOGIN",
+  "MULTIPLE_LOGIN_ATTEMPTS",
+  "PERMISSION_VIOLATION",
+  "TENANT_VIOLATION",
+  "RATE_LIMIT_TRIGGERED",
+  "BOOKING_CONFLICT",
+  "PAYMENT_FAILURE",
+  "CONFIGURATION_CHANGE",
+  "SUSPICIOUS_PAYLOAD",
+  "CSRF_VIOLATION",
+]);
+
+export const securitySeverityEnum = pgEnum("security_severity", [
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+  "CRITICAL",
+]);
+
+export const logSeverityEnum = pgEnum("log_severity", [
+  "DEBUG",
+  "INFO",
+  "WARN",
+  "ERROR",
+  "FATAL",
+]);
+
+export const systemHealthStatusEnum = pgEnum("system_health_status", [
+  "HEALTHY",
+  "DEGRADED",
+  "DOWN",
+]);
+
+

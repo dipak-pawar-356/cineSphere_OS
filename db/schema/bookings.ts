@@ -110,6 +110,7 @@ export const bookings = pgTable(
     totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
     bookingTime: timestamp("booking_time", { withTimezone: true }).defaultNow().notNull(),
     qrCodeUrl: text("qr_code_url"),
+    version: integer("version").notNull().default(1), // Optimistic Locking concurrency version (Phase 2 - Part 16)
     metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
     isDeleted: boolean("is_deleted").notNull().default(false),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
