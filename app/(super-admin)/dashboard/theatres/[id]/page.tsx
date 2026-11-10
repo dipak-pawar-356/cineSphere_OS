@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -42,11 +43,21 @@ import {
 import {
   LifecycleStatusBadge,
   ApprovalStatusBadge,
-  TheatreLifecyclePanel,
-  CreateEditTheatreModal,
-  LifecycleActionModal,
-  LifecycleModalActionType,
+  type LifecycleModalActionType,
 } from "@/components/theatre-lifecycle";
+
+const LazyTheatreLifecyclePanel = dynamic(
+  () => import("@/components/theatre-lifecycle/theatre-lifecycle-panel").then((m) => m.TheatreLifecyclePanel),
+  { ssr: false }
+);
+const LazyCreateEditTheatreModal = dynamic(
+  () => import("@/components/theatre-lifecycle/create-edit-theatre-modal").then((m) => m.CreateEditTheatreModal),
+  { ssr: false }
+);
+const LazyLifecycleActionModal = dynamic(
+  () => import("@/components/theatre-lifecycle/lifecycle-action-modal").then((m) => m.LifecycleActionModal),
+  { ssr: false }
+);
 
 const SUPER_ADMIN_ACTOR = {
   userId: "usr-super-1",
@@ -439,7 +450,7 @@ export default function SuperAdminTheatreDetailPage() {
       </div>
 
       {/* Tab 0: Lifecycle & State Machine */}
-      {activeTab === "lifecycle" && <TheatreLifecyclePanel detail={detail} />}
+      {activeTab === "lifecycle" && <LazyTheatreLifecyclePanel detail={detail} />}
 
       {/* Tab 1: General Information */}
       {activeTab === "general" && (
@@ -654,23 +665,27 @@ export default function SuperAdminTheatreDetailPage() {
         </div>
       )}
 
-      <CreateEditTheatreModal
-        isOpen={editModalOpen}
-        mode="edit"
-        initialTheatre={theatre}
-        actorRole="SUPER_ADMIN"
-        onClose={() => setEditModalOpen(false)}
-        onSaveEdit={handleEditSave}
-      />
+      {editModalOpen && (
+        <LazyCreateEditTheatreModal
+          isOpen={editModalOpen}
+          mode="edit"
+          initialTheatre={theatre}
+          actorRole="SUPER_ADMIN"
+          onClose={() => setEditModalOpen(false)}
+          onSaveEdit={handleEditSave}
+        />
+      )}
 
-      <LifecycleActionModal
-        isOpen={actionModalOpen}
-        actionType={modalAction}
-        theatreName={theatre.name}
-        onClose={() => setActionModalOpen(false)}
-        onConfirm={handleModalConfirm}
-        isSubmitting={isMutating}
-      />
+      {actionModalOpen && (
+        <LazyLifecycleActionModal
+          isOpen={actionModalOpen}
+          actionType={modalAction}
+          theatreName={theatre.name}
+          onClose={() => setActionModalOpen(false)}
+          onConfirm={handleModalConfirm}
+          isSubmitting={isMutating}
+        />
+      )}
     </div>
   );
 }

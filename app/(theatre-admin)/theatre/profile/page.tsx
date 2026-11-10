@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { PageHeader } from "@/components/layout/page-header";
 import { useTheatreStore, type TheatreProfileState } from "@/store/theatre-store";
 import {
@@ -11,10 +12,12 @@ import {
   ManagedTheatreEntity,
   UpdateTheatreInput,
 } from "@/types/theatre-lifecycle.types";
-import {
-  LifecycleStatusBadge,
-  CreateEditTheatreModal,
-} from "@/components/theatre-lifecycle";
+import { LifecycleStatusBadge } from "@/components/theatre-lifecycle";
+
+const LazyCreateEditTheatreModal = dynamic(
+  () => import("@/components/theatre-lifecycle/create-edit-theatre-modal").then((m) => m.CreateEditTheatreModal),
+  { ssr: false }
+);
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -589,14 +592,16 @@ export default function TheatreProfilePage() {
         </div>
       )}
 
-      <CreateEditTheatreModal
-        isOpen={lifecycleModalOpen}
-        mode="edit"
-        initialTheatre={lifecycleTheatre}
-        actorRole="THEATRE_ADMIN"
-        onClose={() => setLifecycleModalOpen(false)}
-        onSaveEdit={handleLifecycleSaveEdit}
-      />
+      {lifecycleModalOpen && (
+        <LazyCreateEditTheatreModal
+          isOpen={lifecycleModalOpen}
+          mode="edit"
+          initialTheatre={lifecycleTheatre}
+          actorRole="THEATRE_ADMIN"
+          onClose={() => setLifecycleModalOpen(false)}
+          onSaveEdit={handleLifecycleSaveEdit}
+        />
+      )}
     </div>
   );
 }

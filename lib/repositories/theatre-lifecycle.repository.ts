@@ -371,9 +371,16 @@ export class TheatreLifecycleRepository extends BaseRepository<ManagedTheatreEnt
     return Array.from(theatreStore.values());
   }
 
-  async searchAndPaginate(filters: TheatreSearchFilters): Promise<PaginatedTheatresResult> {
-    this.logQuery("searchAndPaginate", filters as Record<string, unknown>);
-    const all = Array.from(theatreStore.values());
+  async searchAndPaginate(
+    filters: TheatreSearchFilters,
+    scopedTenantId?: string
+  ): Promise<PaginatedTheatresResult> {
+    this.logQuery("searchAndPaginate", {
+      ...(filters as Record<string, unknown>),
+      ...(scopedTenantId ? { scopedTenantId } : {}),
+    });
+    const rawAll = Array.from(theatreStore.values());
+    const all = scopedTenantId ? rawAll.filter((t) => t.id === scopedTenantId) : rawAll;
 
     const summaryMetrics = {
       totalActiveFleets: all.filter((t) => !t.softDelete.isDeleted).length,
@@ -385,6 +392,9 @@ export class TheatreLifecycleRepository extends BaseRepository<ManagedTheatreEnt
       archivedCount: all.filter((t) => t.status === "ARCHIVED").length,
       softDeletedCount: all.filter((t) => t.status === "SOFT_DELETED" || t.softDelete.isDeleted).length,
     };
+
+    const normalizeUpperDateBound = (dateStr: string) =>
+      dateStr.length === 10 ? `${dateStr}T23:59:59.999Z` : dateStr;
 
     let list = all.filter((th) => {
       if (!filters.includeDeleted && (th.softDelete.isDeleted || th.status === "SOFT_DELETED")) {
@@ -420,9 +430,9 @@ export class TheatreLifecycleRepository extends BaseRepository<ManagedTheatreEnt
       if (filters.onlyArchived && th.status !== "ARCHIVED") return false;
 
       if (filters.createdFrom && th.createdAt < filters.createdFrom) return false;
-      if (filters.createdTo && th.createdAt > filters.createdTo) return false;
+      if (filters.createdTo && th.createdAt > normalizeUpperDateBound(filters.createdTo)) return false;
       if (filters.updatedFrom && th.updatedAt < filters.updatedFrom) return false;
-      if (filters.updatedTo && th.updatedAt > filters.updatedTo) return false;
+      if (filters.updatedTo && th.updatedAt > normalizeUpperDateBound(filters.updatedTo)) return false;
 
       return true;
     });

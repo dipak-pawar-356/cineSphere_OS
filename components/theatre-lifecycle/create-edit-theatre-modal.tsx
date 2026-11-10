@@ -8,10 +8,8 @@ import {
   Sparkles,
   CheckCircle2,
   AlertTriangle,
-  Lock,
   Globe,
   Palette,
-  Sliders,
 } from "lucide-react";
 import {
   CreateTheatreInput,
@@ -150,11 +148,17 @@ export function CreateEditTheatreModal({
 
   if (!isOpen) return null;
 
+  const slugActorContext = {
+    userId: isTheatreAdmin ? "usr-theatre-1" : "usr-super-1",
+    role: actorRole,
+    theatreId: initialTheatre?.id,
+  };
+
   const handleAutoSlug = async () => {
     if (!name.trim()) return;
     const res = await generateTheatreSlugAction(
       { name: name.trim(), city: city.trim() || undefined, excludeTheatreId: initialTheatre?.id },
-      { userId: "usr-super-1", role: actorRole }
+      slugActorContext
     );
     if (res.success && res.data?.slug) {
       setSlug(res.data.slug);
@@ -170,7 +174,7 @@ export function CreateEditTheatreModal({
     }
     const res = await validateTheatreSlugAction(
       { slug: candidate.trim(), excludeTheatreId: initialTheatre?.id },
-      { userId: "usr-super-1", role: actorRole }
+      slugActorContext
     );
     if (res.success && res.data) {
       if (res.data.isValid && res.data.isAvailable) {
@@ -305,18 +309,35 @@ export function CreateEditTheatreModal({
         </div>
 
         {/* Section Tabs */}
-        <div className="flex flex-wrap gap-1.5 p-1 rounded-xl bg-[#111827] border border-[#2A3445] text-xs">
-          {[
-            { id: "basic", label: "1. Basic & Slug", icon: Globe },
-            { id: "business", label: "2. Business & Admin", icon: Lock },
-            { id: "location", label: "3. Location", icon: Building2 },
-            { id: "branding", label: "4. Branding & Config", icon: Sliders },
-          ].map((tab) => (
+        <div
+          role="tablist"
+          aria-label="Theatre onboarding form sections"
+          className="flex flex-wrap gap-1.5 p-1 rounded-xl bg-[#111827] border border-[#2A3445] text-xs"
+        >
+          {(
+            [
+              { id: "basic", label: "1. Basic & Slug" },
+              { id: "business", label: "2. Business & Admin" },
+              { id: "location", label: "3. Location" },
+              { id: "branding", label: "4. Branding & Config" },
+            ] as const
+          ).map((tab, idx, arr) => (
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveSection(tab.id as typeof activeSection)}
-              className={`flex-1 py-1.5 px-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-1.5 ${
+              role="tab"
+              aria-selected={activeSection === tab.id}
+              onClick={() => setActiveSection(tab.id)}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowRight") {
+                  e.preventDefault();
+                  setActiveSection(arr[(idx + 1) % arr.length].id);
+                } else if (e.key === "ArrowLeft") {
+                  e.preventDefault();
+                  setActiveSection(arr[(idx - 1 + arr.length) % arr.length].id);
+                }
+              }}
+              className={`flex-1 py-1.5 px-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-[#FBBF24] ${
                 activeSection === tab.id
                   ? "bg-[#FBBF24] text-[#070B12] font-bold"
                   : "text-[#94A3B8] hover:text-white"

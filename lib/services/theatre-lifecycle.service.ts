@@ -938,22 +938,10 @@ export class TheatreLifecycleService {
     filters: TheatreSearchFilters,
     actor: SecurityActorContext
   ): Promise<PaginatedTheatresResult> {
-    const result = await theatreLifecycleRepository.searchAndPaginate(filters);
-
-    if (actor.role === "SUPER_ADMIN") {
-      return result;
-    }
-
-    // Tenant Isolation: Non-super-admins see ONLY their own theatreId
-    const scopedItems = result.items.filter((t) => t.id === actor.theatreId);
-    return {
-      ...result,
-      items: scopedItems,
-      total: scopedItems.length,
-      totalPages: Math.max(1, Math.ceil(scopedItems.length / result.pageSize)),
-      hasNext: false,
-      hasPrev: false,
-    };
+    // Enforce multi-tenant isolation BEFORE metric aggregation and pagination
+    const scopedTenantId =
+      actor.role === "SUPER_ADMIN" ? undefined : actor.theatreId || "__UNASSIGNED_TENANT__";
+    return theatreLifecycleRepository.searchAndPaginate(filters, scopedTenantId);
   }
 
   /**

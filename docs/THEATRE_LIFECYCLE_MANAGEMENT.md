@@ -137,13 +137,13 @@ PostgreSQL / Drizzle Schema (@/db/schema/theatres.ts & @/db/schema/relations.ts)
 
 - **Reusable Components (`components/theatre-lifecycle/*`):**
   - `LifecycleStatusBadge` & `ApprovalStatusBadge`
-  - `LifecycleActionModal` (Approve, Reject, Request Revision, Suspend, Archive, Restore, Soft Delete)
-  - `CreateEditTheatreModal` (role-aware field locking, live slug generation/validation, branding & default config)
+  - `LifecycleActionModal` (Approve, Reject, Request Revision, Suspend, Archive, Restore, Soft Delete — accessible `role="dialog"` with `Escape` support & lazy-loaded via `next/dynamic`)
+  - `CreateEditTheatreModal` (role-aware field locking, live slug generation/validation, branding & default config, WAI-ARIA `tablist`/`tab` navigation, lazy-loaded via `next/dynamic`)
   - `TheatreLifecyclePanel` (interactive state machine pipeline, operational locks, immutable status/approval/slug/audit timelines)
 - **Portal Routes Integrated:**
-  - Super Admin Directory (`app/(super-admin)/dashboard/theatres/page.tsx`) — Server-Action-backed search, multi-faceted filtering, pagination, KPI cards, and lifecycle modals.
-  - Super Admin Inspector (`app/(super-admin)/dashboard/theatres/[id]/page.tsx`) — Added `"lifecycle"` governance tab displaying `TheatreLifecyclePanel` and header transition actions.
-  - Theatre Admin Profile (`app/(theatre-admin)/theatre/profile/page.tsx`) — Read-only lifecycle governance & capability banner (`th-pun-001`) plus restricted `THEATRE_ADMIN` edit modal.
+  - Super Admin Directory (`app/(super-admin)/dashboard/theatres/page.tsx`) — Server-Action-backed search, multi-faceted filters (`Status`, `Approval Status`, `Created ≥`, `Updated ≥`, `Suspended Only`, `Archived Only`, `Show Deleted`), pagination, KPI cards, and lazy-mounted lifecycle modals.
+  - Super Admin Inspector (`app/(super-admin)/dashboard/theatres/[id]/page.tsx`) — Added `"lifecycle"` governance tab displaying lazy-loaded `TheatreLifecyclePanel` and header transition actions.
+  - Theatre Admin Profile (`app/(theatre-admin)/theatre/profile/page.tsx`) — Read-only lifecycle governance & capability banner (`th-pun-001`) plus restricted lazy-loaded `THEATRE_ADMIN` edit modal.
 - **Verification Suite (`scripts/verify-theatre-lifecycle.ts`):**
   - Run `npx tsx scripts/verify-theatre-lifecycle.ts` (or `.\node_modules\.pnpm\node_modules\.bin\tsx.cmd scripts/verify-theatre-lifecycle.ts`) to execute 10 verification suites covering creation, slug collision prevention, transition matrix rules, approval revision loops, suspension lockouts, optimistic locking conflicts, archive read-only guards, soft-delete protection, RBAC/tenant isolation, and complete audit trails.
 

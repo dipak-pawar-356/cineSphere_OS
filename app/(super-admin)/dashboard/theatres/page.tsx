@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import {
@@ -50,10 +51,17 @@ import {
 import {
   LifecycleStatusBadge,
   ApprovalStatusBadge,
-  CreateEditTheatreModal,
-  LifecycleActionModal,
-  LifecycleModalActionType,
+  type LifecycleModalActionType,
 } from "@/components/theatre-lifecycle";
+
+const LazyCreateEditTheatreModal = dynamic(
+  () => import("@/components/theatre-lifecycle/create-edit-theatre-modal").then((m) => m.CreateEditTheatreModal),
+  { ssr: false }
+);
+const LazyLifecycleActionModal = dynamic(
+  () => import("@/components/theatre-lifecycle/lifecycle-action-modal").then((m) => m.LifecycleActionModal),
+  { ssr: false }
+);
 
 const SUPER_ADMIN_ACTOR = {
   userId: "usr-super-1",
@@ -70,6 +78,9 @@ export default function SuperAdminTheatresManagementPage() {
   const [filterStatus, setFilterStatus] = useState<TheatreLifecycleState | "ALL">("ALL");
   const [filterApproval, setFilterApproval] = useState<TheatreApprovalState | "ALL">("ALL");
   const [createdFrom, setCreatedFrom] = useState("");
+  const [updatedFrom, setUpdatedFrom] = useState("");
+  const [onlySuspended, setOnlySuspended] = useState(false);
+  const [onlyArchived, setOnlyArchived] = useState(false);
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [sortBy, setSortBy] = useState<"name" | "city" | "createdAt" | "status" | "hallCount">("name");
   const [currentPage, setCurrentPage] = useState(1);
@@ -101,8 +112,11 @@ export default function SuperAdminTheatresManagementPage() {
           query: searchQuery.trim() || undefined,
           status: filterStatus,
           approvalStatus: filterApproval,
+          onlySuspended,
+          onlyArchived,
           includeDeleted,
           createdFrom: createdFrom || undefined,
+          updatedFrom: updatedFrom || undefined,
           sortBy,
           page: currentPage,
           pageSize,
@@ -117,7 +131,18 @@ export default function SuperAdminTheatresManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, filterStatus, filterApproval, includeDeleted, createdFrom, sortBy, currentPage]);
+  }, [
+    searchQuery,
+    filterStatus,
+    filterApproval,
+    onlySuspended,
+    onlyArchived,
+    includeDeleted,
+    createdFrom,
+    updatedFrom,
+    sortBy,
+    currentPage,
+  ]);
 
   useEffect(() => {
     void loadTheatres();
@@ -336,6 +361,8 @@ export default function SuperAdminTheatresManagementPage() {
             key={kpi.key}
             onClick={() => {
               setFilterStatus(kpi.key as TheatreLifecycleState | "ALL");
+              setOnlySuspended(false);
+              setOnlyArchived(false);
               setCurrentPage(1);
             }}
             className={`text-left p-4 rounded-2xl border transition-all ${
@@ -409,16 +436,63 @@ export default function SuperAdminTheatresManagementPage() {
             </select>
 
             {/* Created Date Filter */}
-            <input
-              type="date"
-              aria-label="Created after date"
-              value={createdFrom}
-              onChange={(e) => {
-                setCreatedFrom(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="px-3 py-1.5 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-white"
-            />
+            <label className="flex items-center gap-1.5 text-[10px] text-[#94A3B8]">
+              <span>Created ≥</span>
+              <input
+                type="date"
+                aria-label="Created after date"
+                value={createdFrom}
+                onChange={(e) => {
+                  setCreatedFrom(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-white"
+              />
+            </label>
+
+            {/* Updated Date Filter */}
+            <label className="flex items-center gap-1.5 text-[10px] text-[#94A3B8]">
+              <span>Updated ≥</span>
+              <input
+                type="date"
+                aria-label="Updated after date"
+                value={updatedFrom}
+                onChange={(e) => {
+                  setUpdatedFrom(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-white"
+              />
+            </label>
+
+            {/* Quick Suspended & Archived Toggles */}
+            <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-rose-300 cursor-pointer">
+              <input
+                type="checkbox"
+                aria-label="Only suspended theatres"
+                checked={onlySuspended}
+                onChange={(e) => {
+                  setOnlySuspended(e.target.checked);
+                  if (e.target.checked) setOnlyArchived(false);
+                  setCurrentPage(1);
+                }}
+              />
+              <span>Suspended Only</span>
+            </label>
+
+            <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-[#CBD5E1] cursor-pointer">
+              <input
+                type="checkbox"
+                aria-label="Only archived theatres"
+                checked={onlyArchived}
+                onChange={(e) => {
+                  setOnlyArchived(e.target.checked);
+                  if (e.target.checked) setOnlySuspended(false);
+                  setCurrentPage(1);
+                }}
+              />
+              <span>Archived Only</span>
+            </label>
 
             {/* Sort By */}
             <select
@@ -696,24 +770,28 @@ export default function SuperAdminTheatresManagementPage() {
       </div>
 
       {/* Reusable Modals */}
-      <CreateEditTheatreModal
-        isOpen={formModalOpen}
-        mode={formMode}
-        initialTheatre={editingTheatre}
-        actorRole="SUPER_ADMIN"
-        onClose={() => setFormModalOpen(false)}
-        onSaveCreate={handleCreateTheatre}
-        onSaveEdit={handleEditTheatre}
-      />
+      {formModalOpen && (
+        <LazyCreateEditTheatreModal
+          isOpen={formModalOpen}
+          mode={formMode}
+          initialTheatre={editingTheatre}
+          actorRole="SUPER_ADMIN"
+          onClose={() => setFormModalOpen(false)}
+          onSaveCreate={handleCreateTheatre}
+          onSaveEdit={handleEditTheatre}
+        />
+      )}
 
-      <LifecycleActionModal
-        isOpen={lifecycleModalOpen}
-        actionType={lifecycleActionType}
-        theatreName={targetTheatre?.name || ""}
-        onClose={() => setLifecycleModalOpen(false)}
-        onConfirm={handleConfirmLifecycleModal}
-        isSubmitting={isMutating}
-      />
+      {lifecycleModalOpen && (
+        <LazyLifecycleActionModal
+          isOpen={lifecycleModalOpen}
+          actionType={lifecycleActionType}
+          theatreName={targetTheatre?.name || ""}
+          onClose={() => setLifecycleModalOpen(false)}
+          onConfirm={handleConfirmLifecycleModal}
+          isSubmitting={isMutating}
+        />
+      )}
     </div>
   );
 }

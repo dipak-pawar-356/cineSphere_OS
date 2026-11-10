@@ -357,7 +357,13 @@ async function runTheatreLifecycleVerification() {
   // ----------------------------------------------------------------------------
   console.log("\n👉 Test 10: Search, Filters & Complete Lifecycle Audit Trail");
   const puneScopedList = await theatreLifecycleService.searchTheatres({}, puneAdmin);
-  assert(puneScopedList.items.length === 1 && puneScopedList.items[0].id === "th-pun-001", "Search returns strictly assigned tenant for Theatre Admin");
+  assert(
+    puneScopedList.items.length === 1 &&
+      puneScopedList.items[0].id === "th-pun-001" &&
+      puneScopedList.total === 1 &&
+      puneScopedList.summaryMetrics.totalActiveFleets === 1,
+    "Search returns strictly assigned tenant & scoped metrics for Theatre Admin"
+  );
 
   const fullAuditDetail = await theatreLifecycleService.getTheatreLifecycleDetails(created.id, superAdmin);
   assert(fullAuditDetail.statusHistory.length >= 9, `Records complete status history (${fullAuditDetail.statusHistory.length} transitions)`);
