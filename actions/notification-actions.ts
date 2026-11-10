@@ -27,6 +27,7 @@ import {
   publishDomainEvent,
   updateUserPreferences,
 } from "@/lib/engine/notification-engine";
+import { runHardenedOperation } from "@/lib/security/action-guard";
 
 export interface NotificationActionResponse<T> {
   success: boolean;
@@ -43,27 +44,22 @@ export interface NotificationActionResponse<T> {
 export async function publishDomainEventAction<T extends Record<string, unknown>>(
   event: DomainEvent<T>
 ): Promise<NotificationActionResponse<NotificationDispatchResult>> {
-  try {
-    const dispatchResult = publishDomainEvent(event);
-
-    revalidatePath("/profile/notifications");
-    revalidatePath("/theatre/notifications");
-    revalidatePath("/dashboard/notifications");
-
-    return {
-      success: true,
-      message: `Event '${event.type}' dispatched; ${dispatchResult.dispatchedCount} notification(s) generated.`,
-      data: dispatchResult,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to publish domain event.";
-    return {
-      success: false,
-      error: message,
-      timestamp: new Date().toISOString(),
-    };
-  }
+  return runHardenedOperation(
+    {
+      actionName: "publishDomainEventAction",
+      rawInput: event,
+      rateLimitCategory: "NOTIFICATION_REQUEST",
+      rateLimitKey: event.actor?.userId || event.id || "domain-event",
+      successMessage: `Event '${event.type}' dispatched cleanly.`,
+    },
+    (sanitizedEvent) => {
+      const dispatchResult = publishDomainEvent(sanitizedEvent);
+      revalidatePath("/profile/notifications");
+      revalidatePath("/theatre/notifications");
+      revalidatePath("/dashboard/notifications");
+      return dispatchResult;
+    }
+  );
 }
 
 /**
@@ -72,27 +68,22 @@ export async function publishDomainEventAction<T extends Record<string, unknown>
 export async function createNotificationAction(
   input: CreateNotificationInput
 ): Promise<NotificationActionResponse<NotificationItem>> {
-  try {
-    const notification = createNotification(input);
-
-    revalidatePath("/profile/notifications");
-    revalidatePath("/theatre/notifications");
-    revalidatePath("/dashboard/notifications");
-
-    return {
-      success: true,
-      message: "Notification created successfully.",
-      data: notification,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to create notification.";
-    return {
-      success: false,
-      error: message,
-      timestamp: new Date().toISOString(),
-    };
-  }
+  return runHardenedOperation(
+    {
+      actionName: "createNotificationAction",
+      rawInput: input,
+      rateLimitCategory: "NOTIFICATION_REQUEST",
+      rateLimitKey: input.recipientId || input.theatreId || "create-notification",
+      successMessage: "Notification created successfully.",
+    },
+    (sanitizedInput) => {
+      const notification = createNotification(sanitizedInput);
+      revalidatePath("/profile/notifications");
+      revalidatePath("/theatre/notifications");
+      revalidatePath("/dashboard/notifications");
+      return notification;
+    }
+  );
 }
 
 /**

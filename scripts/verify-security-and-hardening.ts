@@ -37,6 +37,7 @@ import {
   verifyRequestOrigin,
   createDoubleSubmitTokenPair,
   verifyDoubleSubmitRequest,
+  getCsrfCookieOptions,
 } from "../lib/security/csrf-protection";
 import {
   validateSqlIdentifier,
@@ -482,6 +483,8 @@ async function runSecurityVerification() {
   const dsPair = createDoubleSubmitTokenPair();
   assert(verifyDoubleSubmitRequest(dsPair.token, dsPair.token), "Verifies matching double-submit cookie & header token");
   assert(!verifyDoubleSubmitRequest(dsPair.token, "tampered"), "Rejects mismatched double-submit CSRF header");
+  assert(getCsrfCookieOptions(false).httpOnly === true && getCsrfCookieOptions(true).httpOnly === false, "Supports both HttpOnly and client-readable CSRF cookie modes");
+  assert(getCsrfCookieOptions().sameSite === "lax", "Enforces SameSite cookie policy");
 
   assert(detectSqlInjectionPattern("'; DROP TABLE bookings; --"), "Detects malicious SQL injection syntax");
   assert(!detectSqlInjectionPattern("Dune: Part Two"), "Allows harmless movie search titles");

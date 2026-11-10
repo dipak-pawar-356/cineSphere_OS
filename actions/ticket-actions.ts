@@ -22,6 +22,8 @@ import {
   generateQRCodeUrl,
   isValidSecureId,
 } from "@/lib/engine/ticket-engine";
+import { runHardenedOperation } from "@/lib/security/action-guard";
+import { BusinessRuleError, NotFoundError } from "@/lib/errors/app-error";
 
 export interface TicketActionResponse<T> {
   success: boolean;
@@ -39,34 +41,25 @@ export interface TicketActionResponse<T> {
 export async function generateTicketsAction(
   input: GenerateTicketsInput
 ): Promise<TicketActionResponse<DigitalTicket[]>> {
-  try {
-    const result: GenerateTicketsResult = generateTicketsForBooking(input);
+  return runHardenedOperation(
+    {
+      actionName: "generateTicketsAction",
+      rawInput: input,
+      rateLimitCategory: "BOOKING_REQUEST",
+      rateLimitKey: input.bookingId || "ticket-gen",
+      successMessage: "Digital ticket(s) generated successfully.",
+    },
+    (sanitizedInput) => {
+      const result: GenerateTicketsResult = generateTicketsForBooking(sanitizedInput);
+      if (!result.success) {
+        throw new BusinessRuleError(result.error || "Failed to generate tickets for booking.");
+      }
 
-    if (!result.success) {
-      return {
-        success: false,
-        error: result.error || "Failed to generate tickets for booking.",
-        timestamp: new Date().toISOString(),
-      };
+      revalidatePath("/profile/tickets");
+      revalidatePath("/theatre/bookings");
+      return result.tickets;
     }
-
-    revalidatePath("/profile/tickets");
-    revalidatePath("/theatre/bookings");
-
-    return {
-      success: true,
-      message: `Successfully issued ${result.tickets.length} digital ticket(s).`,
-      data: result.tickets,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : "Internal ticket engine error.";
-    return {
-      success: false,
-      error: errorMsg,
-      timestamp: new Date().toISOString(),
-    };
-  }
+  );
 }
 
 /**
@@ -76,40 +69,30 @@ export async function generateTicketsAction(
 export async function retrieveTicketBySecureIdAction(
   secureId: string
 ): Promise<TicketActionResponse<DigitalTicket>> {
-  try {
-    if (!secureId || !isValidSecureId(secureId)) {
-      return {
-        success: false,
-        error: "Invalid or unauthorized ticket security token. Sequential IDs are strictly prohibited.",
-        timestamp: new Date().toISOString(),
-      };
+  return runHardenedOperation(
+    {
+      actionName: "retrieveTicketBySecureIdAction",
+      rawInput: { secureId },
+      rateLimitCategory: "PUBLIC_DEFAULT",
+      rateLimitKey: secureId || "ticket-lookup",
+    },
+    (sanitized) => {
+      if (!sanitized.secureId || !isValidSecureId(sanitized.secureId)) {
+        throw new BusinessRuleError(
+          "Invalid or unauthorized ticket security token. Sequential IDs are strictly prohibited."
+        );
+      }
+
+      const ticket = getTicketBySecureId(sanitized.secureId, {
+        role: "GUEST_OR_PATRON",
+      });
+
+      if (!ticket) {
+        throw new NotFoundError("DigitalTicket", sanitized.secureId);
+      }
+      return ticket;
     }
-
-    const ticket = getTicketBySecureId(secureId, {
-      role: "GUEST_OR_PATRON",
-    });
-
-    if (!ticket) {
-      return {
-        success: false,
-        error: "Digital ticket not found or expired.",
-        timestamp: new Date().toISOString(),
-      };
-    }
-
-    return {
-      success: true,
-      data: ticket,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : "Error retrieving ticket.";
-    return {
-      success: false,
-      error: errorMsg,
-      timestamp: new Date().toISOString(),
-    };
-  }
+  );
 }
 
 /**

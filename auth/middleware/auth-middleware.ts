@@ -5,7 +5,13 @@ import { UserRole } from "../types/role.types";
 import { SECURITY_CONFIG } from "../constants/security.constants";
 import { resolveTenantFromHostname } from "@/lib/security/tenant";
 import { checkRateLimit } from "@/lib/security/rate-limiter";
-import { verifyRequestOrigin } from "@/lib/security/csrf-protection";
+import {
+  CSRF_CONFIG,
+  createDoubleSubmitTokenPair,
+  verifyDoubleSubmitRequest,
+  verifyRequestOrigin,
+} from "@/lib/security/csrf-protection";
+import { sanitizeCookieValue } from "@/lib/security/input-sanitizer";
 
 export function handleAuthMiddleware(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
@@ -17,7 +23,7 @@ export function handleAuthMiddleware(request: NextRequest): NextResponse {
   const correlationId = existingCorrelationId || `corr-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
   const requestId = request.headers.get("x-request-id") || `req-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
 
-  // 2. Edge CSRF & Origin Validation for State-Changing Requests
+  // 2. Edge CSRF Origin & Double-Submit Validation for State-Changing Requests
   if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
     const origin = request.headers.get("origin");
     const referer = request.headers.get("referer");
@@ -38,6 +44,28 @@ export function handleAuthMiddleware(request: NextRequest): NextResponse {
           headers: { "Content-Type": "application/json", "x-correlation-id": correlationId },
         }
       );
+    }
+
+    // If client explicitly supplies Double-Submit header (x-csrf-token), verify timing-safe match
+    const submittedCsrfHeader = request.headers.get(CSRF_CONFIG.HEADER_NAME);
+    if (submittedCsrfHeader) {
+      const cookieCsrfToken = request.cookies.get(CSRF_CONFIG.COOKIE_NAME)?.value;
+      if (!verifyDoubleSubmitRequest(cookieCsrfToken, submittedCsrfHeader)) {
+        return new NextResponse(
+          JSON.stringify({
+            success: false,
+            error: {
+              code: "CSRF_TOKEN_INVALID",
+              message: "Cross-site request forgery protection: Double-submit token mismatch",
+              correlationId,
+            },
+          }),
+          {
+            status: 403,
+            headers: { "Content-Type": "application/json", "x-correlation-id": correlationId },
+          }
+        );
+      }
     }
   }
 
@@ -67,9 +95,10 @@ export function handleAuthMiddleware(request: NextRequest): NextResponse {
     }
   }
 
-  // 4. Resolve Tenant Context
+  // 4. Resolve Sanitized Tenant Context
   const hostTenant = resolveTenantFromHostname(hostname);
-  const cookieTenant = request.cookies.get(SECURITY_CONFIG.SESSION.TENANT_COOKIE_NAME)?.value;
+  const rawCookieTenant = request.cookies.get(SECURITY_CONFIG.SESSION.TENANT_COOKIE_NAME)?.value;
+  const cookieTenant = rawCookieTenant ? sanitizeCookieValue(rawCookieTenant, 64) : undefined;
   const activeTenantId = cookieTenant || hostTenant || "th-pun-001";
 
   // 5. Resolve User Session & Role
@@ -125,6 +154,12 @@ export function handleAuthMiddleware(request: NextRequest): NextResponse {
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), browsing-topics=()");
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
   response.headers.set("Cross-Origin-Resource-Policy", "same-origin");
+
+  // Issue SameSite Secure CSRF Double-Submit cookie on safe requests if missing
+  if (method === "GET" && !request.cookies.get(CSRF_CONFIG.COOKIE_NAME)?.value) {
+    const pair = createDoubleSubmitTokenPair(false);
+    response.cookies.set(pair.cookieName, pair.token, pair.cookieOptions);
+  }
 
   return response;
 }

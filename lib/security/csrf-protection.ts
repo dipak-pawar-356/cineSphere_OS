@@ -89,6 +89,24 @@ export function verifyRequestOrigin(
   return true;
 }
 
+export interface CsrfCookieOptions {
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: "lax" | "strict";
+  path: string;
+  maxAge: number;
+}
+
+export function getCsrfCookieOptions(clientReadable = false): CsrfCookieOptions {
+  return {
+    httpOnly: !clientReadable,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24,
+  };
+}
+
 /**
  * Double-Submit Token Architecture (Stateless CSRF Protection).
  * Returns identical cookie and request header tokens to bind client session requests.
@@ -97,15 +115,15 @@ export interface DoubleSubmitTokenPair {
   cookieName: string;
   headerName: string;
   token: string;
-  cookieOptions: typeof CSRF_CONFIG.COOKIE_OPTIONS;
+  cookieOptions: CsrfCookieOptions;
 }
 
-export function createDoubleSubmitTokenPair(): DoubleSubmitTokenPair {
+export function createDoubleSubmitTokenPair(clientReadable = false): DoubleSubmitTokenPair {
   return {
     cookieName: CSRF_CONFIG.COOKIE_NAME,
     headerName: CSRF_CONFIG.HEADER_NAME,
     token: generateCsrfToken(),
-    cookieOptions: CSRF_CONFIG.COOKIE_OPTIONS,
+    cookieOptions: getCsrfCookieOptions(clientReadable),
   };
 }
 
