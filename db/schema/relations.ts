@@ -31,6 +31,7 @@ import {
   reportSnapshots,
   securityEvents,
   structuredLogs,
+  versionControl,
 } from "./operations";
 import { mediaLibrary, systemSettings } from "./system";
 
@@ -607,5 +608,17 @@ export const structuredLogsRelations = relations(structuredLogs, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const versionControlRelations = relations(versionControl, ({ one }) => ({
+  theatre: one(theatres, {
+    fields: [versionControl.theatreId],
+    references: [theatres.id],
+  }),
+  updater: one(users, {
+    fields: [versionControl.updatedBy],
+    references: [users.id],
+  }),
+}));
+
 
 

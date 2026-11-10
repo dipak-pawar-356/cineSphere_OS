@@ -88,3 +88,32 @@ export function verifyRequestOrigin(
 
   return true;
 }
+
+/**
+ * Double-Submit Token Architecture (Stateless CSRF Protection).
+ * Returns identical cookie and request header tokens to bind client session requests.
+ */
+export interface DoubleSubmitTokenPair {
+  cookieName: string;
+  headerName: string;
+  token: string;
+  cookieOptions: typeof CSRF_CONFIG.COOKIE_OPTIONS;
+}
+
+export function createDoubleSubmitTokenPair(): DoubleSubmitTokenPair {
+  return {
+    cookieName: CSRF_CONFIG.COOKIE_NAME,
+    headerName: CSRF_CONFIG.HEADER_NAME,
+    token: generateCsrfToken(),
+    cookieOptions: CSRF_CONFIG.COOKIE_OPTIONS,
+  };
+}
+
+export function verifyDoubleSubmitRequest(
+  cookieToken?: string | null,
+  headerToken?: string | null
+): boolean {
+  if (!cookieToken || !headerToken) return false;
+  return verifyCsrfToken(headerToken, cookieToken);
+}
+

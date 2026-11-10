@@ -168,7 +168,7 @@ When a rate limit is exceeded, the subsystem:
 Configured directly in `next.config.ts` and `auth/middleware/auth-middleware.ts`:
 
 ```http
-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; report-uri /api/security/csp-report
 Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
@@ -177,6 +177,8 @@ Permissions-Policy: camera=(), microphone=(), geolocation=(), browsing-topics=()
 Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Resource-Policy: same-origin
 ```
+
+CSP violation telemetry payloads are collected safely at `POST /api/security/csp-report` and recorded as sanitized security events (`SUSPICIOUS_PAYLOAD`).
 
 ---
 

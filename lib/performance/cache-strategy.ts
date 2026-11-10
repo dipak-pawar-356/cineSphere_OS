@@ -122,3 +122,92 @@ export function paginateArray<T>(
   };
 }
 
+// ------------------------------------------------------------------------------
+// Cache Policy Presets (Request Cache, Route Cache, Data Cache, CDN, Image)
+// ------------------------------------------------------------------------------
+
+export type CacheLayerPolicy =
+  | "NO_STORE"        // Financial / transactional / personalized auth routes
+  | "REQUEST_MEMO"    // React per-request deduplication
+  | "DATA_SHORT"      // 60s revalidate for dynamic show availability
+  | "ROUTE_ISR"       // 300s ISR for movie directory & theatre pages
+  | "CDN_EDGE_CACHE"  // Stale-while-revalidate edge CDN caching
+  | "IMMUTABLE_ASSET"; // Static JS/CSS/images (1 year immutable)
+
+export function buildCacheControlHeader(policy: CacheLayerPolicy): string {
+  switch (policy) {
+    case "NO_STORE":
+      return "no-store, no-cache, must-revalidate, private";
+    case "REQUEST_MEMO":
+      return "private, max-age=0, must-revalidate";
+    case "DATA_SHORT":
+      return "public, s-maxage=60, stale-while-revalidate=30";
+    case "ROUTE_ISR":
+      return "public, s-maxage=300, stale-while-revalidate=600";
+    case "CDN_EDGE_CACHE":
+      return "public, s-maxage=3600, stale-while-revalidate=86400";
+    case "IMMUTABLE_ASSET":
+      return "public, max-age=31536000, immutable";
+  }
+}
+
+/**
+ * Future Distributed Cache Adapter Interface (Phase 3 Redis / Upstash Placeholder)
+ */
+export interface DistributedCacheAdapterPlaceholder {
+  get<T>(key: string): Promise<T | null>;
+  set<T>(key: string, value: T, ttlSeconds: number, tags?: string[]): Promise<void>;
+  invalidateTag(tag: string): Promise<number>;
+}
+
+export const futureRedisCacheAdapter: DistributedCacheAdapterPlaceholder = {
+  async get<T>(key: string): Promise<T | null> {
+    const now = Date.now();
+    const hit = queryCache.get(key) as CacheEntry<T> | undefined;
+    return hit && hit.expiresAt > now ? hit.data : null;
+  },
+  async set<T>(key: string, value: T, ttlSeconds: number, tags: string[] = []): Promise<void> {
+    queryCache.set(key, {
+      data: value,
+      expiresAt: Date.now() + ttlSeconds * 1000,
+      tags,
+    });
+  },
+  async invalidateTag(tag: string): Promise<number> {
+    return invalidateCacheByTag(tag);
+  },
+};
+
+/**
+ * Virtualization Placeholder Helper for rendering large datasets (e.g. 5,000+ tickets or logs)
+ */
+export interface VirtualWindowSlice<T> {
+  visibleItems: T[];
+  startIndex: number;
+  endIndex: number;
+  offsetTopPx: number;
+  totalHeightPx: number;
+}
+
+export function computeVirtualSlice<T>(
+  items: T[],
+  scrollTopPx: number,
+  viewportHeightPx: number,
+  rowHeightPx: number,
+  overscanCount = 5
+): VirtualWindowSlice<T> {
+  const safeRowHeight = Math.max(1, rowHeightPx);
+  const startIndex = Math.max(0, Math.floor(scrollTopPx / safeRowHeight) - overscanCount);
+  const visibleCount = Math.ceil(viewportHeightPx / safeRowHeight) + overscanCount * 2;
+  const endIndex = Math.min(items.length, startIndex + visibleCount);
+
+  return {
+    visibleItems: items.slice(startIndex, endIndex),
+    startIndex,
+    endIndex,
+    offsetTopPx: startIndex * safeRowHeight,
+    totalHeightPx: items.length * safeRowHeight,
+  };
+}
+
+

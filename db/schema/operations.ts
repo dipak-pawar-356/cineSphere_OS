@@ -321,4 +321,33 @@ export const systemHealthMetrics = pgTable(
   ]
 );
 
+/**
+ * Reusable Optimistic Concurrency & Entity Version Control Registry
+ */
+export const versionControl = pgTable(
+  "version_control",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    entityType: varchar("entity_type", { length: 64 }).notNull(), // "BOOKING", "PAYMENT_CONFIG", "SHOW", "HALL"
+    entityId: varchar("entity_id", { length: 64 }).notNull(),
+    theatreId: varchar("theatre_id", { length: 36 })
+      .references(() => theatres.id, { onDelete: "cascade" }),
+    version: integer("version").notNull().default(1),
+    previousVersion: integer("previous_version").notNull().default(0),
+    checksum: varchar("checksum", { length: 128 }),
+    updatedBy: varchar("updated_by", { length: 36 })
+      .references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("version_control_entity_idx").on(table.entityType, table.entityId),
+    index("version_control_theatre_idx").on(table.theatreId),
+    index("version_control_updated_at_idx").on(table.updatedAt),
+  ]
+);
+
+
 

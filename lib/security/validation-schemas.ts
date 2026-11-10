@@ -163,3 +163,42 @@ export const NotificationRequestSchema = z.object({
   channels: z.array(z.enum(["IN_APP", "EMAIL", "SMS", "PUSH", "WHATSAPP"])).default(["IN_APP"]),
 });
 
+// ------------------------------------------------------------------------------
+// 8. Authentication, Authorization & Tenant Ownership Validation
+// ------------------------------------------------------------------------------
+
+export const LoginRequestSchema = z.object({
+  email: z.string().email("Valid email is required"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(128),
+});
+
+export const RegistrationRequestSchema = z.object({
+  name: z.string().min(2, "Full name is required").max(100),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().min(10, "Valid phone number is required").max(15),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128)
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one numeric digit"),
+});
+
+export const ForgotPasswordRequestSchema = z.object({
+  email: z.string().email("Valid email is required"),
+});
+
+export const AuthorizationCheckSchema = z.object({
+  actorId: z.string().min(1, "Actor ID is required"),
+  role: z.enum(["SUPER_ADMIN", "THEATRE_ADMIN", "HALL_MANAGER", "STAFF", "CUSTOMER"]),
+  requiredPermission: z.string().min(1, "Permission identifier is required"),
+});
+
+export const TenantOwnershipSchema = z.object({
+  actorId: z.string().min(1, "Actor ID is required"),
+  actorRole: z.enum(["SUPER_ADMIN", "THEATRE_ADMIN", "HALL_MANAGER", "STAFF", "CUSTOMER"]),
+  assignedTheatreId: z.string().optional(),
+  targetTheatreId: z.string().min(1, "Target Theatre ID is required"),
+});
+
+

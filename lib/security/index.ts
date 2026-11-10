@@ -6,6 +6,7 @@
 
 export * from "./input-sanitizer";
 export * from "./xss-defense";
+export * from "./sql-injection-guard";
 export * from "./csrf-protection";
 export * from "./rate-limiter";
 export * from "./validation-schemas";

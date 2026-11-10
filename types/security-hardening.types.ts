@@ -169,6 +169,14 @@ export interface HealthCheckResponse {
   checks: {
     database: SubsystemHealth;
     memory: SubsystemHealth & { heapUsedMb: number; heapTotalMb: number };
+    cpu: SubsystemHealth & { loadAveragePlaceholder: number[]; usagePercentPlaceholder: number };
+    apiTelemetry: SubsystemHealth & {
+      averageResponseTimeMs: number;
+      totalRequests: number;
+      errorCount: number;
+      errorRatePercent: number;
+      slowQueryCount: number;
+    };
     rateLimiter: SubsystemHealth & { activeKeys: number };
     domainServices: SubsystemHealth;
   };

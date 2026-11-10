@@ -136,6 +136,39 @@ export function sanitizeSearchQuery(query: string, maxLength = 100): string {
 }
 
 /**
+ * Sanitizes URL query parameter dictionaries safely without prototype pollution.
+ */
+export function sanitizeQueryParams(
+  params: Record<string, string | string[] | undefined>
+): Record<string, string | string[]> {
+  const result: Record<string, string | string[]> = {};
+  for (const [key, val] of Object.entries(params)) {
+    if (PROTOTYPE_POLLUTION_KEYS.has(key) || val === undefined) continue;
+    const safeKey = sanitizeString(key, 64);
+    if (!safeKey) continue;
+    if (Array.isArray(val)) {
+      result[safeKey] = val.map((v) => sanitizeSearchQuery(v, 200));
+    } else {
+      result[safeKey] = sanitizeSearchQuery(val, 200);
+    }
+  }
+  return result;
+}
+
+/**
+ * Sanitizes cookie values by stripping control chars, semicolons, and CRLF sequences
+ * (RFC 6265 safe cookie-octet enforcement).
+ */
+export function sanitizeCookieValue(cookieVal: string, maxLength = 512): string {
+  if (!cookieVal || typeof cookieVal !== "string") return "";
+  const cleaned = cookieVal
+    .replace(CRLF_REGEX, "")
+    .replace(/[;,\s\\"]/g, "")
+    .replace(/[\x00-\x1F\x7F]/g, "");
+  return cleaned.slice(0, maxLength);
+}
+
+/**
  * Recursively sanitizes an object, dictionary, or array.
  * Strictly prevents Prototype Pollution by discarding __proto__, prototype, and constructor.
  */
