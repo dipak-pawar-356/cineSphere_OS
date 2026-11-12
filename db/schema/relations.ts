@@ -14,6 +14,13 @@ import {
   theatreApprovals,
   theatreSlugHistory,
 } from "./theatres";
+import {
+  theatreMediaCollections,
+  theatreMedia,
+  theatreMediaMetadata,
+  theatreMediaVersions,
+  theatreMediaReferences,
+} from "./theatre-media";
 import { paymentConfigurations, payments } from "./payments";
 import { halls, hallLayouts, hallSections, seatTemplates } from "./halls";
 import {
@@ -181,6 +188,12 @@ export const theatresRelations = relations(theatres, ({ one, many }) => ({
   statusHistory: many(theatreStatusHistory),
   approvals: many(theatreApprovals),
   slugHistory: many(theatreSlugHistory),
+  mediaCollection: one(theatreMediaCollections, {
+    fields: [theatres.id],
+    references: [theatreMediaCollections.theatreId],
+  }),
+  theatreMediaItems: many(theatreMedia),
+  theatreMediaReferences: many(theatreMediaReferences),
 }));
 
 export const theatreLifecycleRelations = relations(theatreLifecycle, ({ one }) => ({
@@ -674,6 +687,71 @@ export const versionControlRelations = relations(versionControl, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// ------------------------------------------------------------------------------
+// Theatre Branding & Media Management Relations (Phase 3 - Part 2)
+// ------------------------------------------------------------------------------
+export const theatreMediaCollectionsRelations = relations(
+  theatreMediaCollections,
+  ({ one, many }) => ({
+    theatre: one(theatres, {
+      fields: [theatreMediaCollections.theatreId],
+      references: [theatres.id],
+    }),
+    mediaAssets: many(theatreMedia),
+  })
+);
+
+export const theatreMediaRelations = relations(theatreMedia, ({ one, many }) => ({
+  collection: one(theatreMediaCollections, {
+    fields: [theatreMedia.collectionId],
+    references: [theatreMediaCollections.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreMedia.theatreId],
+    references: [theatres.id],
+  }),
+  uploader: one(users, {
+    fields: [theatreMedia.uploadedBy],
+    references: [users.id],
+  }),
+  metadata: one(theatreMediaMetadata, {
+    fields: [theatreMedia.id],
+    references: [theatreMediaMetadata.mediaId],
+  }),
+  versions: many(theatreMediaVersions),
+  references: many(theatreMediaReferences),
+}));
+
+export const theatreMediaMetadataRelations = relations(theatreMediaMetadata, ({ one }) => ({
+  media: one(theatreMedia, {
+    fields: [theatreMediaMetadata.mediaId],
+    references: [theatreMedia.id],
+  }),
+}));
+
+export const theatreMediaVersionsRelations = relations(theatreMediaVersions, ({ one }) => ({
+  media: one(theatreMedia, {
+    fields: [theatreMediaVersions.mediaId],
+    references: [theatreMedia.id],
+  }),
+  replacer: one(users, {
+    fields: [theatreMediaVersions.replacedBy],
+    references: [users.id],
+  }),
+}));
+
+export const theatreMediaReferencesRelations = relations(theatreMediaReferences, ({ one }) => ({
+  theatre: one(theatres, {
+    fields: [theatreMediaReferences.theatreId],
+    references: [theatres.id],
+  }),
+  media: one(theatreMedia, {
+    fields: [theatreMediaReferences.mediaId],
+    references: [theatreMedia.id],
+  }),
+}));
+
 
 
 

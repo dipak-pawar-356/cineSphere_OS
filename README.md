@@ -620,6 +620,22 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - `THEATRE_ADMIN` views read-only lifecycle governance and edits strictly permitted profile fields (`TheatreAdminEditableFields`) on their assigned complex in `/theatre/profile`.
 - 📚 **Theatre Lifecycle Guide:** Detailed technical documentation in [`docs/THEATRE_LIFECYCLE_MANAGEMENT.md`](./docs/THEATRE_LIFECYCLE_MANAGEMENT.md).
 
+### 2.19 Phase 3 - Part 2: Theatre Branding & Media Management (Completed)
+- 🎨 **Decoupled Digital Asset Management (DAM) Hierarchy (`db/schema/theatre-media.ts`):**
+  - Implements $\text{Platform} \to \text{Theatre} \to \text{TheatreMediaCollection} \to \text{TheatreMedia}$ with companion tables `theatreMediaMetadata`, `theatreMediaVersions`, and `theatreMediaReferences` instead of embedding raw asset paths directly on `theatres`.
+- 🖼️ **Single-Active Brand Slots & Unlimited Ordered Gallery:**
+  - Enforces single-active invariants across `LOGO`, `BANNER`, `COVER_IMAGE`, `HERO_IMAGE`, and `THUMBNAIL` slots (auto-archiving superseded active assets) alongside unlimited `GALLERY_IMAGE` assets.
+  - Supports HTML5 drag-and-drop reordering, keyboard arrow moves, and automatic contiguous re-sequencing (`displayOrder`).
+- 🕰️ **Immutable Media Versioning & Rollback (`TheatreMediaVersion`):**
+  - Preserves previous versions (`v1`, `v2`, ...) on asset replacement with full SHA-256 checksums, dimensions, dominant palette hex, and change reasons, supporting one-click forward version restoration.
+- 🛡️ **Server-Side Upload Validation & Security Controls:**
+  - Never trusts client metadata blindly: enforces per-type MIME allowlists, file size ceilings, minimum/maximum dimensions, XSS URL filtering, corrupted signature detection placeholders, SHA-256 duplicate prevention, and strict rejection of raw video binary uploads while reserving `FUTURE_VIDEO_PLACEHOLDER` & `FUTURE_PANORAMA_PLACEHOLDER` stubs (`PROMOTIONAL_VIDEO`, `THEATRE_WALKTHROUGH`, `HALL_PREVIEW`, `VIDEO_360`, `VIRTUAL_TOUR`).
+- 🌐 **Prepared Optimization, Caching & Public Projection:**
+  - Prepares `compressionPlaceholder` metadata (`WebP`, `AVIF`, `JPEG`, responsive widths), CDN URL pattern stubs, `withQueryCache` / `CACHE_TAGS.THEATRE_MEDIA` invalidation hooks, and public active-only resolution across `/theatres` and `/theatre/[slug]`.
+- 🔒 **Multi-Tenant Ownership & Immutable Audits:**
+  - Reusable workspace (`TheatreBrandingMediaWorkspace`) integrated into `/dashboard/media`, `/dashboard/theatres/[id]`, `/theatre/media`, and `/theatre/gallery`, tracking `MEDIA_UPLOADED`, `MEDIA_REPLACED`, `MEDIA_VERSION_RESTORED`, `GALLERY_REORDERED`, `METADATA_UPDATED`, and `MEDIA_DELETED`.
+- 📚 **Theatre Media Guide:** Detailed technical documentation in [`docs/THEATRE_MEDIA_MANAGEMENT.md`](./docs/THEATRE_MEDIA_MANAGEMENT.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -640,6 +656,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🎨 [`docs/THEATRE_MEDIA_MANAGEMENT.md`](./docs/THEATRE_MEDIA_MANAGEMENT.md) — Theatre Branding & Digital Media Management Architecture (`TheatreMediaCollection`, Single-Active Brand Slots, Drag-and-Drop Gallery Ordering, Version History & Rollback, Server Validation & Future Video Support) (Phase 3 - Part 2).
 - 🏛️ [`docs/THEATRE_LIFECYCLE_MANAGEMENT.md`](./docs/THEATRE_LIFECYCLE_MANAGEMENT.md) — Theatre Lifecycle Governance, Finite State Machine (`DRAFT` → `PENDING_APPROVAL` → `APPROVED` → `ACTIVE` ↔ `SUSPENDED` → `ARCHIVED` → `SOFT_DELETED`), Approval Workflows, Operational Lockouts, Slug History & Optimistic Locking (Phase 3 - Part 1).
 - 🛡️ [`docs/ENTERPRISE_SECURITY_AND_PLATFORM_HARDENING.md`](./docs/ENTERPRISE_SECURITY_AND_PLATFORM_HARDENING.md) — Enterprise Security Architecture, Layered Defense Pipeline, Domain Service & Repository Pattern, Booking Optimistic Locking, Threat Monitoring & Health Probes (Phase 2 - Part 16).
 - 📊 [`docs/REPORTING_ANALYTICS_AND_BUSINESS_INTELLIGENCE.md`](./docs/REPORTING_ANALYTICS_AND_BUSINESS_INTELLIGENCE.md) — Reporting, Analytics & Business Intelligence Architecture, Decoupled Aggregation Marts, Centralized KPI Engine, Hierarchical Trace Navigator & Configurable Snapshots (Phase 2 - Part 15).

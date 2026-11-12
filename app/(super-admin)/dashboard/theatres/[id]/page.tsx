@@ -58,6 +58,10 @@ const LazyLifecycleActionModal = dynamic(
   () => import("@/components/theatre-lifecycle/lifecycle-action-modal").then((m) => m.LifecycleActionModal),
   { ssr: false }
 );
+const LazyTheatreBrandingMediaWorkspace = dynamic(
+  () => import("@/components/theatre-media/theatre-branding-media-workspace").then((m) => m.TheatreBrandingMediaWorkspace),
+  { ssr: false }
+);
 
 const SUPER_ADMIN_ACTOR = {
   userId: "usr-super-1",
@@ -72,7 +76,7 @@ export default function SuperAdminTheatreDetailPage() {
   const [detail, setDetail] = useState<TheatreLifecycleDetailBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "lifecycle" | "general" | "admin" | "payment" | "subscription" | "metrics" | "audit"
+    "lifecycle" | "media" | "general" | "admin" | "payment" | "subscription" | "metrics" | "audit"
   >("lifecycle");
 
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -427,6 +431,7 @@ export default function SuperAdminTheatreDetailPage() {
         <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-[#2A3445]">
           {[
             { id: "lifecycle", label: "Lifecycle & State Machine" },
+            { id: "media", label: "Branding & Media" },
             { id: "general", label: "General & Hardware" },
             { id: "admin", label: "Admin & Operators" },
             { id: "payment", label: "Payment & UPI Rail" },
@@ -451,6 +456,17 @@ export default function SuperAdminTheatreDetailPage() {
 
       {/* Tab 0: Lifecycle & State Machine */}
       {activeTab === "lifecycle" && <LazyTheatreLifecyclePanel detail={detail} />}
+
+      {/* Tab 0b: Branding & Digital Media Vault */}
+      {activeTab === "media" && (
+        <LazyTheatreBrandingMediaWorkspace
+          theatreId={theatre.id}
+          actorRole="SUPER_ADMIN"
+          actorUserId="usr-super-1"
+          actorName="Vikram Singhania"
+          defaultView="branding"
+        />
+      )}
 
       {/* Tab 1: General Information */}
       {activeTab === "general" && (

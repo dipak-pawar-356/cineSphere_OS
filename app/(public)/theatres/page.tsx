@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { PageHeader } from "@/components/layout/page-header";
 import { useCityStore } from "@/store/city-store";
 import { getAllPublishedTheatres, getFilteredTheatres } from "@/lib/engine/customer-discovery-engine";
 import { CustomerTheatreDTO } from "@/types/customer-discovery.types";
+import { getPublicTheatreMediaAction } from "@/actions/theatre-media-actions";
+import { TheatrePublicMediaView } from "@/types/theatre-media.types";
 import { FormatBadge } from "@/components/badges/format-badge";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +53,27 @@ export default function TheatresPage() {
 
   // Fetch all published venues
   const allTheatres = useMemo(() => getAllPublishedTheatres(), []);
+  const [mediaMap, setMediaMap] = useState<Record<string, TheatrePublicMediaView>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all(
+      allTheatres.map(async (t) => {
+        const res = await getPublicTheatreMediaAction({ theatreIdOrSlug: t.id }, { role: "CUSTOMER" });
+        return res.success && res.data ? ([t.id, res.data] as const) : null;
+      })
+    ).then((entries) => {
+      if (cancelled) return;
+      const next: Record<string, TheatrePublicMediaView> = {};
+      for (const e of entries) {
+        if (e) next[e[0]] = e[1];
+      }
+      setMediaMap(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [allTheatres]);
 
   // Filter pipeline
   const filteredTheatres = useMemo(() => {
@@ -316,15 +339,21 @@ export default function TheatresPage() {
               key={theatre.id}
               className="group relative flex flex-col rounded-2xl bg-[#161F2E]/90 border border-white/5 hover:border-amber-400/30 transition-all duration-300 shadow-xl overflow-hidden hover:-translate-y-1 hover:shadow-2xl hover:shadow-amber-500/5"
             >
-              {/* Banner Header */}
+              {/* Banner / Active Thumbnail Header */}
               <Link
                 href={`/theatre/${theatre.slug}`}
                 className="relative h-44 w-full overflow-hidden bg-[#070B12] block"
               >
                 <Image
-                  src={theatre.banner}
-                  alt={theatre.name}
+                  src={
+                    mediaMap[theatre.id]?.thumbnail?.url ||
+                    mediaMap[theatre.id]?.banner?.url ||
+                    theatre.banner
+                  }
+                  alt={mediaMap[theatre.id]?.thumbnail?.metadata.altText || theatre.name}
                   fill
+                  unoptimized
+                  loading="lazy"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 />
@@ -347,8 +376,19 @@ export default function TheatresPage() {
 
                 {/* Chain Logo Avatar badge */}
                 <div className="absolute -bottom-3 left-4 flex items-center gap-2.5">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-black font-black text-xs flex items-center justify-center border-2 border-[#161F2E] shadow-xl">
-                    {theatre.chain?.charAt(0) || "C"}
+                  <div className="relative h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-black font-black text-xs flex items-center justify-center border-2 border-[#161F2E] shadow-xl overflow-hidden">
+                    {mediaMap[theatre.id]?.logo?.url ? (
+                      <Image
+                        src={mediaMap[theatre.id].logo!.url}
+                        alt={mediaMap[theatre.id].logo!.metadata.altText}
+                        fill
+                        unoptimized
+                        sizes="40px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <span>{theatre.chain?.charAt(0) || "C"}</span>
+                    )}
                   </div>
                   <span className="text-xs font-semibold uppercase tracking-wider text-amber-400 drop-shadow-md">
                     {theatre.chain}

@@ -10,6 +10,8 @@
 // Cache Invalidation Tags
 export const CACHE_TAGS = {
   THEATRE: (theatreId: string) => `theatre:${theatreId}`,
+  THEATRE_MEDIA: (theatreId: string) => `theatre-media:${theatreId}`,
+  PUBLIC_THEATRE_MEDIA: (slugOrId: string) => `public-theatre-media:${slugOrId}`,
   PAYMENT_CONFIGS: (theatreId: string) => `payment-configs:${theatreId}`,
   SHOW: (showId: string) => `show:${showId}`,
   SHOWS_DAILY: (theatreId: string, date: string) => `shows:${theatreId}:${date}`,

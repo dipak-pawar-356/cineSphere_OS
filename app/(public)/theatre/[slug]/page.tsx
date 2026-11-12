@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, use } from "react";
+import React, { useState, useMemo, use, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCityStore } from "@/store/city-store";
@@ -9,6 +9,8 @@ import {
   getAllPublishedMovies,
   getAllPublishedShows,
 } from "@/lib/engine/customer-discovery-engine";
+import { getPublicTheatreMediaAction } from "@/actions/theatre-media-actions";
+import { TheatrePublicMediaView } from "@/types/theatre-media.types";
 import {
   CustomerTheatreDTO,
   CustomerMovieDTO,
@@ -51,6 +53,7 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
 
   const [selectedDate, setSelectedDate] = useState("Today");
   const [selectedFormat, setSelectedFormat] = useState("All");
+  const [publicMedia, setPublicMedia] = useState<TheatrePublicMediaView | null>(null);
 
   const allTheatres = useMemo(() => getAllPublishedTheatres(), []);
   const allMovies = useMemo(() => getAllPublishedMovies(), []);
@@ -63,6 +66,21 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
       allTheatres[0]
     );
   }, [allTheatres, slug]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getPublicTheatreMediaAction(
+      { theatreIdOrSlug: theatre.id || theatre.slug },
+      { role: "CUSTOMER" }
+    ).then((res) => {
+      if (!cancelled && res.success && res.data) {
+        setPublicMedia(res.data);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [theatre.id, theatre.slug]);
 
   // 2. Resolve shows scheduled for this theatre
   const theatreShows: CustomerShowDTO[] = useMemo(() => {
@@ -321,9 +339,14 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
       {/* 2. THEATRE HERO BANNER */}
       <div className="relative w-full h-[320px] sm:h-[440px] bg-[#070B12] overflow-hidden">
         <Image
-          src={theatre.banner}
-          alt={theatre.name}
+          src={
+            publicMedia?.heroImage?.url ||
+            publicMedia?.banner?.url ||
+            theatre.banner
+          }
+          alt={publicMedia?.heroImage?.metadata.altText || theatre.name}
           fill
+          unoptimized
           priority
           sizes="100vw"
           className="object-cover object-center opacity-45 brightness-75"
@@ -333,8 +356,19 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-end pb-8 relative z-10">
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5 w-full">
             {/* Logo Avatar */}
-            <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-gradient-to-br from-[#FBBF24] to-[#F59E0B] flex items-center justify-center font-black text-[#070B12] text-2xl shadow-2xl border-4 border-[#070B12] shrink-0">
-              {theatre.chain?.charAt(0) || "C"}
+            <div className="relative h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-gradient-to-br from-[#FBBF24] to-[#F59E0B] flex items-center justify-center font-black text-[#070B12] text-2xl shadow-2xl border-4 border-[#070B12] shrink-0 overflow-hidden">
+              {publicMedia?.logo?.url ? (
+                <Image
+                  src={publicMedia.logo.url}
+                  alt={publicMedia.logo.metadata.altText || `${theatre.name} Logo`}
+                  fill
+                  unoptimized
+                  sizes="96px"
+                  className="object-cover"
+                />
+              ) : (
+                <span>{theatre.chain?.charAt(0) || "C"}</span>
+              )}
             </div>
 
             <div className="space-y-2 flex-1">
@@ -675,13 +709,88 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
           </div>
         </div>
 
-        {/* 8. VENUE GALLERY */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-[#FBBF24]" />
-            <span>Venue Gallery</span>
-          </h3>
-          <GalleryPlaceholder count={4} />
+        {/* 8. VENUE GALLERY & FUTURE WALKTHROUGH PREVIEWS */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-[#FBBF24]" />
+              <span>Venue Gallery & Architectural Showcase</span>
+            </h3>
+            {publicMedia?.gallery && publicMedia.gallery.length > 0 && (
+              <span className="text-xs font-mono text-[#94A3B8]">
+                {publicMedia.gallery.length} Active Photos
+              </span>
+            )}
+          </div>
+
+          {publicMedia?.gallery && publicMedia.gallery.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {publicMedia.gallery.map((photo) => (
+                <div
+                  key={photo.id}
+                  className="rounded-2xl bg-[#111827] border border-[#2A3445] overflow-hidden group hover:border-[#FBBF24]/50 transition-colors"
+                >
+                  <div className="relative h-44 w-full bg-[#070B12] overflow-hidden">
+                    <Image
+                      src={photo.url}
+                      alt={photo.metadata.altText || photo.title}
+                      fill
+                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="p-3 space-y-0.5">
+                    <h4 className="text-xs font-bold text-white truncate">{photo.title}</h4>
+                    {photo.metadata.caption && (
+                      <p className="text-[11px] text-[#94A3B8] truncate">{photo.metadata.caption}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <GalleryPlaceholder count={4} />
+          )}
+
+          {/* Prepared Banner & Cover Highlight + Future Video Tour Strip */}
+          {publicMedia && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+              {publicMedia.coverImage && (
+                <div className="rounded-2xl bg-[#111827] border border-[#2A3445] p-3 flex items-center gap-3">
+                  <div className="relative h-14 w-20 rounded-xl overflow-hidden bg-[#070B12] shrink-0">
+                    <Image
+                      src={publicMedia.coverImage.url}
+                      alt={publicMedia.coverImage.metadata.altText}
+                      fill
+                      unoptimized
+                      loading="lazy"
+                      sizes="80px"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-mono text-[#FBBF24] uppercase font-bold">Venue Cover Showcase</div>
+                    <div className="text-xs font-bold text-white truncate">{publicMedia.coverImage.title}</div>
+                  </div>
+                </div>
+              )}
+
+              {publicMedia.futureVideoPlaceholders.slice(0, 2).map((stub) => (
+                <div
+                  key={stub.subtype}
+                  className="rounded-2xl bg-[#111827]/70 border border-dashed border-[#2A3445] p-3 flex flex-col justify-center space-y-1"
+                >
+                  <div className="text-[10px] font-mono text-[#38BDF8] uppercase font-bold">
+                    Future Video Slot ({stub.aspectRatio})
+                  </div>
+                  <div className="text-xs font-bold text-white truncate">{stub.label}</div>
+                  <div className="text-[10px] text-[#94A3B8] truncate">{stub.description}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -17,6 +17,9 @@ export * from "./users";
 // Multi-Tenant Theatres, Staffing & Amenities
 export * from "./theatres";
 
+// Theatre Branding & Digital Media Management (Phase 3 - Part 2)
+export * from "./theatre-media";
+
 // Tenant Payment Configurations & Ledger
 export * from "./payments";
 

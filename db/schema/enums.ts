@@ -368,4 +368,34 @@ export const systemHealthStatusEnum = pgEnum("system_health_status", [
   "DOWN",
 ]);
 
+// ------------------------------------------------------------------------------
+// Theatre Branding & Digital Media Management Enums (Phase 3 - Part 2)
+// ------------------------------------------------------------------------------
+export const theatreMediaTypeEnum = pgEnum("theatre_media_type", [
+  "LOGO",
+  "BANNER",
+  "COVER_IMAGE",
+  "HERO_IMAGE",
+  "THUMBNAIL",
+  "GALLERY_IMAGE",
+  "FUTURE_VIDEO_PLACEHOLDER",
+  "FUTURE_PANORAMA_PLACEHOLDER",
+]);
+
+export const theatreMediaStatusEnum = pgEnum("theatre_media_status", [
+  "DRAFT",
+  "ACTIVE",
+  "HIDDEN",
+  "ARCHIVED",
+  "DELETED",
+]);
+
+export const theatreFutureVideoSubtypeEnum = pgEnum("theatre_future_video_subtype", [
+  "PROMOTIONAL_VIDEO",
+  "THEATRE_WALKTHROUGH",
+  "HALL_PREVIEW",
+  "VIDEO_360",
+  "VIRTUAL_TOUR",
+]);
+
 

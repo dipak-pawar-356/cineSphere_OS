@@ -1,157 +1,338 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { PageHeader } from "@/components/layout/page-header";
 import {
-  Image as ImageIcon,
-  Film,
-  UploadCloud,
-  Search,
-  Filter,
-  HardDrive,
-  Trash2,
-  ExternalLink,
-  Layers,
-  Sparkles,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+  retrieveTheatreMediaAction,
+  deleteTheatreMediaAction,
+} from "@/actions/theatre-media-actions";
+import { searchTheatresLifecycleAction } from "@/actions/theatre-lifecycle-actions";
+import { ManagedTheatreEntity } from "@/types/theatre-lifecycle.types";
+import {
+  PaginatedTheatreMediaResult,
+  TheatreMediaAsset,
+  TheatreMediaStatus,
+  TheatreMediaType,
+} from "@/types/theatre-media.types";
+import {
+  MediaAssetCard,
+  TheatreBrandingMediaWorkspace,
+} from "@/components/theatre-media";
+import { Building2, Layers, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface MediaAssetItem {
-  id: string;
-  name: string;
-  category: "Poster" | "Banner" | "Logo" | "Gallery" | "Trailer";
-  fileUrl: string;
-  sizeMb: number;
-  dimensions: string;
-  format: string;
-  uploadedAt: string;
-}
+const LazyMediaVersionHistoryModal = dynamic(
+  () => import("@/components/theatre-media/media-version-history-modal").then((m) => m.MediaVersionHistoryModal),
+  { ssr: false }
+);
 
-const SEED_MEDIA: MediaAssetItem[] = [
-  { id: "med-01", name: "pushpa-3-imax-poster.webp", category: "Poster", fileUrl: "/placeholders/movie-1.jpg", sizeMb: 2.4, dimensions: "2000x3000", format: "WEBP 4K", uploadedAt: "2026-11-05" },
-  { id: "med-02", name: "kalki-cinematic-banner.webp", category: "Banner", fileUrl: "/placeholders/hero-banner.jpg", sizeMb: 4.8, dimensions: "3840x1200", format: "WEBP Ultrawide", uploadedAt: "2026-11-04" },
-  { id: "med-03", name: "pvr-inox-brand-vector.svg", category: "Logo", fileUrl: "/placeholders/theatre-1.jpg", sizeMb: 0.2, dimensions: "Vector SVG", format: "SVG", uploadedAt: "2026-11-01" },
-  { id: "med-04", name: "phoenix-auditorium-interior.jpg", category: "Gallery", fileUrl: "/placeholders/theatre-2.jpg", sizeMb: 3.1, dimensions: "4000x2667", format: "JPEG HDR", uploadedAt: "2026-10-28" },
-  { id: "med-05", name: "avatar-3-teaser-4k.mp4", category: "Trailer", fileUrl: "https://youtube.com/watch?v=placeholder", sizeMb: 85.0, dimensions: "3840x2160 (60fps)", format: "MP4 ProRes", uploadedAt: "2026-11-02" },
-];
+const SUPER_ADMIN_ACTOR = {
+  userId: "usr-super-1",
+  name: "Vikram Singhania",
+  role: "SUPER_ADMIN" as const,
+};
 
 export default function SuperAdminMediaPage() {
-  const [mediaList, setMediaList] = useState<MediaAssetItem[]>(SEED_MEDIA);
-  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"fleet" | "studio">("fleet");
+  const [theatres, setTheatres] = useState<ManagedTheatreEntity[]>([]);
+  const [selectedTheatreId, setSelectedTheatreId] = useState<string>("th-pun-001");
+
+  const [fleetData, setFleetData] = useState<PaginatedTheatreMediaResult | null>(null);
+  const [loading, setLoading] = useState(true);
+
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<TheatreMediaType | "ALL">("ALL");
+  const [filterStatus, setFilterStatus] = useState<TheatreMediaStatus | "ALL">("ALL");
+  const [uploadedFrom, setUploadedFrom] = useState("");
+  const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const filtered = mediaList.filter((m) => {
-    if (searchQuery.trim() && !m.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-    if (filterCategory !== "all" && m.category.toLowerCase() !== filterCategory.toLowerCase()) {
-      return false;
-    }
-    return true;
-  });
+  const [inspectAsset, setInspectAsset] = useState<TheatreMediaAsset | null>(null);
 
-  const totalStorageUsedMb = mediaList.reduce((sum, m) => sum + m.sizeMb, 0);
+  const loadFleet = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [thRes, medRes] = await Promise.all([
+        searchTheatresLifecycleAction({ pageSize: 50 }, SUPER_ADMIN_ACTOR),
+        retrieveTheatreMediaAction(
+          {
+            query: searchQuery.trim() || undefined,
+            mediaType: filterType,
+            status: filterStatus,
+            uploadedFrom: uploadedFrom || undefined,
+            includeDeleted,
+            page,
+            pageSize: 9,
+          },
+          SUPER_ADMIN_ACTOR
+        ),
+      ]);
+      if (thRes.success && thRes.data) {
+        setTheatres(thRes.data.items);
+      }
+      if (medRes.success && medRes.data) {
+        setFleetData(medRes.data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery, filterType, filterStatus, uploadedFrom, includeDeleted, page]);
+
+  useEffect(() => {
+    void loadFleet();
+  }, [loadFleet]);
+
+  const summary = fleetData?.summary;
 
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Multi-Tenant Digital Media & Creative Asset Vault"
-        subtitle="Posters, 4K Banners, Corporate Logos, High-Res Foyer Photography & Trailer Assets"
-        badge="Asset CDN"
+        title="Multi-Tenant Theatre Branding & Media Vault"
+        subtitle="Centralized Digital Asset Management (DAM): Logos, Banners, Covers, Heroes, Thumbnails & Ordered Galleries"
+        badge="Enterprise DAM"
         badgeVariant="primary"
         actions={
-          <Button variant="primary" size="sm" className="gap-2 text-xs font-bold">
-            <UploadCloud className="h-4 w-4" /> Upload Asset
-          </Button>
+          <div className="flex items-center gap-2 p-1 rounded-xl bg-[#111827] border border-[#2A3445] text-xs">
+            <button
+              type="button"
+              onClick={() => setViewMode("fleet")}
+              className={`px-3 py-1.5 rounded-lg font-semibold ${
+                viewMode === "fleet" ? "bg-[#FBBF24] text-[#070B12] font-bold" : "text-[#94A3B8] hover:text-white"
+              }`}
+            >
+              Fleet DAM Search
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("studio")}
+              className={`px-3 py-1.5 rounded-lg font-semibold ${
+                viewMode === "studio" ? "bg-[#FBBF24] text-[#070B12] font-bold" : "text-[#94A3B8] hover:text-white"
+              }`}
+            >
+              Theatre Branding Studio
+            </button>
+          </div>
         }
       />
 
-      {/* Storage Quota Card */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-5 rounded-3xl bg-[#161F2E] border border-[#2A3445] space-y-2">
-          <div className="text-[10px] uppercase font-bold text-[#94A3B8]">Cloud CDN Storage Used</div>
-          <div className="text-2xl font-black font-mono text-white">
-            {(totalStorageUsedMb / 1024).toFixed(2)} GB / 250 GB
-          </div>
-          <div className="w-full bg-[#111827] h-2 rounded-full overflow-hidden mt-2">
-            <div className="bg-[#FBBF24] h-full" style={{ width: "3.8%" }} />
-          </div>
-          <div className="text-[10px] text-[#94A3B8]">AWS CloudFront ap-south-1 Bucket</div>
-        </div>
-
-        <div className="p-5 rounded-3xl bg-[#161F2E] border border-[#2A3445] space-y-2">
-          <div className="text-[10px] uppercase font-bold text-[#94A3B8]">Media Asset Count</div>
-          <div className="text-2xl font-black font-mono text-emerald-400">{mediaList.length} Files</div>
-          <div className="text-[11px] text-emerald-300">100% WebP Optimized</div>
-        </div>
-
-        <div className="p-5 rounded-3xl bg-[#161F2E] border border-[#2A3445] space-y-2">
-          <div className="text-[10px] uppercase font-bold text-[#94A3B8]">Bandwidth Ingress / Month</div>
-          <div className="text-2xl font-black font-mono text-white">4.82 TB</div>
-          <div className="text-[11px] text-emerald-400">99.4% Edge Cache Hit Ratio</div>
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="p-4 rounded-2xl bg-[#161F2E] border border-[#2A3445] flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-[#111827] border border-[#2A3445] text-xs">
-          {["all", "poster", "banner", "logo", "gallery", "trailer"].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setFilterCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg capitalize font-medium ${
-                filterCategory === cat ? "bg-[#FBBF24] text-[#070B12] font-bold" : "text-[#94A3B8] hover:text-white"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#64748B]" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search media files by name..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-white placeholder-[#64748B] focus:outline-none"
-          />
-        </div>
-      </div>
-
-      {/* Media Assets Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((m) => (
-          <div
-            key={m.id}
-            className="p-5 rounded-3xl bg-[#161F2E] border border-[#2A3445] space-y-3 hover:border-[#64748B] transition-all"
-          >
-            <div className="flex items-center justify-between">
-              <div className="h-10 w-10 rounded-xl bg-[#111827] border border-[#2A3445] flex items-center justify-center text-[#FBBF24]">
-                {m.category === "Trailer" ? <Film className="h-5 w-5" /> : <ImageIcon className="h-5 w-5" />}
+      {viewMode === "fleet" ? (
+        <div className="space-y-6">
+          {/* Fleet KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-5 rounded-3xl bg-[#161F2E] border border-[#2A3445] space-y-1">
+              <div className="text-[10px] uppercase font-bold text-[#94A3B8]">Total Platform Assets</div>
+              <div className="text-2xl font-black font-mono text-white">
+                {summary?.totalAssets ?? 0} Files
               </div>
-              <Badge variant="secondary" size="sm">{m.category}</Badge>
-            </div>
-
-            <div>
-              <div className="font-bold text-white text-xs truncate">{m.name}</div>
-              <div className="text-[10px] text-[#94A3B8] font-mono mt-0.5">
-                {m.dimensions} · {m.format} · {m.sizeMb} MB
+              <div className="text-[11px] text-emerald-400">
+                {summary?.activeAssets ?? 0} Active · {summary?.galleryCount ?? 0} Gallery
               </div>
             </div>
+            <div className="p-5 rounded-3xl bg-[#161F2E] border border-[#2A3445] space-y-1">
+              <div className="text-[10px] uppercase font-bold text-[#94A3B8]">Virtual Vault Footprint</div>
+              <div className="text-2xl font-black font-mono text-[#FBBF24]">
+                {((summary?.totalBytesUsed || 0) / (1024 * 1024)).toFixed(2)} MB
+              </div>
+              <div className="text-[11px] text-[#94A3B8]">SHA-256 Verified Checksums</div>
+            </div>
+            <div className="p-5 rounded-3xl bg-[#161F2E] border border-[#2A3445] space-y-1">
+              <div className="text-[10px] uppercase font-bold text-[#94A3B8]">Future Video Stubs</div>
+              <div className="text-2xl font-black font-mono text-[#38BDF8]">
+                {summary?.futurePlaceholderCount ?? 0} Reserved
+              </div>
+              <div className="text-[11px] text-[#94A3B8]">Walkthrough & 360° Hooks</div>
+            </div>
+            <div className="p-5 rounded-3xl bg-[#161F2E] border border-[#2A3445] space-y-1">
+              <div className="text-[10px] uppercase font-bold text-[#94A3B8]">Draft / Archived / Deleted</div>
+              <div className="text-2xl font-black font-mono text-white">
+                {summary?.draftAssets ?? 0} / {summary?.archivedAssets ?? 0} / {summary?.deletedAssets ?? 0}
+              </div>
+              <div className="text-[11px] text-[#94A3B8]">Versioned Non-Destructive Vault</div>
+            </div>
+          </div>
 
-            <div className="pt-3 border-t border-[#2A3445]/60 flex items-center justify-between text-xs">
-              <span className="text-[10px] text-[#64748B] font-mono">{m.uploadedAt}</span>
-              <Button variant="outline" size="sm" className="h-7 text-xs border-[#2A3445] gap-1">
-                <ExternalLink className="h-3 w-3" /> View CDN
+          {/* Search & Filters */}
+          <div className="p-4 rounded-2xl bg-[#161F2E] border border-[#2A3445] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 text-xs">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#64748B]" />
+              <input
+                aria-label="Search media across all theatres"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search Media Title, Media Type, Theatre, or Uploader..."
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#111827] border border-[#2A3445] text-white placeholder-[#64748B]"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                aria-label="Filter by media type"
+                value={filterType}
+                onChange={(e) => {
+                  setFilterType(e.target.value as TheatreMediaType | "ALL");
+                  setPage(1);
+                }}
+                className="px-3 py-2 rounded-xl bg-[#111827] border border-[#2A3445] text-white"
+              >
+                <option value="ALL">All Media Types</option>
+                <option value="LOGO">Logo</option>
+                <option value="BANNER">Banner</option>
+                <option value="COVER_IMAGE">Cover Image</option>
+                <option value="HERO_IMAGE">Hero Image</option>
+                <option value="THUMBNAIL">Thumbnail</option>
+                <option value="GALLERY_IMAGE">Gallery Image</option>
+                <option value="FUTURE_VIDEO_PLACEHOLDER">Future Video Stub</option>
+              </select>
+
+              <select
+                aria-label="Filter by media status"
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value as TheatreMediaStatus | "ALL");
+                  setPage(1);
+                }}
+                className="px-3 py-2 rounded-xl bg-[#111827] border border-[#2A3445] text-white"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="ACTIVE">Active</option>
+                <option value="DRAFT">Draft</option>
+                <option value="HIDDEN">Hidden</option>
+                <option value="ARCHIVED">Archived</option>
+                <option value="DELETED">Deleted</option>
+              </select>
+
+              <input
+                type="date"
+                aria-label="Uploaded after date"
+                value={uploadedFrom}
+                onChange={(e) => {
+                  setUploadedFrom(e.target.value);
+                  setPage(1);
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-[#111827] border border-[#2A3445] text-white"
+              />
+
+              <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#111827] border border-[#2A3445] text-[#CBD5E1] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeDeleted}
+                  onChange={(e) => {
+                    setIncludeDeleted(e.target.checked);
+                    setPage(1);
+                  }}
+                />
+                <Trash2 className="h-3 w-3 text-rose-400" />
+                <span>Deleted</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Grid */}
+          {loading ? (
+            <div className="py-12 text-center text-xs text-[#94A3B8]">Loading fleet media assets...</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {(fleetData?.items || []).map((asset) => (
+                <MediaAssetCard
+                  key={asset.id}
+                  asset={asset}
+                  onPreview={(a) => setInspectAsset(a)}
+                  onReplace={() => {
+                    setSelectedTheatreId(asset.theatreId);
+                    setViewMode("studio");
+                  }}
+                  onInspectVersions={(a) => setInspectAsset(a)}
+                  onDelete={async (a) => {
+                    await deleteTheatreMediaAction(
+                      { theatreId: a.theatreId, mediaId: a.id },
+                      SUPER_ADMIN_ACTOR
+                    );
+                    await loadFleet();
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          <div className="p-4 rounded-2xl bg-[#111827] border border-[#2A3445] flex items-center justify-between text-xs text-[#94A3B8]">
+            <span className="font-mono">
+              Showing page {fleetData?.page || 1} of {fleetData?.totalPages || 1} ({fleetData?.total || 0} matching assets)
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                disabled={!fleetData?.hasPrev}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="border-[#2A3445]"
+              >
+                Prev
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                disabled={!fleetData?.hasNext}
+                onClick={() => setPage((p) => p + 1)}
+                className="border-[#2A3445]"
+              >
+                Next
               </Button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Theatre Selector Bar */}
+          <div className="p-4 rounded-2xl bg-[#161F2E] border border-[#2A3445] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-white font-semibold">
+              <Building2 className="h-4 w-4 text-[#FBBF24]" />
+              <span>Select Theatre Collection to Manage:</span>
+            </div>
+            <select
+              aria-label="Select theatre media collection"
+              value={selectedTheatreId}
+              onChange={(e) => setSelectedTheatreId(e.target.value)}
+              className="px-3.5 py-2 rounded-xl bg-[#111827] border border-[#2A3445] text-xs text-white font-medium"
+            >
+              {theatres.map((th) => (
+                <option key={th.id} value={th.id}>
+                  {th.name} ({th.city}) — /{th.slug}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <TheatreBrandingMediaWorkspace
+            theatreId={selectedTheatreId}
+            actorRole="SUPER_ADMIN"
+            actorUserId="usr-super-1"
+            actorName="Vikram Singhania"
+            defaultView="branding"
+          />
+        </div>
+      )}
+
+      {inspectAsset && (
+        <LazyMediaVersionHistoryModal
+          isOpen={Boolean(inspectAsset)}
+          initialTab="preview"
+          asset={inspectAsset}
+          onClose={() => setInspectAsset(null)}
+          onUpdateMetadata={async () => ({ success: false, error: "Switch to Branding Studio tab to edit." })}
+          onRestoreVersion={async () => ({ success: false, error: "Switch to Branding Studio tab to restore." })}
+        />
+      )}
+
+      <span className="sr-only">
+        <Layers className="h-4 w-4" />
+      </span>
     </div>
   );
 }
-

@@ -26,4 +26,5 @@ export * from "./ticket.types";
 export * from "./analytics.types";
 export * from "./security-hardening.types";
 export * from "./theatre-lifecycle.types";
+export * from "./theatre-media.types";
 
