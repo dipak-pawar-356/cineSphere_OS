@@ -20,6 +20,9 @@ export * from "./theatres";
 // Theatre Branding & Digital Media Management (Phase 3 - Part 2)
 export * from "./theatre-media";
 
+// Theatre Profile Management (Phase 3 - Part 3)
+export * from "./theatre-profile";
+
 // Tenant Payment Configurations & Ledger
 export * from "./payments";
 

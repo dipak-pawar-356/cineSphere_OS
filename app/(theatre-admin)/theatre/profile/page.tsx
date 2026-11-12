@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { PageHeader } from "@/components/layout/page-header";
 import { useTheatreStore, type TheatreProfileState } from "@/store/theatre-store";
 import {
@@ -16,6 +17,10 @@ import { LifecycleStatusBadge } from "@/components/theatre-lifecycle";
 
 const LazyCreateEditTheatreModal = dynamic(
   () => import("@/components/theatre-lifecycle/create-edit-theatre-modal").then((m) => m.CreateEditTheatreModal),
+  { ssr: false }
+);
+const LazyTheatreProfileWorkspace = dynamic(
+  () => import("@/components/theatre-profile/theatre-profile-workspace").then((m) => m.TheatreProfileWorkspace),
   { ssr: false }
 );
 import { Card } from "@/components/ui/card";
@@ -180,12 +185,24 @@ export default function TheatreProfilePage() {
         </div>
       )}
 
+      {/* Decoupled Theatre Profile Studio (Phase 3 - Part 3) */}
+      <LazyTheatreProfileWorkspace
+        theatreId="th-pun-001"
+        actorRole="THEATRE_ADMIN"
+        actorUserId="usr-theatre-1"
+        actorName="Rajesh Deshmukh"
+        defaultView="overview"
+      />
+
       {/* Banner & Hero Visual */}
       <div className="relative rounded-3xl overflow-hidden border border-[#2A3445] h-64 sm:h-80 w-full bg-[#111827]">
-        <img
+        <Image
           src={profile.bannerImage}
           alt={profile.name}
-          className="w-full h-full object-cover opacity-60"
+          fill
+          unoptimized
+          loading="lazy"
+          className="object-cover opacity-60"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#070B12] via-transparent to-black/30" />
         <div className="absolute bottom-6 left-6 sm:bottom-8 sm:left-8 right-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">

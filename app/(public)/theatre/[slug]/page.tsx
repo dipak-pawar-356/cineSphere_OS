@@ -11,6 +11,9 @@ import {
 } from "@/lib/engine/customer-discovery-engine";
 import { getPublicTheatreMediaAction } from "@/actions/theatre-media-actions";
 import { TheatrePublicMediaView } from "@/types/theatre-media.types";
+import { getPublicTheatreProfileAction } from "@/actions/theatre-profile-actions";
+import { PublicTheatreProfileView } from "@/types/theatre-profile.types";
+import { SOCIAL_PLATFORM_LABELS, THEATRE_CATEGORY_LABELS } from "@/lib/validation/theatre-profile.validation";
 import {
   CustomerTheatreDTO,
   CustomerMovieDTO,
@@ -54,6 +57,7 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
   const [selectedDate, setSelectedDate] = useState("Today");
   const [selectedFormat, setSelectedFormat] = useState("All");
   const [publicMedia, setPublicMedia] = useState<TheatrePublicMediaView | null>(null);
+  const [publicProfile, setPublicProfile] = useState<PublicTheatreProfileView | null>(null);
 
   const allTheatres = useMemo(() => getAllPublishedTheatres(), []);
   const allMovies = useMemo(() => getAllPublishedMovies(), []);
@@ -69,12 +73,17 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
 
   useEffect(() => {
     let cancelled = false;
-    void getPublicTheatreMediaAction(
-      { theatreIdOrSlug: theatre.id || theatre.slug },
-      { role: "CUSTOMER" }
-    ).then((res) => {
-      if (!cancelled && res.success && res.data) {
-        setPublicMedia(res.data);
+    const key = theatre.id || theatre.slug;
+    void Promise.all([
+      getPublicTheatreMediaAction({ theatreIdOrSlug: key }, { role: "CUSTOMER" }),
+      getPublicTheatreProfileAction({ theatreIdOrSlug: key }, { role: "CUSTOMER" }),
+    ]).then(([mediaRes, profileRes]) => {
+      if (cancelled) return;
+      if (mediaRes.success && mediaRes.data) {
+        setPublicMedia(mediaRes.data);
+      }
+      if (profileRes.success) {
+        setPublicProfile(profileRes.data || null);
       }
     });
     return () => {
@@ -357,10 +366,14 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5 w-full">
             {/* Logo Avatar */}
             <div className="relative h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-gradient-to-br from-[#FBBF24] to-[#F59E0B] flex items-center justify-center font-black text-[#070B12] text-2xl shadow-2xl border-4 border-[#070B12] shrink-0 overflow-hidden">
-              {publicMedia?.logo?.url ? (
+              {publicMedia?.logo?.url || publicProfile?.branding.logo?.url ? (
                 <Image
-                  src={publicMedia.logo.url}
-                  alt={publicMedia.logo.metadata.altText || `${theatre.name} Logo`}
+                  src={(publicMedia?.logo?.url || publicProfile?.branding.logo?.url)!}
+                  alt={
+                    publicMedia?.logo?.metadata.altText ||
+                    publicProfile?.branding.logo?.metadata.altText ||
+                    `${theatre.name} Logo`
+                  }
                   fill
                   unoptimized
                   sizes="96px"
@@ -374,8 +387,15 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
             <div className="space-y-2 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs uppercase font-mono font-bold px-2 py-0.5 rounded bg-[#111827] border border-[#2A3445] text-[#FBBF24]">
-                  {theatre.chain || "CineSphere Circuit"}
+                  {publicProfile?.chainName || theatre.chain || "CineSphere Circuit"}
                 </span>
+                {publicProfile && (
+                  <span className="text-xs px-2 py-0.5 rounded bg-[#111827] border border-[#2A3445] text-[#CBD5E1]">
+                    {publicProfile.theatreType === "CUSTOM" && publicProfile.customTheatreType
+                      ? publicProfile.customTheatreType
+                      : THEATRE_CATEGORY_LABELS[publicProfile.theatreType]}
+                  </span>
+                )}
                 <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-medium">
                   Multi-Tenant Calibrated
                 </span>
@@ -389,7 +409,7 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
               </div>
 
               <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-                {theatre.name}
+                {publicProfile?.displayName || theatre.name}
               </h1>
 
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-[#CBD5E1]">
@@ -420,7 +440,7 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
           <div className="p-4 rounded-xl bg-[#161F2E] border border-[#2A3445] text-center">
             <div className="text-[10px] text-[#94A3B8] uppercase font-bold">Auditorium Fleet</div>
             <div className="text-xl sm:text-2xl font-bold font-mono text-white mt-0.5">
-              {theatre.hallCount || 4} Screens
+              {publicProfile?.screensCount || theatre.hallCount || 4} Screens
             </div>
           </div>
           <div className="p-4 rounded-xl bg-[#161F2E] border border-[#2A3445] text-center">
@@ -430,9 +450,13 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
             </div>
           </div>
           <div className="p-4 rounded-xl bg-[#161F2E] border border-[#2A3445] text-center">
-            <div className="text-[10px] text-[#94A3B8] uppercase font-bold">Starting Ticket Price</div>
+            <div className="text-[10px] text-[#94A3B8] uppercase font-bold">
+              {publicProfile ? "Total Seating Capacity" : "Starting Ticket Price"}
+            </div>
             <div className="text-xl sm:text-2xl font-mono text-emerald-400 font-bold mt-0.5">
-              ₹{theatre.startingPrice || 200}
+              {publicProfile
+                ? `${publicProfile.totalSeatingCapacity} Seats`
+                : `₹${theatre.startingPrice || 200}`}
             </div>
           </div>
           <div className="p-4 rounded-xl bg-[#161F2E] border border-[#2A3445] text-center">
@@ -442,6 +466,98 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
             </div>
           </div>
         </div>
+
+        {/* Dynamic Decoupled Public Theatre Profile Card */}
+        {publicProfile && (
+          <div className="p-6 rounded-2xl bg-[#161F2E] border border-[#2A3445] grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs">
+            <div className="lg:col-span-2 space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base font-bold text-white">About {publicProfile.displayName}</h2>
+                {publicProfile.establishedYear && (
+                  <span className="px-2 py-0.5 rounded-full bg-[#111827] border border-[#2A3445] font-mono text-[10px] text-[#FBBF24]">
+                    Est. {publicProfile.establishedYear}
+                  </span>
+                )}
+                <span className="px-2 py-0.5 rounded-full bg-[#111827] border border-[#2A3445] font-mono text-[10px] text-[#94A3B8]">
+                  /{publicProfile.publicSlug}
+                </span>
+              </div>
+              {publicProfile.tagline && (
+                <p className="text-[#FBBF24] font-semibold">{publicProfile.tagline}</p>
+              )}
+              <p className="text-[#CBD5E1] leading-relaxed">
+                {publicProfile.aboutTheatre || publicProfile.fullDescription || publicProfile.shortDescription}
+              </p>
+              {publicProfile.languages.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[#94A3B8] mr-1">Languages:</span>
+                  {publicProfile.languages.map((l) => (
+                    <span
+                      key={l.id}
+                      className={`px-2 py-0.5 rounded-md border text-[10px] font-medium ${
+                        l.isPrimary
+                          ? "bg-[#FBBF24]/15 border-[#FBBF24]/40 text-[#FBBF24]"
+                          : "bg-[#111827] border-[#2A3445] text-[#CBD5E1]"
+                      }`}
+                    >
+                      {l.displayName}
+                      {l.isPrimary ? " ★" : ""}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3 border-t lg:border-t-0 lg:border-l border-[#2A3445] pt-4 lg:pt-0 lg:pl-6">
+              <div>
+                <span className="text-[#94A3B8] text-[10px] uppercase font-bold">
+                  Venue Classification & Capacity
+                </span>
+                <p className="text-white font-semibold mt-1">
+                  {publicProfile.ownershipModel} · {publicProfile.screensCount} Screens (~
+                  {publicProfile.averageCapacityPerScreen} seats/hall)
+                </p>
+              </div>
+              {publicProfile.website && (
+                <div>
+                  <span className="text-[#94A3B8] text-[10px] uppercase font-bold">Official Website</span>
+                  <div>
+                    <a
+                      href={publicProfile.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#38BDF8] hover:underline font-mono break-all"
+                    >
+                      {publicProfile.website}
+                    </a>
+                  </div>
+                </div>
+              )}
+              {publicProfile.socialLinks.length > 0 && (
+                <div>
+                  <span className="text-[#94A3B8] text-[10px] uppercase font-bold block mb-1.5">
+                    Connect With Cinema
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {publicProfile.socialLinks.map((soc) => (
+                      <a
+                        key={soc.id}
+                        href={soc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1 rounded-lg bg-[#111827] border border-[#2A3445] text-[#CBD5E1] hover:text-[#FBBF24] hover:border-[#FBBF24]/40 transition-colors text-[11px]"
+                      >
+                        {soc.platform === "CUSTOM"
+                          ? soc.customPlatformName
+                          : SOCIAL_PLATFORM_LABELS[soc.platform]}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 4. DATE TABS & FORMAT FILTER STRIP */}
         <div className="p-4 rounded-2xl bg-[#111827] border border-[#2A3445] space-y-4">

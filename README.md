@@ -636,6 +636,19 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Reusable workspace (`TheatreBrandingMediaWorkspace`) integrated into `/dashboard/media`, `/dashboard/theatres/[id]`, `/theatre/media`, and `/theatre/gallery`, tracking `MEDIA_UPLOADED`, `MEDIA_REPLACED`, `MEDIA_VERSION_RESTORED`, `GALLERY_REORDERED`, `METADATA_UPDATED`, and `MEDIA_DELETED`.
 - 📚 **Theatre Media Guide:** Detailed technical documentation in [`docs/THEATRE_MEDIA_MANAGEMENT.md`](./docs/THEATRE_MEDIA_MANAGEMENT.md).
 
+### 2.20 Phase 3 - Part 3: Theatre Profile Management (Completed)
+- 🏢 **Decoupled Theatre Profile Entity (`db/schema/theatre-profile.ts`):**
+  - Extends `theatres` without modifying core tenant columns via `theatreProfiles`, `theatreLanguages`, `theatreSocialLinks`, and `theatreProfileVersions`.
+  - Maintains independent `publicSlug` branding URLs separate from internal tenant routing slugs.
+- 📊 **Business Metrics, Completion Score & Localization Readiness:**
+  - Validates `Theatre Name`, `Legal Name`, `Established Year`, `Theatre Type` (`Multiplex`, `Single Screen`, `Luxury Cinema`, `Drive-In`, `Mini Theatre`, `Independent`, `Chain`, `Custom`), `Screens Count`, `Total Seating Capacity`, auto-calculated `Average Capacity Per Screen`, website URLs, and multi-locale `localizedFields` maps.
+  - Dynamically calculates `completionScore` (`0–100`) incorporating live Logo & Banner upload presence from Phase 3 Part 2.
+- 🗣️ **Languages & Social Presence Governance:**
+  - Manages multi-language exhibition catalogs (`English`, `Hindi`, `Marathi`, `Tamil`, `Telugu`, `Kannada`, `Malayalam`, `Gujarati`, `Punjabi`, `Bengali`, plus custom codes) with single-primary enforcement, and validated social links (`Website`, `Facebook`, `Instagram`, `X`, `YouTube`, `LinkedIn`, `Threads`, `Custom`).
+- 🕰️ **Immutable Profile Versioning & Rollback:**
+  - Records `previousValues`, `updatedFields`, `updatedBy`, and `updatedAt` in `TheatreProfileVersion` on every mutation, supporting non-destructive forward version rollbacks and full audit logging across Super Admin (`/dashboard/theatres/profiles`, `/dashboard/theatres/[id]`), Theatre Admin (`/theatre/profile`), and Public Pages (`/theatre/[slug]`).
+- 📚 **Theatre Profile Guide:** Detailed technical documentation in [`docs/THEATRE_PROFILE_MANAGEMENT.md`](./docs/THEATRE_PROFILE_MANAGEMENT.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -656,6 +669,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🏢 [`docs/THEATRE_PROFILE_MANAGEMENT.md`](./docs/THEATRE_PROFILE_MANAGEMENT.md) — Decoupled Theatre Profile Management Architecture (`TheatreProfile`, Business Capacity Metrics, Public Profile Slug Separation, Completion Scoring, Multi-Language & Social Link Governance, Version History & Localization) (Phase 3 - Part 3).
 - 🎨 [`docs/THEATRE_MEDIA_MANAGEMENT.md`](./docs/THEATRE_MEDIA_MANAGEMENT.md) — Theatre Branding & Digital Media Management Architecture (`TheatreMediaCollection`, Single-Active Brand Slots, Drag-and-Drop Gallery Ordering, Version History & Rollback, Server Validation & Future Video Support) (Phase 3 - Part 2).
 - 🏛️ [`docs/THEATRE_LIFECYCLE_MANAGEMENT.md`](./docs/THEATRE_LIFECYCLE_MANAGEMENT.md) — Theatre Lifecycle Governance, Finite State Machine (`DRAFT` → `PENDING_APPROVAL` → `APPROVED` → `ACTIVE` ↔ `SUSPENDED` → `ARCHIVED` → `SOFT_DELETED`), Approval Workflows, Operational Lockouts, Slug History & Optimistic Locking (Phase 3 - Part 1).
 - 🛡️ [`docs/ENTERPRISE_SECURITY_AND_PLATFORM_HARDENING.md`](./docs/ENTERPRISE_SECURITY_AND_PLATFORM_HARDENING.md) — Enterprise Security Architecture, Layered Defense Pipeline, Domain Service & Repository Pattern, Booking Optimistic Locking, Threat Monitoring & Health Probes (Phase 2 - Part 16).

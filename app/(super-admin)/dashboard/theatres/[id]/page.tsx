@@ -62,6 +62,10 @@ const LazyTheatreBrandingMediaWorkspace = dynamic(
   () => import("@/components/theatre-media/theatre-branding-media-workspace").then((m) => m.TheatreBrandingMediaWorkspace),
   { ssr: false }
 );
+const LazyTheatreProfileWorkspace = dynamic(
+  () => import("@/components/theatre-profile/theatre-profile-workspace").then((m) => m.TheatreProfileWorkspace),
+  { ssr: false }
+);
 
 const SUPER_ADMIN_ACTOR = {
   userId: "usr-super-1",
@@ -76,7 +80,7 @@ export default function SuperAdminTheatreDetailPage() {
   const [detail, setDetail] = useState<TheatreLifecycleDetailBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "lifecycle" | "media" | "general" | "admin" | "payment" | "subscription" | "metrics" | "audit"
+    "lifecycle" | "profile" | "media" | "general" | "admin" | "payment" | "subscription" | "metrics" | "audit"
   >("lifecycle");
 
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -431,6 +435,7 @@ export default function SuperAdminTheatreDetailPage() {
         <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-[#2A3445]">
           {[
             { id: "lifecycle", label: "Lifecycle & State Machine" },
+            { id: "profile", label: "Theatre Profile" },
             { id: "media", label: "Branding & Media" },
             { id: "general", label: "General & Hardware" },
             { id: "admin", label: "Admin & Operators" },
@@ -456,6 +461,17 @@ export default function SuperAdminTheatreDetailPage() {
 
       {/* Tab 0: Lifecycle & State Machine */}
       {activeTab === "lifecycle" && <LazyTheatreLifecyclePanel detail={detail} />}
+
+      {/* Tab 0a: Dedicated Decoupled Theatre Profile Management (Phase 3 Part 3) */}
+      {activeTab === "profile" && (
+        <LazyTheatreProfileWorkspace
+          theatreId={theatre.id}
+          actorRole="SUPER_ADMIN"
+          actorUserId="usr-super-1"
+          actorName="Vikram Singhania"
+          defaultView="overview"
+        />
+      )}
 
       {/* Tab 0b: Branding & Digital Media Vault */}
       {activeTab === "media" && (

@@ -398,4 +398,41 @@ export const theatreFutureVideoSubtypeEnum = pgEnum("theatre_future_video_subtyp
   "VIRTUAL_TOUR",
 ]);
 
+// ------------------------------------------------------------------------------
+// Theatre Profile Management Enums (Phase 3 - Part 3)
+// ------------------------------------------------------------------------------
+export const theatreProfileStatusEnum = pgEnum("theatre_profile_status", [
+  "DRAFT",
+  "PUBLISHED",
+  "HIDDEN",
+  "ARCHIVED",
+]);
+
+export const theatreCategoryTypeEnum = pgEnum("theatre_category_type", [
+  "MULTIPLEX",
+  "SINGLE_SCREEN",
+  "LUXURY_CINEMA",
+  "DRIVE_IN_CINEMA",
+  "MINI_THEATRE",
+  "INDEPENDENT_THEATRE",
+  "CHAIN_THEATRE",
+  "CUSTOM",
+]);
+
+export const theatreOwnershipModelEnum = pgEnum("theatre_ownership_model", [
+  "CHAIN",
+  "INDEPENDENT",
+]);
+
+export const theatreSocialPlatformEnum = pgEnum("theatre_social_platform", [
+  "WEBSITE",
+  "FACEBOOK",
+  "INSTAGRAM",
+  "X_TWITTER",
+  "YOUTUBE",
+  "LINKEDIN",
+  "THREADS",
+  "CUSTOM",
+]);
+
 

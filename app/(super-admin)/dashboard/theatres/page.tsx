@@ -304,6 +304,11 @@ export default function SuperAdminTheatresManagementPage() {
             >
               <Plus className="h-3.5 w-3.5" /> Onboard Theatre
             </Button>
+            <Link href="/dashboard/theatres/profiles">
+              <Button variant="outline" size="sm" className="gap-2 border-[#2A3445] text-xs font-semibold">
+                <Building2 className="h-3.5 w-3.5 text-[#FBBF24]" /> Theatre Profiles
+              </Button>
+            </Link>
             <Link href="/dashboard/subscriptions">
               <Button variant="outline" size="sm" className="gap-2 border-[#2A3445] text-xs font-semibold">
                 <CreditCard className="h-3.5 w-3.5" /> Subscription Tiers

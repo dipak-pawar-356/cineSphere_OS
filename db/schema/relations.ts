@@ -21,6 +21,12 @@ import {
   theatreMediaVersions,
   theatreMediaReferences,
 } from "./theatre-media";
+import {
+  theatreProfiles,
+  theatreLanguages,
+  theatreSocialLinks,
+  theatreProfileVersions,
+} from "./theatre-profile";
 import { paymentConfigurations, payments } from "./payments";
 import { halls, hallLayouts, hallSections, seatTemplates } from "./halls";
 import {
@@ -194,6 +200,13 @@ export const theatresRelations = relations(theatres, ({ one, many }) => ({
   }),
   theatreMediaItems: many(theatreMedia),
   theatreMediaReferences: many(theatreMediaReferences),
+  profile: one(theatreProfiles, {
+    fields: [theatres.id],
+    references: [theatreProfiles.theatreId],
+  }),
+  profileLanguages: many(theatreLanguages),
+  profileSocialLinks: many(theatreSocialLinks),
+  profileVersions: many(theatreProfileVersions),
 }));
 
 export const theatreLifecycleRelations = relations(theatreLifecycle, ({ one }) => ({
@@ -749,6 +762,56 @@ export const theatreMediaReferencesRelations = relations(theatreMediaReferences,
   media: one(theatreMedia, {
     fields: [theatreMediaReferences.mediaId],
     references: [theatreMedia.id],
+  }),
+}));
+
+// ------------------------------------------------------------------------------
+// Theatre Profile Management Relations (Phase 3 - Part 3)
+// ------------------------------------------------------------------------------
+export const theatreProfilesRelations = relations(theatreProfiles, ({ one, many }) => ({
+  theatre: one(theatres, {
+    fields: [theatreProfiles.theatreId],
+    references: [theatres.id],
+  }),
+  languages: many(theatreLanguages),
+  socialLinks: many(theatreSocialLinks),
+  versions: many(theatreProfileVersions),
+}));
+
+export const theatreLanguagesRelations = relations(theatreLanguages, ({ one }) => ({
+  profile: one(theatreProfiles, {
+    fields: [theatreLanguages.profileId],
+    references: [theatreProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreLanguages.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreSocialLinksRelations = relations(theatreSocialLinks, ({ one }) => ({
+  profile: one(theatreProfiles, {
+    fields: [theatreSocialLinks.profileId],
+    references: [theatreProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreSocialLinks.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreProfileVersionsRelations = relations(theatreProfileVersions, ({ one }) => ({
+  profile: one(theatreProfiles, {
+    fields: [theatreProfileVersions.profileId],
+    references: [theatreProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreProfileVersions.theatreId],
+    references: [theatres.id],
+  }),
+  updater: one(users, {
+    fields: [theatreProfileVersions.updatedBy],
+    references: [users.id],
   }),
 }));
 
