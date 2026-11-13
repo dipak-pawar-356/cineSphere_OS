@@ -27,6 +27,8 @@ export type ContactChannelType =
   | "LIVE_CHAT"
   | "CALL_CENTER";
 
+export type ContactType = ContactChannelType;
+
 export type ContactRole =
   | "CUSTOMER_SUPPORT"
   | "GENERAL_ENQUIRY"
@@ -195,6 +197,14 @@ export interface TheatreContactVersionRecord {
   changedRole: string | null;
   createdAt: string;
 }
+
+export type TheatreContact = TheatreContactRecord;
+export type TheatrePhone = TheatrePhoneRecord;
+export type TheatreEmail = TheatreEmailRecord;
+export type TheatreWebsite = TheatreWebsiteRecord;
+export type TheatreSocialLink = TheatreContactSocialLinkRecord;
+export type TheatreEmergencyContact = TheatreEmergencyContactRecord;
+export type TheatreManagerContact = TheatreManagerContactRecord;
 
 // ------------------------------------------------------------------------------
 // Composite / Enriched DTOs
