@@ -33,6 +33,13 @@ import {
   theatreGeoMetadata,
   theatreLocationVersions,
 } from "./theatre-location";
+import {
+  amenityCategories,
+  amenityCatalog,
+  theatreAmenityAssignments,
+  amenityMetadata,
+  amenityVersions,
+} from "./theatre-amenity";
 import { paymentConfigurations, payments } from "./payments";
 import { halls, hallLayouts, hallSections, seatTemplates } from "./halls";
 import {
@@ -217,6 +224,9 @@ export const theatresRelations = relations(theatres, ({ one, many }) => ({
   coordinates: many(theatreCoordinates),
   geoMetadata: many(theatreGeoMetadata),
   locationVersions: many(theatreLocationVersions),
+  amenityAssignments: many(theatreAmenityAssignments),
+  amenityMetadata: many(amenityMetadata),
+  amenityVersions: many(amenityVersions),
 }));
 
 export const theatreLifecycleRelations = relations(theatreLifecycle, ({ one }) => ({
@@ -838,6 +848,60 @@ export const theatreLocationVersionsRelations = relations(theatreLocationVersion
     references: [users.id],
   }),
 }));
+
+// ------------------------------------------------------------------------------
+// Theatre Amenities & Facilities Management Relations (Phase 3 - Part 5)
+// ------------------------------------------------------------------------------
+export const amenityCategoriesRelations = relations(amenityCategories, ({ many }) => ({
+  amenities: many(amenityCatalog),
+}));
+
+export const amenityCatalogRelations = relations(amenityCatalog, ({ one, many }) => ({
+  category: one(amenityCategories, {
+    fields: [amenityCatalog.categoryId],
+    references: [amenityCategories.id],
+  }),
+  theatreAssignments: many(theatreAmenityAssignments),
+  versions: many(amenityVersions),
+}));
+
+export const theatreAmenityAssignmentsRelations = relations(theatreAmenityAssignments, ({ one }) => ({
+  theatre: one(theatres, {
+    fields: [theatreAmenityAssignments.theatreId],
+    references: [theatres.id],
+  }),
+  amenity: one(amenityCatalog, {
+    fields: [theatreAmenityAssignments.amenityId],
+    references: [amenityCatalog.id],
+  }),
+  metadata: one(amenityMetadata, {
+    fields: [theatreAmenityAssignments.id],
+    references: [amenityMetadata.theatreAmenityId],
+  }),
+}));
+
+export const amenityMetadataRelations = relations(amenityMetadata, ({ one }) => ({
+  assignment: one(theatreAmenityAssignments, {
+    fields: [amenityMetadata.theatreAmenityId],
+    references: [theatreAmenityAssignments.id],
+  }),
+  theatre: one(theatres, {
+    fields: [amenityMetadata.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const amenityVersionsRelations = relations(amenityVersions, ({ one }) => ({
+  amenity: one(amenityCatalog, {
+    fields: [amenityVersions.amenityId],
+    references: [amenityCatalog.id],
+  }),
+  theatre: one(theatres, {
+    fields: [amenityVersions.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
 
 
 

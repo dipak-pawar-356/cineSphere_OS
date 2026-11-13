@@ -662,6 +662,19 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Pre-pagination filters strictly protect cross-tenant boundaries. Public cinema pages (`/theatre/[slug]`) project verified, published addresses while keeping draft or unverified addresses protected from public view.
 - 📚 **Theatre Location Guide:** Detailed technical documentation in [`docs/THEATRE_LOCATION_MANAGEMENT.md`](./docs/THEATRE_LOCATION_MANAGEMENT.md).
 
+### 2.22 Phase 3 - Part 5: Theatre Amenities & Facilities Management (Completed)
+- 🛋️ **Decoupled Platform Catalog Architecture (`db/schema/theatre-amenity.ts`):**
+  - Models $\text{Platform} \to \text{Amenity Catalog} \to \text{Amenity Categories} \to \text{Theatre} \to \text{Theatre Amenities}$. Super Admin introduces new global amenities across categories (`technology`, `comfort`, `accessibility`, `food-beverage`, `safety`) without database schema modifications.
+- 🔄 **Rich Availability Modes & Operating Status Governance:**
+  - Replaces binary flags with domain states: `AVAILABLE`, `TEMPORARILY_UNAVAILABLE`, `SEASONAL`, and `UNDER_MAINTENANCE` with local operating notes and screen-level restrictions.
+- 🌐 **Multilingual Localization & Future Entity Extensibility:**
+  - First-class support for multilingual names and descriptions (Hindi, Marathi) in JSONB structures. Generic entity mapping (`entityType`: `THEATRE`, `HALL`, `LOUNGE`, `PREMIUM_SCREEN`) prepares the platform for sub-entity auditorium/lounge amenity attachment without schema redesign.
+- 🚗 **Facility Specifications & Capacity Metadata:**
+  - Dedicated child table `theatre_amenity_metadata` tracks parking bays, EV chargers, guest Wi-Fi SSIDs, accessibility pathway notes, food court details, and custom attributes.
+- ⚡ **Sequential Reordering, Optimistic Concurrency Control & Public Projection:**
+  - Supports 1..N contiguous display sequence reordering, version ledger snapshots with optimistic locking, and active-only public patron discovery on `/theatre/[slug]`.
+- 📚 **Theatre Amenities Guide:** Detailed technical documentation in [`docs/THEATRE_AMENITIES_AND_FACILITIES_MANAGEMENT.md`](./docs/THEATRE_AMENITIES_AND_FACILITIES_MANAGEMENT.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -682,6 +695,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🛋️ [`docs/THEATRE_AMENITIES_AND_FACILITIES_MANAGEMENT.md`](./docs/THEATRE_AMENITIES_AND_FACILITIES_MANAGEMENT.md) — Centralized Amenity Catalog & Theatre Facilities Architecture (`AmenityCatalog`, Availability Modes, Localization, Facility Metadata, Sequential Reordering & OCC) (Phase 3 - Part 5).
 - 📍 [`docs/THEATRE_LOCATION_MANAGEMENT.md`](./docs/THEATRE_LOCATION_MANAGEMENT.md) — Multi-Location Theatre Address & Location Architecture (`TheatreLocation`, Coordinates Governance, PostGIS & Geohash Placeholders, Super Admin Verification Gate, Turn-by-Turn Navigation & Version Rollback) (Phase 3 - Part 4).
 - 🏢 [`docs/THEATRE_PROFILE_MANAGEMENT.md`](./docs/THEATRE_PROFILE_MANAGEMENT.md) — Decoupled Theatre Profile Management Architecture (`TheatreProfile`, Business Capacity Metrics, Public Profile Slug Separation, Completion Scoring, Multi-Language & Social Link Governance, Version History & Localization) (Phase 3 - Part 3).
 - 🎨 [`docs/THEATRE_MEDIA_MANAGEMENT.md`](./docs/THEATRE_MEDIA_MANAGEMENT.md) — Theatre Branding & Digital Media Management Architecture (`TheatreMediaCollection`, Single-Active Brand Slots, Drag-and-Drop Gallery Ordering, Version History & Rollback, Server Validation & Future Video Support) (Phase 3 - Part 2).

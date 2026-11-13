@@ -70,6 +70,10 @@ const LazyTheatreLocationWorkspace = dynamic(
   () => import("@/components/theatre-location/theatre-location-workspace").then((m) => m.TheatreLocationWorkspace),
   { ssr: false }
 );
+const LazyConnectedAmenityWorkspace = dynamic(
+  () => import("@/components/theatre-amenity/connected-amenity-workspace").then((m) => m.ConnectedAmenityWorkspace),
+  { ssr: false }
+);
 
 const SUPER_ADMIN_ACTOR = {
   userId: "usr-super-1",
@@ -84,7 +88,7 @@ export default function SuperAdminTheatreDetailPage() {
   const [detail, setDetail] = useState<TheatreLifecycleDetailBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "lifecycle" | "profile" | "media" | "location" | "general" | "admin" | "payment" | "subscription" | "metrics" | "audit"
+    "lifecycle" | "profile" | "media" | "location" | "amenities" | "general" | "admin" | "payment" | "subscription" | "metrics" | "audit"
   >("lifecycle");
 
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -442,6 +446,7 @@ export default function SuperAdminTheatreDetailPage() {
             { id: "profile", label: "Theatre Profile" },
             { id: "media", label: "Branding & Media" },
             { id: "location", label: "Address & Location" },
+            { id: "amenities", label: "Amenities & Facilities" },
             { id: "general", label: "General & Hardware" },
             { id: "admin", label: "Admin & Operators" },
             { id: "payment", label: "Payment & UPI Rail" },
@@ -497,6 +502,15 @@ export default function SuperAdminTheatreDetailPage() {
           actorUserId="usr-super-1"
           actorName="Vikram Singhania"
           defaultView="overview"
+        />
+      )}
+
+      {/* Tab 0d: Amenities & Facilities Management (Phase 3 Part 5) */}
+      {activeTab === "amenities" && (
+        <LazyConnectedAmenityWorkspace
+          theatreId={theatre.id}
+          theatreName={theatre.name}
+          isSuperAdmin={true}
         />
       )}
 

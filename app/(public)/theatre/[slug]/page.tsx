@@ -15,6 +15,9 @@ import { getPublicTheatreProfileAction } from "@/actions/theatre-profile-actions
 import { PublicTheatreProfileView } from "@/types/theatre-profile.types";
 import { getPublicTheatreLocationAction } from "@/actions/theatre-location-actions";
 import { PublicTheatreLocationView } from "@/types/theatre-location.types";
+import { getPublicTheatreAmenitiesAction } from "@/actions/theatre-amenity-actions";
+import { PublicTheatreAmenityDTO } from "@/types/theatre-amenity.types";
+import { AmenityIconResolver } from "@/components/theatre-amenity/amenity-icon-resolver";
 import { SOCIAL_PLATFORM_LABELS, THEATRE_CATEGORY_LABELS } from "@/lib/validation/theatre-profile.validation";
 import {
   CustomerTheatreDTO,
@@ -63,6 +66,7 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
   const [publicMedia, setPublicMedia] = useState<TheatrePublicMediaView | null>(null);
   const [publicProfile, setPublicProfile] = useState<PublicTheatreProfileView | null>(null);
   const [publicLocation, setPublicLocation] = useState<PublicTheatreLocationView | null>(null);
+  const [publicAmenities, setPublicAmenities] = useState<PublicTheatreAmenityDTO[]>([]);
 
   const allTheatres = useMemo(() => getAllPublishedTheatres(), []);
   const allMovies = useMemo(() => getAllPublishedMovies(), []);
@@ -83,7 +87,8 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
       getPublicTheatreMediaAction({ theatreIdOrSlug: key }, { role: "CUSTOMER" }),
       getPublicTheatreProfileAction({ theatreIdOrSlug: key }, { role: "CUSTOMER" }),
       getPublicTheatreLocationAction({ theatreIdOrSlug: key }, { role: "CUSTOMER" }),
-    ]).then(([mediaRes, profileRes, locationRes]) => {
+      getPublicTheatreAmenitiesAction({ theatreIdOrSlug: key }, { role: "CUSTOMER" }),
+    ]).then(([mediaRes, profileRes, locationRes, amenitiesRes]) => {
       if (cancelled) return;
       if (mediaRes.success && mediaRes.data) {
         setPublicMedia(mediaRes.data);
@@ -93,6 +98,9 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
       }
       if (locationRes.success) {
         setPublicLocation(locationRes.data || null);
+      }
+      if (amenitiesRes.success && amenitiesRes.data) {
+        setPublicAmenities(amenitiesRes.data);
       }
     });
     return () => {
@@ -958,6 +966,74 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
             </div>
           </div>
         </div>
+
+        {/* 7b. DYNAMIC AMENITIES, ACOUSTICS & GUEST FACILITIES (Phase 3 Part 5) */}
+        {publicAmenities.length > 0 && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-[#FBBF24]" />
+                <span>Amenities, Comfort & Guest Facilities</span>
+              </h3>
+              <span className="text-xs font-mono text-[#94A3B8]">
+                {publicAmenities.length} Verified Facilities
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {publicAmenities.map((am) => (
+                <div
+                  key={am.assignmentId}
+                  className="p-5 rounded-2xl bg-[#111827] border border-[#2A3445] flex items-start gap-4 hover:border-zinc-700 transition-all"
+                >
+                  <div className="h-10 w-10 rounded-xl bg-[#161F2E] border border-[#2A3445] flex items-center justify-center text-[#FBBF24] shrink-0">
+                    <AmenityIconResolver iconName={am.icon} className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-sm font-bold text-white truncate">{am.displayName}</h4>
+                      {am.isFeatured && (
+                        <span className="text-[10px] font-bold text-amber-400 bg-amber-950/40 border border-amber-800/40 px-1.5 py-0.5 rounded">
+                          ★ Featured
+                        </span>
+                      )}
+                    </div>
+                    <span className="inline-block text-[10px] text-[#38BDF8] font-semibold uppercase tracking-wider">
+                      {am.category}
+                    </span>
+                    {am.description && (
+                      <p className="text-xs text-[#94A3B8] line-clamp-2">{am.description}</p>
+                    )}
+                    {am.notes && (
+                      <p className="text-[11px] text-[#FBBF24] font-medium pt-0.5">
+                        📍 {am.notes}
+                      </p>
+                    )}
+                    {am.metadata && (
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[10px] text-zinc-400">
+                        {am.metadata.parkingCapacity && (
+                          <span className="bg-[#0B1220] px-1.5 py-0.5 rounded border border-[#1E293B]">
+                            {am.metadata.parkingCapacity} Bays
+                          </span>
+                        )}
+                        {am.metadata.evChargerCount && (
+                          <span className="bg-[#0B1220] px-1.5 py-0.5 rounded border border-[#1E293B] text-emerald-400">
+                            {am.metadata.evChargerCount} EV Fast Chargers
+                          </span>
+                        )}
+                        {am.metadata.wifiSsid && (
+                          <span className="bg-[#0B1220] px-1.5 py-0.5 rounded border border-[#1E293B] text-sky-400">
+                            Wi-Fi: {am.metadata.wifiSsid}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 8. VENUE GALLERY & FUTURE WALKTHROUGH PREVIEWS */}
         <div className="space-y-6">

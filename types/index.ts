@@ -29,4 +29,5 @@ export * from "./theatre-lifecycle.types";
 export * from "./theatre-media.types";
 export * from "./theatre-profile.types";
 export * from "./theatre-location.types";
+export * from "./theatre-amenity.types";
 

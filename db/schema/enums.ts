@@ -463,4 +463,43 @@ export const theatreCoordinateSourceEnum = pgEnum("theatre_coordinate_source", [
   "MAP_PIN",
 ]);
 
+// ------------------------------------------------------------------------------
+// Theatre Amenities & Facilities Management Enums (Phase 3 - Part 5)
+// ------------------------------------------------------------------------------
+export const amenityStatusEnum = pgEnum("amenity_status", [
+  "ACTIVE",
+  "INACTIVE",
+  "DRAFT",
+  "ARCHIVED",
+]);
+
+export const amenityAvailabilityModeEnum = pgEnum("amenity_availability_mode", [
+  "AVAILABLE",
+  "TEMPORARILY_UNAVAILABLE",
+  "SEASONAL",
+  "UNDER_MAINTENANCE",
+]);
+
+export const amenityVisibilityEnum = pgEnum("amenity_visibility", [
+  "PUBLIC",
+  "HIDDEN",
+  "INTERNAL",
+]);
+
+export const amenityPriorityEnum = pgEnum("amenity_priority", [
+  "CRITICAL",
+  "FEATURED",
+  "HIGH",
+  "MEDIUM",
+  "STANDARD",
+  "LOW",
+]);
+
+export const amenityEntityTypeEnum = pgEnum("amenity_entity_type", [
+  "THEATRE",
+  "HALL",
+  "LOUNGE",
+  "PREMIUM_SCREEN",
+]);
+
 
