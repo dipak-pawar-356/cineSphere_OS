@@ -691,25 +691,28 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
 - 📚 **Theatre Contact Guide:** Detailed technical documentation in [`docs/THEATRE_CONTACT_MANAGEMENT.md`](./docs/THEATRE_CONTACT_MANAGEMENT.md).
 
 ### 2.24 Phase 3 - Part 7: Theatre Business Information Management (Completed)
-- 🏢 **Decoupled Business Profile & Legal Identity (`db/schema/theatre-business.ts`):**
+- 🏢 **Business Profile Architecture (`db/schema/theatre-business.ts`):**
   - Models $\text{Platform} \to \text{Theatre} \to \text{Theatre Business Profile} \to \text{Legal Information} \to \text{Registration Information} \to \text{Tax Configuration} \to \text{Invoice Configuration} \to \text{Compliance Status}$.
-  - Decouples corporate entity identity into dedicated child tables: `theatre_business_profiles`, `theatre_business_registrations`, `theatre_business_owners`, `theatre_tax_configurations`, `theatre_invoice_configurations`, `theatre_business_compliances`, `theatre_business_documents`, and `theatre_business_versions`.
-- 🛡️ **Statutory Registration Validation (GSTIN, PAN, CIN):**
-  - Validates standard Indian statutory regex rules: GSTIN (15-character alphanumeric `^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$`), PAN (10-character `^[A-Z]{5}[0-9]{4}[A-Z]{1}$`), and corporate CIN/LLPIN (21-character `^([LUu])[0-9]{5}[A-Za-z]{2}[0-9]{4}[A-Za-z]{3}[0-9]{6}$`). Normalizes identifiers to uppercase on ingestion.
-- 🌍 **Country-Aware Tax Framework & Pricing Models:**
-  - Configured to support domestic and cross-border admissions tax without database schema modifications: `GST` (India/Australia/Singapore), `VAT` (UK/EU/UAE), `SALES_TAX` (US), and `CUSTOM` systems.
-  - Supports `TAX_INCLUSIVE` (ticket face value includes taxes) and `TAX_EXCLUSIVE` (taxes calculated on top at checkout) ticket pricing models, tax percentage decimals, regional state codes (e.g., `MH-27`), and statutory exemption waivers.
-- 🧾 **Consumer Invoicing & Billing Layout Governance:**
-  - Configurable invoice prefix (e.g. `CSP-PUN-`), monotonically incrementing sequence counters (`invoiceSequenceNext`), customizable statutory header/footer disclosures, brand invoice logo URLs, and feature flags for E-Invoice schema compliance (IRN generation), PDF delivery, and credit notes.
-- 🗄️ **Decoupled Compliance Document Attachment Vault:**
-  - Stores binary document references (`theatre_business_documents`) across 10 statutory document types (`CIN_INCORPORATION`, `GST_CERTIFICATE`, `PAN_CARD`, `FIRE_SAFETY_NOC`, `MUNICIPAL_TRADE_LICENSE`, `ENTERTAINMENT_TAX_PERMIT`, etc.) with independent verification status and expiry tracking without embedding binary blobs into business records.
-- ⚖️ **Super Admin Compliance Workflow & Strict Authorization:**
-  - Formal multi-stage verification state machine (`DRAFT` ➔ `PENDING_VERIFICATION` ➔ `VERIFIED` / `REJECTED` / `ARCHIVED`).
+  - Decouples corporate entity identity into dedicated child tables: `theatre_business_profiles` (`TheatreBusinessProfile`), `theatre_business_registrations` (`BusinessRegistration`), `theatre_business_owners` (`BusinessOwner`), `theatre_tax_configurations` (`TaxConfiguration`), `theatre_invoice_configurations` (`InvoiceConfiguration`), `theatre_business_compliances` (`BusinessCompliance`), `theatre_business_documents` (`BusinessDocument`), and `theatre_business_versions` (`BusinessVersion`).
+  - Stores Legal Business Name, Business Category (`MULTIPLEX`, `SINGLE_SCREEN`, `ENTERTAINMENT_COMPANY`, `CINEMA_CHAIN`, `PRIVATE_LIMITED`, `LLP`, `PARTNERSHIP`, `PROPRIETORSHIP`, `TRUST`, `GOVERNMENT`, `CUSTOM`), Registered Entity Name, Business Description, and Industry.
+- 🛡️ **Registration Information:**
+  - Validates standard statutory regex rules: GST Number (15-character statutory alphanumeric `^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$`), PAN Number (10-character `^[A-Z]{5}[0-9]{4}[A-Z]{1}$`), and corporate CIN Number (21-character `^([LUu])[0-9]{5}[A-Za-z]{2}[0-9]{4}[A-Za-z]{3}[0-9]{6}$`).
+  - Stores Business Registration Number, Registration Date, Registration Authority, and Registration Certificate references with uppercase normalization.
+- 🌍 **Tax Configuration:**
+  - Designed for country-aware compliance without database schema modifications: `GST` (India/Australia/Singapore), `VAT` (UK/EU/UAE), `SALES_TAX` (US), and `CUSTOM` systems.
+  - Supports `TAX_INCLUSIVE` (ticket face value includes taxes) and `TAX_EXCLUSIVE` (taxes calculated on top at checkout) ticket pricing models, tax percentage decimals, regional state codes (e.g., `MH-27`), international tax numbers, and statutory exemption waivers. (Strictly config-only; no tax calculation engine).
+- 🧾 **Invoice Configuration:**
+  - Configurable invoice prefix (e.g. `CSP-PUN-`), monotonically incrementing sequence counters (`invoiceSequenceNext`), customizable statutory header/footer disclosures, invoice notes, brand invoice logo URLs, and feature flags for E-Invoice schema compliance, PDF delivery, and credit notes. (Strictly config-only; no PDF generator).
+- ⚖️ **Compliance Workflow:**
+  - Formal multi-stage verification state machine: `DRAFT` ➔ `PENDING_VERIFICATION` ➔ `VERIFIED` / `REJECTED` / `ARCHIVED`.
+  - Captures `verificationStatus`, `verifiedBy` (Super Admin ID), `verifiedAt`, `remarks`, and `riskScore`.
   - Strict platform role authorization gates verification authority to `SUPER_ADMIN` accounts only; attempts by Theatre Admins are strictly rejected with `AuthorizationError`.
-- ⚡ **Multi-Tenant Boundary Isolation, Optimistic Locking & Audit Ledger:**
-  - Pre-pagination tenant isolation via `tenantService.assertTenantAccess`. Optimistic concurrency control (`ConflictError`) on stale `expectedVersion`.
-  - Immutable version ledger (`theatre_business_versions`) maintaining full cryptographic snapshots with change types (`CREATED`, `PROFILE_UPDATED`, `TAX_CONFIG_UPDATED`, `INVOICE_CONFIG_UPDATED`, `COMPLIANCE_STATUS_CHANGED`, `DOCUMENT_ATTACHED`, `DOCUMENT_REMOVED`, `ARCHIVED`).
-- 📚 **Theatre Business Profile Guide:** Detailed technical documentation in [`docs/THEATRE_BUSINESS_INFORMATION_MANAGEMENT.md`](./docs/THEATRE_BUSINESS_INFORMATION_MANAGEMENT.md).
+- 💻 **Developer Notes:**
+  - **Decoupled Document Attachment Vault:** Stores binary document references (`theatre_business_documents`) across statutory types (`GST_CERTIFICATE`, `PAN_CARD`, `CIN_CERTIFICATE`, `TRADE_LICENSE`, `INCORPORATION_CERTIFICATE`, `AUTHORIZATION_LETTER`, `BOARD_RESOLUTION`, `OTHER`) with independent verification status and expiry tracking.
+  - **Financial Identity Separation:** Keeps business identity, payment gateway configuration (Phase 2), and invoice configuration as separate domains so payment providers, tax rules, and invoicing evolve independently.
+  - **Multi-Tenant Isolation & Optimistic Locking:** Strict pre-pagination tenant isolation via `tenantService.assertTenantAccess`. Concurrency control via `version` bumping (`ConflictError` on stale `expectedVersion`).
+  - **Immutable Version Ledger:** Maintains full cryptographic snapshots in `theatre_business_versions` on every mutation with structured change types.
+- 📚 **Theatre Business Profile Architecture Guide:** Detailed technical documentation in [`docs/THEATRE_BUSINESS_INFORMATION_MANAGEMENT.md`](./docs/THEATRE_BUSINESS_INFORMATION_MANAGEMENT.md).
 
 ---
 
