@@ -649,6 +649,19 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Records `previousValues`, `updatedFields`, `updatedBy`, and `updatedAt` in `TheatreProfileVersion` on every mutation, supporting non-destructive forward version rollbacks and full audit logging across Super Admin (`/dashboard/theatres/profiles`, `/dashboard/theatres/[id]`), Theatre Admin (`/theatre/profile`), and Public Pages (`/theatre/[slug]`).
 - 📚 **Theatre Profile Guide:** Detailed technical documentation in [`docs/THEATRE_PROFILE_MANAGEMENT.md`](./docs/THEATRE_PROFILE_MANAGEMENT.md).
 
+### 2.21 Phase 3 - Part 4: Theatre Address & Location Management (Completed)
+- 📍 **Decoupled Multi-Location Fleet Architecture (`db/schema/theatre-location.ts`):**
+  - Models $\text{Platform} \to \text{Theatre} \to \text{Theatre Location}$ with 1:N fleet branch support (`theatres 1:N theatre_locations`), primary complex assignment (`isPrimary`), and dedicated child tables `theatreCoordinates`, `theatreGeoMetadata`, and `theatreLocationVersions`.
+- 🗺️ **Coordinate Governance & Spatial Index Readiness:**
+  - Decimal degree bounding constraints ($\text{Lat} \in [-90, 90]$, $\text{Lon} \in [-180, 180]$), coordinate provenance source tagging (`GPS`, `MAP_PIN`, `GEOCODED`, `MANUAL`), PostGIS SRID 4326 standard spatial index placeholder (`SRID=4326;POINT(lon lat)`), and 8-character geohash calculation (`tek9d50s`).
+- 🛡️ **Super Admin Location Verification Workflow & Publication Gate:**
+  - Strict lifecycle transition: `DRAFT` \(\to\) `VERIFIED` \(\to\) `PUBLISHED` \(\to\) `ARCHIVED`. Theatre Admins create locations in `UNVERIFIED` state; only Super Admins hold authority to review and verify physical addresses. Attempting to publish an unverified location is strictly rejected by the domain publication gate.
+- 🧭 **Turn-by-Turn Navigation & URL Sanitization:**
+  - Secure Google Maps URL, Place ID, driving/walking/transit direction links, and embedded map placeholders with complete XSS protocol sanitization (`javascript:`, `data:`, `vbscript:` stripping).
+- 🔍 **Pre-Pagination Tenant Isolation & Public Projection:**
+  - Pre-pagination filters strictly protect cross-tenant boundaries. Public cinema pages (`/theatre/[slug]`) project verified, published addresses while keeping draft or unverified addresses protected from public view.
+- 📚 **Theatre Location Guide:** Detailed technical documentation in [`docs/THEATRE_LOCATION_MANAGEMENT.md`](./docs/THEATRE_LOCATION_MANAGEMENT.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -669,6 +682,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 📍 [`docs/THEATRE_LOCATION_MANAGEMENT.md`](./docs/THEATRE_LOCATION_MANAGEMENT.md) — Multi-Location Theatre Address & Location Architecture (`TheatreLocation`, Coordinates Governance, PostGIS & Geohash Placeholders, Super Admin Verification Gate, Turn-by-Turn Navigation & Version Rollback) (Phase 3 - Part 4).
 - 🏢 [`docs/THEATRE_PROFILE_MANAGEMENT.md`](./docs/THEATRE_PROFILE_MANAGEMENT.md) — Decoupled Theatre Profile Management Architecture (`TheatreProfile`, Business Capacity Metrics, Public Profile Slug Separation, Completion Scoring, Multi-Language & Social Link Governance, Version History & Localization) (Phase 3 - Part 3).
 - 🎨 [`docs/THEATRE_MEDIA_MANAGEMENT.md`](./docs/THEATRE_MEDIA_MANAGEMENT.md) — Theatre Branding & Digital Media Management Architecture (`TheatreMediaCollection`, Single-Active Brand Slots, Drag-and-Drop Gallery Ordering, Version History & Rollback, Server Validation & Future Video Support) (Phase 3 - Part 2).
 - 🏛️ [`docs/THEATRE_LIFECYCLE_MANAGEMENT.md`](./docs/THEATRE_LIFECYCLE_MANAGEMENT.md) — Theatre Lifecycle Governance, Finite State Machine (`DRAFT` → `PENDING_APPROVAL` → `APPROVED` → `ACTIVE` ↔ `SUSPENDED` → `ARCHIVED` → `SOFT_DELETED`), Approval Workflows, Operational Lockouts, Slug History & Optimistic Locking (Phase 3 - Part 1).

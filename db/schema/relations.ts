@@ -27,6 +27,12 @@ import {
   theatreSocialLinks,
   theatreProfileVersions,
 } from "./theatre-profile";
+import {
+  theatreLocations,
+  theatreCoordinates,
+  theatreGeoMetadata,
+  theatreLocationVersions,
+} from "./theatre-location";
 import { paymentConfigurations, payments } from "./payments";
 import { halls, hallLayouts, hallSections, seatTemplates } from "./halls";
 import {
@@ -207,6 +213,10 @@ export const theatresRelations = relations(theatres, ({ one, many }) => ({
   profileLanguages: many(theatreLanguages),
   profileSocialLinks: many(theatreSocialLinks),
   profileVersions: many(theatreProfileVersions),
+  locations: many(theatreLocations),
+  coordinates: many(theatreCoordinates),
+  geoMetadata: many(theatreGeoMetadata),
+  locationVersions: many(theatreLocationVersions),
 }));
 
 export const theatreLifecycleRelations = relations(theatreLifecycle, ({ one }) => ({
@@ -766,54 +776,69 @@ export const theatreMediaReferencesRelations = relations(theatreMediaReferences,
 }));
 
 // ------------------------------------------------------------------------------
-// Theatre Profile Management Relations (Phase 3 - Part 3)
+// Theatre Address & Location Management Relations (Phase 3 - Part 4)
 // ------------------------------------------------------------------------------
-export const theatreProfilesRelations = relations(theatreProfiles, ({ one, many }) => ({
+export const theatreLocationsRelations = relations(theatreLocations, ({ one, many }) => ({
   theatre: one(theatres, {
-    fields: [theatreProfiles.theatreId],
+    fields: [theatreLocations.theatreId],
     references: [theatres.id],
   }),
-  languages: many(theatreLanguages),
-  socialLinks: many(theatreSocialLinks),
-  versions: many(theatreProfileVersions),
-}));
-
-export const theatreLanguagesRelations = relations(theatreLanguages, ({ one }) => ({
-  profile: one(theatreProfiles, {
-    fields: [theatreLanguages.profileId],
-    references: [theatreProfiles.id],
+  coordinates: one(theatreCoordinates, {
+    fields: [theatreLocations.id],
+    references: [theatreCoordinates.locationId],
   }),
-  theatre: one(theatres, {
-    fields: [theatreLanguages.theatreId],
-    references: [theatres.id],
+  geoMetadata: one(theatreGeoMetadata, {
+    fields: [theatreLocations.id],
+    references: [theatreGeoMetadata.locationId],
   }),
-}));
-
-export const theatreSocialLinksRelations = relations(theatreSocialLinks, ({ one }) => ({
-  profile: one(theatreProfiles, {
-    fields: [theatreSocialLinks.profileId],
-    references: [theatreProfiles.id],
+  versions: many(theatreLocationVersions),
+  verifier: one(users, {
+    fields: [theatreLocations.verifiedBy],
+    references: [users.id],
   }),
-  theatre: one(theatres, {
-    fields: [theatreSocialLinks.theatreId],
-    references: [theatres.id],
-  }),
-}));
-
-export const theatreProfileVersionsRelations = relations(theatreProfileVersions, ({ one }) => ({
-  profile: one(theatreProfiles, {
-    fields: [theatreProfileVersions.profileId],
-    references: [theatreProfiles.id],
-  }),
-  theatre: one(theatres, {
-    fields: [theatreProfileVersions.theatreId],
-    references: [theatres.id],
-  }),
-  updater: one(users, {
-    fields: [theatreProfileVersions.updatedBy],
+  publisher: one(users, {
+    fields: [theatreLocations.publishedBy],
     references: [users.id],
   }),
 }));
+
+export const theatreCoordinatesRelations = relations(theatreCoordinates, ({ one }) => ({
+  location: one(theatreLocations, {
+    fields: [theatreCoordinates.locationId],
+    references: [theatreLocations.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreCoordinates.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreGeoMetadataRelations = relations(theatreGeoMetadata, ({ one }) => ({
+  location: one(theatreLocations, {
+    fields: [theatreGeoMetadata.locationId],
+    references: [theatreLocations.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreGeoMetadata.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreLocationVersionsRelations = relations(theatreLocationVersions, ({ one }) => ({
+  location: one(theatreLocations, {
+    fields: [theatreLocationVersions.locationId],
+    references: [theatreLocations.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreLocationVersions.theatreId],
+    references: [theatres.id],
+  }),
+  updater: one(users, {
+    fields: [theatreLocationVersions.updatedBy],
+    references: [users.id],
+  }),
+}));
+
 
 
 

@@ -66,6 +66,10 @@ const LazyTheatreProfileWorkspace = dynamic(
   () => import("@/components/theatre-profile/theatre-profile-workspace").then((m) => m.TheatreProfileWorkspace),
   { ssr: false }
 );
+const LazyTheatreLocationWorkspace = dynamic(
+  () => import("@/components/theatre-location/theatre-location-workspace").then((m) => m.TheatreLocationWorkspace),
+  { ssr: false }
+);
 
 const SUPER_ADMIN_ACTOR = {
   userId: "usr-super-1",
@@ -80,7 +84,7 @@ export default function SuperAdminTheatreDetailPage() {
   const [detail, setDetail] = useState<TheatreLifecycleDetailBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "lifecycle" | "profile" | "media" | "general" | "admin" | "payment" | "subscription" | "metrics" | "audit"
+    "lifecycle" | "profile" | "media" | "location" | "general" | "admin" | "payment" | "subscription" | "metrics" | "audit"
   >("lifecycle");
 
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -437,6 +441,7 @@ export default function SuperAdminTheatreDetailPage() {
             { id: "lifecycle", label: "Lifecycle & State Machine" },
             { id: "profile", label: "Theatre Profile" },
             { id: "media", label: "Branding & Media" },
+            { id: "location", label: "Address & Location" },
             { id: "general", label: "General & Hardware" },
             { id: "admin", label: "Admin & Operators" },
             { id: "payment", label: "Payment & UPI Rail" },
@@ -481,6 +486,17 @@ export default function SuperAdminTheatreDetailPage() {
           actorUserId="usr-super-1"
           actorName="Vikram Singhania"
           defaultView="branding"
+        />
+      )}
+
+      {/* Tab 0c: Address & Location Management (Phase 3 Part 4) */}
+      {activeTab === "location" && (
+        <LazyTheatreLocationWorkspace
+          theatreId={theatre.id}
+          actorRole="SUPER_ADMIN"
+          actorUserId="usr-super-1"
+          actorName="Vikram Singhania"
+          defaultView="overview"
         />
       )}
 

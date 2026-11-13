@@ -23,6 +23,9 @@ export * from "./theatre-media";
 // Theatre Profile Management (Phase 3 - Part 3)
 export * from "./theatre-profile";
 
+// Theatre Address & Location Management (Phase 3 - Part 4)
+export * from "./theatre-location";
+
 // Tenant Payment Configurations & Ledger
 export * from "./payments";
 

@@ -435,4 +435,32 @@ export const theatreSocialPlatformEnum = pgEnum("theatre_social_platform", [
   "CUSTOM",
 ]);
 
+// ------------------------------------------------------------------------------
+// Theatre Location & Address Management Enums (Phase 3 - Part 4)
+// ------------------------------------------------------------------------------
+export const theatreLocationStatusEnum = pgEnum("theatre_location_status", [
+  "DRAFT",
+  "VERIFIED",
+  "PUBLISHED",
+  "ARCHIVED",
+]);
+
+export const theatreLocationVerificationStatusEnum = pgEnum(
+  "theatre_location_verification_status",
+  [
+    "UNVERIFIED",
+    "PENDING_REVIEW",
+    "VERIFIED",
+    "REJECTED",
+  ]
+);
+
+export const theatreCoordinateSourceEnum = pgEnum("theatre_coordinate_source", [
+  "MANUAL",
+  "GEOCODED",
+  "GPS",
+  "SYSTEM",
+  "MAP_PIN",
+]);
+
 

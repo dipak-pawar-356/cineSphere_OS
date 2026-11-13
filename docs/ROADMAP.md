@@ -6,7 +6,8 @@ Phase 2: Core Operating System Services (Parts 1-16) ► [ COMPLETED ]
 Phase 3: Enterprise Governance & Real-Time Infra ────► [ IN PROGRESS ]
   ├─ Part 1: Theatre Lifecycle Management ───────────► [ COMPLETED ]
   ├─ Part 2: Theatre Branding & Media Management ────► [ COMPLETED ]
-  └─ Part 3: Theatre Profile Management ─────────────► [ COMPLETED ]
+  ├─ Part 3: Theatre Profile Management ─────────────► [ COMPLETED ]
+  └─ Part 4: Theatre Address & Location Management ──► [ COMPLETED ]
 Phase 4: Concessions & Butler In-Seat Dining ───────► [ PLANNED ]
 Phase 5: 3D WebGL Hall Designer (Three.js) ─────────► [ PLANNED ]
 Phase 6: Distributor KDM Key Ingestion & DCI ───────► [ PLANNED ]
@@ -51,6 +52,7 @@ Phase 7: Mobile Kiosk Native PWA & Turnstile ───────► [ PLANNED 
 - [x] **Part 1: Theatre Lifecycle Management:** Finite state machine governance (`DRAFT` → `PENDING_APPROVAL` → `APPROVED` → `ACTIVE` ↔ `SUSPENDED` → `ARCHIVED` → `SOFT_DELETED`), KYC approvals & revision loops, operational lockouts, read-only archival, non-destructive soft delete, unique slug history, optimistic locking, and multi-tenant field RBAC.
 - [x] **Part 2: Theatre Branding & Media Management:** Decoupled `TheatreMediaCollection` Digital Asset Management (Logo, Banner, Cover, Hero, Thumbnail, ordered Gallery), immutable version history & restore, SHA-256 checksum duplicate protection, server-side policy validation, future video/panorama stubs, and dynamic public venue projection.
 - [x] **Part 3: Theatre Profile Management:** Dedicated decoupled `TheatreProfile` entity with public profile slug separation, business capacity & completion score tracking, multi-language (`isPrimary`) & social presence governance, multi-locale field readiness, immutable version history with rollback support, and multi-tenant RBAC.
+- [x] **Part 4: Theatre Address & Location Management:** Decoupled multi-location fleet architecture (`theatres 1:N theatre_locations`), primary/secondary branch hierarchy, coordinate governance & range validation, PostGIS SRID 4326 spatial index placeholders & 8-character geohash generation, Super Admin verification workflow & publication gates, Google Maps URL sanitization, pre-pagination tenant isolation, forward version rollback, and customer-facing address projections.
 - [ ] Redis in-memory seat reservation locks (5-minute countdown hold).
 - [ ] Interactive SVG auditorium seat maps with live socket updates.
 - [ ] Webhook payment capture (Razorpay, PhonePe, Stripe, Paytm).

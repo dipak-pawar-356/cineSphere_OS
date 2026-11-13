@@ -13,6 +13,8 @@ import { getPublicTheatreMediaAction } from "@/actions/theatre-media-actions";
 import { TheatrePublicMediaView } from "@/types/theatre-media.types";
 import { getPublicTheatreProfileAction } from "@/actions/theatre-profile-actions";
 import { PublicTheatreProfileView } from "@/types/theatre-profile.types";
+import { getPublicTheatreLocationAction } from "@/actions/theatre-location-actions";
+import { PublicTheatreLocationView } from "@/types/theatre-location.types";
 import { SOCIAL_PLATFORM_LABELS, THEATRE_CATEGORY_LABELS } from "@/lib/validation/theatre-profile.validation";
 import {
   CustomerTheatreDTO,
@@ -41,6 +43,8 @@ import {
   ChevronRight,
   ShieldCheck,
   Armchair,
+  Navigation,
+  ExternalLink,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,6 +62,7 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
   const [selectedFormat, setSelectedFormat] = useState("All");
   const [publicMedia, setPublicMedia] = useState<TheatrePublicMediaView | null>(null);
   const [publicProfile, setPublicProfile] = useState<PublicTheatreProfileView | null>(null);
+  const [publicLocation, setPublicLocation] = useState<PublicTheatreLocationView | null>(null);
 
   const allTheatres = useMemo(() => getAllPublishedTheatres(), []);
   const allMovies = useMemo(() => getAllPublishedMovies(), []);
@@ -77,13 +82,17 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
     void Promise.all([
       getPublicTheatreMediaAction({ theatreIdOrSlug: key }, { role: "CUSTOMER" }),
       getPublicTheatreProfileAction({ theatreIdOrSlug: key }, { role: "CUSTOMER" }),
-    ]).then(([mediaRes, profileRes]) => {
+      getPublicTheatreLocationAction({ theatreIdOrSlug: key }, { role: "CUSTOMER" }),
+    ]).then(([mediaRes, profileRes, locationRes]) => {
       if (cancelled) return;
       if (mediaRes.success && mediaRes.data) {
         setPublicMedia(mediaRes.data);
       }
       if (profileRes.success) {
         setPublicProfile(profileRes.data || null);
+      }
+      if (locationRes.success) {
+        setPublicLocation(locationRes.data || null);
       }
     });
     return () => {
@@ -414,9 +423,38 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
 
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-[#CBD5E1]">
                 <MapPin className="h-4 w-4 text-[#FBBF24] shrink-0" />
-                <span>{theatre.address}, {theatre.city}, {theatre.state}</span>
-                {theatre.distancePlaceholder && (
-                  <span className="text-amber-400 font-mono">({theatre.distancePlaceholder})</span>
+                <span>
+                  {publicLocation?.completeAddress ||
+                    `${theatre.address}, ${theatre.city}, ${theatre.state}`}
+                </span>
+                {publicLocation?.landmark && (
+                  <span className="text-[#FBBF24] font-medium">
+                    (Near {publicLocation.landmark})
+                  </span>
+                )}
+                {publicLocation?.googleMapsUrl && (
+                  <a
+                    href={publicLocation.googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[#FBBF24] hover:underline font-semibold ml-1 text-xs"
+                    aria-label="View on Google Maps"
+                  >
+                    <span>Maps</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+                {publicLocation?.navigationLink && (
+                  <a
+                    href={publicLocation.navigationLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-cyan-400 hover:underline font-semibold ml-1.5 text-xs"
+                    aria-label="Turn-by-turn directions"
+                  >
+                    <Navigation className="h-3 w-3" />
+                    <span>Directions</span>
+                  </a>
                 )}
               </div>
             </div>
@@ -822,6 +860,102 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
             <p className="text-xs text-[#94A3B8] leading-relaxed">
               Elevator access to all tiers, wheelchair companion spaces, Dolby Fidelio closed-caption devices, and assistive audio receivers.
             </p>
+          </div>
+        </div>
+
+        {/* 7b. LOCATION, ADDRESS & NAVIGATION (Phase 3 Part 4) */}
+        <div className="p-6 rounded-2xl bg-[#161F2E] border border-[#2A3445] space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-[#FBBF24]" />
+              <span>Location, Directions & Navigation</span>
+            </h3>
+            {publicLocation && (
+              <span className="text-xs font-mono text-[#94A3B8]">
+                {publicLocation.city}, {publicLocation.state} • PIN {publicLocation.postalCode}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+            <div className="space-y-3 text-xs">
+              <div className="p-4 rounded-xl bg-[#0F172A] border border-[#1E293B] space-y-2">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                  Complete Multiplex Address
+                </div>
+                <p className="text-sm text-white font-medium leading-relaxed">
+                  {publicLocation?.completeAddress ||
+                    publicLocation?.formattedAddress ||
+                    `${theatre.address}, ${theatre.city}, ${theatre.state}`}
+                </p>
+                {publicLocation?.landmark && (
+                  <p className="text-xs text-[#FBBF24]">
+                    <span className="font-semibold">Prominent Landmark:</span> Near {publicLocation.landmark}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-[#94A3B8]">
+                <span>
+                  Jurisdiction: <strong className="text-white">{publicLocation?.state || theatre.state}, {publicLocation?.country || "India"}</strong>
+                </span>
+                {publicLocation?.coordinates && (
+                  <span className="font-mono text-[#CBD5E1]">
+                    ({publicLocation.coordinates.latitude.toFixed(4)}° N, {publicLocation.coordinates.longitude.toFixed(4)}° E)
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col justify-between p-4 rounded-xl bg-[#0F172A] border border-[#1E293B] space-y-4">
+              <div className="space-y-1">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#38BDF8]">
+                  Navigation & Turn-by-Turn Routing
+                </div>
+                <p className="text-xs text-[#94A3B8]">
+                  Access synchronized Google Maps routing and navigation directions directly on your smartphone.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                {publicLocation?.googleMapsUrl ? (
+                  <a
+                    href={publicLocation.googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1E293B] hover:bg-[#334155] text-xs font-bold text-white transition-colors border border-[#334155]"
+                  >
+                    <MapPin className="h-4 w-4 text-rose-400" />
+                    <span>Open in Google Maps</span>
+                    <ExternalLink className="h-3 w-3 text-[#94A3B8]" />
+                  </a>
+                ) : (
+                  <a
+                    href={`https://maps.google.com/?q=${encodeURIComponent(`${theatre.name} ${theatre.city}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1E293B] hover:bg-[#334155] text-xs font-bold text-white transition-colors border border-[#334155]"
+                  >
+                    <MapPin className="h-4 w-4 text-rose-400" />
+                    <span>Open in Google Maps</span>
+                    <ExternalLink className="h-3 w-3 text-[#94A3B8]" />
+                  </a>
+                )}
+
+                {publicLocation?.navigationLink && (
+                  <a
+                    href={publicLocation.navigationLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-xs font-bold text-[#FBBF24] transition-colors border border-amber-500/30"
+                  >
+                    <Navigation className="h-4 w-4 text-[#FBBF24]" />
+                    <span>Start Turn-by-Turn</span>
+                    <ExternalLink className="h-3 w-3 text-[#FBBF24]/70" />
+                  </a>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 

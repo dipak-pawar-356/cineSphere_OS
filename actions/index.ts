@@ -2,6 +2,7 @@ export * from "./security-hardening-actions";
 export * from "./theatre-lifecycle-actions";
 export * from "./theatre-media-actions";
 export * from "./theatre-profile-actions";
+export * from "./theatre-location-actions";
 export * from "./analytics-actions";
 export * from "./booking-engine-actions";
 export * from "./customer-discovery-actions";

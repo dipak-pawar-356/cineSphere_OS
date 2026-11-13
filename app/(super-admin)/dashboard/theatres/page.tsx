@@ -22,6 +22,7 @@ import {
   Archive,
   RotateCcw,
   Send,
+  Compass,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -307,6 +308,11 @@ export default function SuperAdminTheatresManagementPage() {
             <Link href="/dashboard/theatres/profiles">
               <Button variant="outline" size="sm" className="gap-2 border-[#2A3445] text-xs font-semibold">
                 <Building2 className="h-3.5 w-3.5 text-[#FBBF24]" /> Theatre Profiles
+              </Button>
+            </Link>
+            <Link href="/dashboard/theatres/locations">
+              <Button variant="outline" size="sm" className="gap-2 border-[#2A3445] text-xs font-semibold">
+                <Compass className="h-3.5 w-3.5 text-cyan-400" /> Locations & Addresses
               </Button>
             </Link>
             <Link href="/dashboard/subscriptions">
