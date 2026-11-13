@@ -635,6 +635,79 @@ export const businessDocumentVerificationStatusEnum = pgEnum("business_document_
   "REJECTED",
 ]);
 
+// ------------------------------------------------------------------------------
+// Theatre Operating Hours Management Enums (Phase 3 - Part 8)
+// ------------------------------------------------------------------------------
+export const operatingDayOfWeekEnum = pgEnum("operating_day_of_week", [
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+  "SUNDAY",
+]);
+
+export const operatingProfileStatusEnum = pgEnum("operating_profile_status", [
+  "ACTIVE",
+  "INACTIVE",
+  "DRAFT",
+  "SUSPENDED",
+]);
+
+export const specialOperatingEventTypeEnum = pgEnum("special_operating_event_type", [
+  "FESTIVAL",
+  "MOVIE_PREMIERE",
+  "PRIVATE_SHOW",
+  "CORPORATE_BOOKING",
+  "CUSTOM",
+]);
+
+export const maintenanceWindowStatusEnum = pgEnum("maintenance_window_status", [
+  "SCHEDULED",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "CANCELLED",
+]);
+
+// ------------------------------------------------------------------------------
+// Dynamic Theatre Configuration Management Enums (Phase 3 - Part 9)
+// ------------------------------------------------------------------------------
+export const theatreConfigStatusEnum = pgEnum("theatre_config_status", [
+  "DRAFT",
+  "PUBLISHED",
+  "ARCHIVED",
+]);
+
+export const configTimeFormatEnum = pgEnum("config_time_format", [
+  "12H",
+  "24H",
+]);
+
+export const configNumberFormatEnum = pgEnum("config_number_format", [
+  "INDIAN",
+  "INTERNATIONAL",
+]);
+
+export const configMeasurementUnitsEnum = pgEnum("config_measurement_units", [
+  "METRIC",
+  "IMPERIAL",
+]);
+
+export const configRefundMethodEnum = pgEnum("config_refund_method", [
+  "ORIGINAL_PAYMENT",
+  "WALLET",
+  "STORE_CREDIT",
+]);
+
+export const configCensorRatingEnum = pgEnum("config_censor_rating", [
+  "U",
+  "UA",
+  "A",
+  "S",
+]);
+
+
 
 
 

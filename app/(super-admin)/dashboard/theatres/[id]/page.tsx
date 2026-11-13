@@ -82,6 +82,14 @@ const LazyConnectedBusinessWorkspace = dynamic(
   () => import("@/components/theatre-business/connected-business-workspace").then((m) => m.ConnectedBusinessWorkspace),
   { ssr: false }
 );
+const LazyConnectedOperatingHoursWorkspace = dynamic(
+  () => import("@/components/theatre-operating-hours/connected-operating-hours-workspace").then((m) => m.ConnectedOperatingHoursWorkspace),
+  { ssr: false }
+);
+const LazyConnectedConfigurationWorkspace = dynamic(
+  () => import("@/components/theatre-configuration/connected-configuration-workspace").then((m) => m.ConnectedConfigurationWorkspace),
+  { ssr: false }
+);
 
 const SUPER_ADMIN_ACTOR = {
   userId: "usr-super-1",
@@ -96,7 +104,7 @@ export default function SuperAdminTheatreDetailPage() {
   const [detail, setDetail] = useState<TheatreLifecycleDetailBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "lifecycle" | "profile" | "media" | "location" | "amenities" | "contacts" | "business" | "general" | "admin" | "payment" | "subscription" | "metrics" | "audit"
+    "lifecycle" | "profile" | "media" | "location" | "amenities" | "contacts" | "business" | "operating" | "configuration" | "general" | "admin" | "payment" | "subscription" | "metrics" | "audit"
   >("lifecycle");
 
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -457,6 +465,8 @@ export default function SuperAdminTheatreDetailPage() {
             { id: "amenities", label: "Amenities & Facilities" },
             { id: "contacts", label: "Contact Directory" },
             { id: "business", label: "Business & Legal Profile" },
+            { id: "operating", label: "Operating Hours & Schedules" },
+            { id: "configuration", label: "Dynamic Rules & Policies" },
             { id: "general", label: "General & Hardware" },
             { id: "admin", label: "Admin & Operators" },
             { id: "payment", label: "Payment & UPI Rail" },
@@ -536,6 +546,22 @@ export default function SuperAdminTheatreDetailPage() {
       {/* Tab 0f: Business Profile & Tax Compliance (Phase 3 Part 7) */}
       {activeTab === "business" && (
         <LazyConnectedBusinessWorkspace
+          theatreId={theatre.id}
+          isSuperAdmin={true}
+        />
+      )}
+
+      {/* Tab 0g: Operating Hours & Schedules (Phase 3 Part 8) */}
+      {activeTab === "operating" && (
+        <LazyConnectedOperatingHoursWorkspace
+          theatreId={theatre.id}
+          isSuperAdmin={true}
+        />
+      )}
+
+      {/* Tab 0h: Dynamic Theatre Configuration & Policies (Phase 3 Part 9) */}
+      {activeTab === "configuration" && (
+        <LazyConnectedConfigurationWorkspace
           theatreId={theatre.id}
           isSuperAdmin={true}
         />

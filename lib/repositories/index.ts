@@ -7,6 +7,8 @@ export * from "./theatre-location.repository";
 export * from "./theatre-amenity.repository";
 export * from "./theatre-contact.repository";
 export * from "./theatre-business.repository";
+export * from "./theatre-operating-hours.repository";
+export * from "./theatre-configuration.repository";
 export * from "./booking.repository";
 export * from "./show.repository";
 export * from "./audit.repository";

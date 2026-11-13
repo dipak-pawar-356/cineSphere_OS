@@ -32,6 +32,7 @@ import {
   Megaphone,
   Activity,
   Armchair,
+  Sliders,
 } from "lucide-react";
 
 export interface NavItemConfig {
@@ -292,6 +293,18 @@ export const THEATRE_ADMIN_NAV_SECTIONS: NavSectionConfig[] = [
         href: ROUTES.THEATRE_ADMIN.BUSINESS,
         icon: ShieldCheck,
         badge: "Tax/GST",
+      },
+      {
+        label: "Operating Hours",
+        href: ROUTES.THEATRE_ADMIN.OPERATING_HOURS,
+        icon: Clock,
+        badge: "Schedule",
+      },
+      {
+        label: "Dynamic Configuration",
+        href: ROUTES.THEATRE_ADMIN.CONFIGURATION,
+        icon: Sliders,
+        badge: "Rules",
       },
     ],
   },

@@ -35,6 +35,12 @@ export * from "./theatre-contact";
 // Theatre Business Information Management (Phase 3 - Part 7)
 export * from "./theatre-business";
 
+// Theatre Operating Hours Management (Phase 3 - Part 8)
+export * from "./theatre-operating-hours";
+
+// Dynamic Theatre Configuration Management (Phase 3 - Part 9)
+export * from "./theatre-configuration";
+
 // Tenant Payment Configurations & Ledger
 export * from "./payments";
 

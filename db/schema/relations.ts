@@ -60,6 +60,25 @@ import {
   theatreBusinessDocuments,
   theatreBusinessVersions,
 } from "./theatre-business";
+import {
+  theatreOperatingProfiles,
+  theatreWeeklySchedules,
+  theatreHolidaySchedules,
+  theatreMaintenanceSchedules,
+  theatreSpecialOperatingEvents,
+  theatreOperatingProfileVersions,
+} from "./theatre-operating-hours";
+import {
+  theatreConfigurations,
+  theatreLocalizationConfigurations,
+  theatreBookingConfigurations,
+  theatreCancellationConfigurations,
+  theatreRefundConfigurations,
+  theatreAgeRestrictionConfigurations,
+  theatreFeatureFlagConfigurations,
+  theatreConfigurationTerms,
+  theatreConfigurationVersions,
+} from "./theatre-configuration";
 import { paymentConfigurations, payments } from "./payments";
 import { halls, hallLayouts, hallSections, seatTemplates } from "./halls";
 import {
@@ -266,6 +285,27 @@ export const theatresRelations = relations(theatres, ({ one, many }) => ({
   businessCompliances: many(theatreBusinessCompliances),
   businessDocuments: many(theatreBusinessDocuments),
   businessVersions: many(theatreBusinessVersions),
+  operatingProfile: one(theatreOperatingProfiles, {
+    fields: [theatres.id],
+    references: [theatreOperatingProfiles.theatreId],
+  }),
+  weeklySchedules: many(theatreWeeklySchedules),
+  holidaySchedules: many(theatreHolidaySchedules),
+  maintenanceSchedules: many(theatreMaintenanceSchedules),
+  specialOperatingEvents: many(theatreSpecialOperatingEvents),
+  operatingVersions: many(theatreOperatingProfileVersions),
+  configuration: one(theatreConfigurations, {
+    fields: [theatres.id],
+    references: [theatreConfigurations.theatreId],
+  }),
+  localizationConfigurations: many(theatreLocalizationConfigurations),
+  bookingConfigurations: many(theatreBookingConfigurations),
+  cancellationConfigurations: many(theatreCancellationConfigurations),
+  refundConfigurations: many(theatreRefundConfigurations),
+  ageRestrictionConfigurations: many(theatreAgeRestrictionConfigurations),
+  featureFlagConfigurations: many(theatreFeatureFlagConfigurations),
+  configurationTerms: many(theatreConfigurationTerms),
+  configurationVersions: many(theatreConfigurationVersions),
 }));
 
 export const theatreLifecycleRelations = relations(theatreLifecycle, ({ one }) => ({
@@ -1161,6 +1201,204 @@ export const theatreBusinessVersionsRelations = relations(theatreBusinessVersion
     references: [theatres.id],
   }),
 }));
+
+// ------------------------------------------------------------------------------
+// Theatre Operating Hours Relations (Phase 3 - Part 8)
+// ------------------------------------------------------------------------------
+export const theatreOperatingProfilesRelations = relations(theatreOperatingProfiles, ({ one, many }) => ({
+  theatre: one(theatres, {
+    fields: [theatreOperatingProfiles.theatreId],
+    references: [theatres.id],
+  }),
+  weeklySchedules: many(theatreWeeklySchedules),
+  holidaySchedules: many(theatreHolidaySchedules),
+  maintenanceSchedules: many(theatreMaintenanceSchedules),
+  specialOperatingEvents: many(theatreSpecialOperatingEvents),
+  versions: many(theatreOperatingProfileVersions),
+}));
+
+export const theatreWeeklySchedulesRelations = relations(theatreWeeklySchedules, ({ one }) => ({
+  profile: one(theatreOperatingProfiles, {
+    fields: [theatreWeeklySchedules.operatingProfileId],
+    references: [theatreOperatingProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreWeeklySchedules.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreHolidaySchedulesRelations = relations(theatreHolidaySchedules, ({ one }) => ({
+  profile: one(theatreOperatingProfiles, {
+    fields: [theatreHolidaySchedules.operatingProfileId],
+    references: [theatreOperatingProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreHolidaySchedules.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreMaintenanceSchedulesRelations = relations(theatreMaintenanceSchedules, ({ one }) => ({
+  profile: one(theatreOperatingProfiles, {
+    fields: [theatreMaintenanceSchedules.operatingProfileId],
+    references: [theatreOperatingProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreMaintenanceSchedules.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreSpecialOperatingEventsRelations = relations(theatreSpecialOperatingEvents, ({ one }) => ({
+  profile: one(theatreOperatingProfiles, {
+    fields: [theatreSpecialOperatingEvents.operatingProfileId],
+    references: [theatreOperatingProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreSpecialOperatingEvents.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreOperatingProfileVersionsRelations = relations(theatreOperatingProfileVersions, ({ one }) => ({
+  profile: one(theatreOperatingProfiles, {
+    fields: [theatreOperatingProfileVersions.operatingProfileId],
+    references: [theatreOperatingProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreOperatingProfileVersions.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+// ------------------------------------------------------------------------------
+// Dynamic Theatre Configuration Relations (Phase 3 - Part 9)
+// ------------------------------------------------------------------------------
+export const theatreConfigurationsRelations = relations(theatreConfigurations, ({ one, many }) => ({
+  theatre: one(theatres, {
+    fields: [theatreConfigurations.theatreId],
+    references: [theatres.id],
+  }),
+  localization: one(theatreLocalizationConfigurations, {
+    fields: [theatreConfigurations.id],
+    references: [theatreLocalizationConfigurations.configurationId],
+  }),
+  booking: one(theatreBookingConfigurations, {
+    fields: [theatreConfigurations.id],
+    references: [theatreBookingConfigurations.configurationId],
+  }),
+  cancellation: one(theatreCancellationConfigurations, {
+    fields: [theatreConfigurations.id],
+    references: [theatreCancellationConfigurations.configurationId],
+  }),
+  refund: one(theatreRefundConfigurations, {
+    fields: [theatreConfigurations.id],
+    references: [theatreRefundConfigurations.configurationId],
+  }),
+  ageRestriction: one(theatreAgeRestrictionConfigurations, {
+    fields: [theatreConfigurations.id],
+    references: [theatreAgeRestrictionConfigurations.configurationId],
+  }),
+  featureFlags: one(theatreFeatureFlagConfigurations, {
+    fields: [theatreConfigurations.id],
+    references: [theatreFeatureFlagConfigurations.configurationId],
+  }),
+  terms: one(theatreConfigurationTerms, {
+    fields: [theatreConfigurations.id],
+    references: [theatreConfigurationTerms.configurationId],
+  }),
+  versions: many(theatreConfigurationVersions),
+}));
+
+export const theatreLocalizationConfigurationsRelations = relations(theatreLocalizationConfigurations, ({ one }) => ({
+  configuration: one(theatreConfigurations, {
+    fields: [theatreLocalizationConfigurations.configurationId],
+    references: [theatreConfigurations.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreLocalizationConfigurations.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreBookingConfigurationsRelations = relations(theatreBookingConfigurations, ({ one }) => ({
+  configuration: one(theatreConfigurations, {
+    fields: [theatreBookingConfigurations.configurationId],
+    references: [theatreConfigurations.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreBookingConfigurations.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreCancellationConfigurationsRelations = relations(theatreCancellationConfigurations, ({ one }) => ({
+  configuration: one(theatreConfigurations, {
+    fields: [theatreCancellationConfigurations.configurationId],
+    references: [theatreConfigurations.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreCancellationConfigurations.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreRefundConfigurationsRelations = relations(theatreRefundConfigurations, ({ one }) => ({
+  configuration: one(theatreConfigurations, {
+    fields: [theatreRefundConfigurations.configurationId],
+    references: [theatreConfigurations.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreRefundConfigurations.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreAgeRestrictionConfigurationsRelations = relations(theatreAgeRestrictionConfigurations, ({ one }) => ({
+  configuration: one(theatreConfigurations, {
+    fields: [theatreAgeRestrictionConfigurations.configurationId],
+    references: [theatreConfigurations.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreAgeRestrictionConfigurations.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreFeatureFlagConfigurationsRelations = relations(theatreFeatureFlagConfigurations, ({ one }) => ({
+  configuration: one(theatreConfigurations, {
+    fields: [theatreFeatureFlagConfigurations.configurationId],
+    references: [theatreConfigurations.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreFeatureFlagConfigurations.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreConfigurationTermsRelations = relations(theatreConfigurationTerms, ({ one }) => ({
+  configuration: one(theatreConfigurations, {
+    fields: [theatreConfigurationTerms.configurationId],
+    references: [theatreConfigurations.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreConfigurationTerms.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreConfigurationVersionsRelations = relations(theatreConfigurationVersions, ({ one }) => ({
+  configuration: one(theatreConfigurations, {
+    fields: [theatreConfigurationVersions.configurationId],
+    references: [theatreConfigurations.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreConfigurationVersions.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
 
 
 

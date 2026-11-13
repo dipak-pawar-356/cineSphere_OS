@@ -43,6 +43,7 @@ import {
   X,
   Save,
   Compass,
+  Sliders,
 } from "lucide-react";
 
 export default function TheatreProfilePage() {
@@ -399,6 +400,19 @@ export default function TheatreProfilePage() {
               <div className="flex justify-between items-center py-2">
                 <span className="text-[#CBD5E1]">Operational Days</span>
                 <span className="font-bold text-emerald-400">All 7 Days (365 Days)</span>
+              </div>
+
+              <div className="pt-3 border-t border-[#2A3445]/60 flex flex-col gap-2">
+                <Link href="/theatre/operating-hours" className="block w-full">
+                  <Button variant="outline" size="xs" className="w-full border-[#2A3445] text-xs gap-1.5 text-zinc-300 hover:text-white">
+                    <Clock className="h-3.5 w-3.5 text-[#FBBF24]" /> Manage Operating Hours & Holidays →
+                  </Button>
+                </Link>
+                <Link href="/theatre/configuration" className="block w-full">
+                  <Button variant="outline" size="xs" className="w-full border-[#2A3445] text-xs gap-1.5 text-zinc-300 hover:text-white">
+                    <Sliders className="h-3.5 w-3.5 text-cyan-400" /> Dynamic Rules & Feature Flags →
+                  </Button>
+                </Link>
               </div>
             </div>
           </Card>

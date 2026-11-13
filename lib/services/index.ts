@@ -6,6 +6,8 @@ export * from "./theatre-location.service";
 export * from "./theatre-amenity.service";
 export * from "./theatre-contact.service";
 export * from "./theatre-business.service";
+export * from "./theatre-operating-hours.service";
+export * from "./theatre-configuration.service";
 export * from "./booking-domain.service";
 export * from "./payment-domain.service";
 export * from "./security-audit.service";

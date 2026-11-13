@@ -6,6 +6,8 @@ export * from "./theatre-location-actions";
 export * from "./theatre-amenity-actions";
 export * from "./theatre-contact-actions";
 export * from "./theatre-business-actions";
+export * from "./theatre-operating-hours-actions";
+export * from "./theatre-configuration-actions";
 export * from "./analytics-actions";
 export * from "./booking-engine-actions";
 export * from "./customer-discovery-actions";

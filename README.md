@@ -714,6 +714,51 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - **Immutable Version Ledger:** Maintains full cryptographic snapshots in `theatre_business_versions` on every mutation with structured change types.
 - 📚 **Theatre Business Profile Architecture Guide:** Detailed technical documentation in [`docs/THEATRE_BUSINESS_INFORMATION_MANAGEMENT.md`](./docs/THEATRE_BUSINESS_INFORMATION_MANAGEMENT.md).
 
+### 2.25 Phase 3 - Part 8: Theatre Operating Hours Management (Completed)
+- ⏰ **Decoupled Operating Hours Architecture (`db/schema/theatre-operating-hours.ts`):**
+  - Models $\text{Platform} \to \text{Theatre} \to \text{Theatre Operating Profile} \to \text{Weekly Schedule} \mid \text{Holiday Calendar} \mid \text{Maintenance Calendar} \mid \text{Special Events} \mid \text{Version History}$.
+  - Normalizes operating times into discrete tables: `theatre_operating_profiles` (`TheatreOperatingProfile`), `theatre_weekly_schedules` (`TheatreWeeklySchedule`), `theatre_holiday_schedules` (`TheatreHolidaySchedule`), `theatre_maintenance_schedules` (`TheatreMaintenanceSchedule`), `theatre_special_operating_events` (`TheatreSpecialOperatingEvent`), and `theatre_operating_profile_versions` (`TheatreOperatingProfileVersion`).
+- 🗓️ **Weekly Schedule Rotations & Timezone Governance:**
+  - Day-by-day weekly configuration across all 7 days with `isOpen`, `openTime`, `closeTime`, `isOvernight` midnight rollover, and time slots.
+  - Strict timezone normalization using standard IANA timezone identifiers (e.g. `Asia/Kolkata`, `America/New_York`).
+- 🏖️ **Holiday Calendars & Exception Overrides:**
+  - Manages calendar-specific holidays (`holidayDate`), full closure flags, or custom partial operating hours (`partialOpenTime`, `partialCloseTime`) with administrative notes.
+- 🔧 **Facility & Auditorium Maintenance Windows:**
+  - Schedules planned technical downtime (e.g., laser projector optical alignment, Dolby Atmos calibration, acoustic tuning) with affected screen multi-selectors (`affectedHalls: string[]`), execution dates, time ranges, and tracking states (`SCHEDULED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`).
+- 🌟 **Special Midnight Releases & Film Festivals:**
+  - Accommodates blockbuster midnight fan screenings and multi-day festival marathons with custom date horizons and early box-office gate cutoffs.
+- 💻 **Developer Notes:**
+  - **Multi-Tenant Boundary Isolation:** Pre-pagination tenant isolation via `tenantService.assertTenantAccess`.
+  - **Input Validation Invariants:** Strict 24-hour time format verification (`^([01]\d|2[0-3]):[0-5]\d$`), ISO calendar dates, and overnight opening/closing logic.
+  - **Audit Trail & Optimistic Concurrency:** Immutable snapshots stored in `theatre_operating_profile_versions` on every change; cache invalidation via `THEATRE_OPERATING_HOURS` tag.
+- 📚 **Theatre Operating Hours Guide:** Detailed technical documentation in [`docs/THEATRE_OPERATING_HOURS_MANAGEMENT.md`](./docs/THEATRE_OPERATING_HOURS_MANAGEMENT.md).
+
+### 2.26 Phase 3 - Part 9: Dynamic Theatre Configuration Management (Completed)
+- ⚙️ **Decoupled Relational Configuration Domain (`db/schema/theatre-configuration.ts`):**
+  - Models $\text{Platform} \to \text{Theatre} \to \text{Theatre Configuration} \to \text{Localization} \mid \text{Booking Rules} \mid \text{Cancellation Rules} \mid \text{Refund Rules} \mid \text{Customer Rules} \mid \text{Feature Flags} \mid \text{Terms} \mid \text{Version History}$.
+  - Avoids single monolithic JSON blobs by decomposing configuration into strongly typed relational child entities: `theatre_configurations` (`TheatreConfiguration`), `theatre_localization_configurations` (`LocalizationConfiguration`), `theatre_booking_configurations` (`BookingConfiguration`), `theatre_cancellation_configurations` (`CancellationConfiguration`), `theatre_refund_configurations` (`RefundConfiguration`), `theatre_age_restriction_configurations` (`AgeRestrictionConfiguration`), `theatre_feature_flag_configurations` (`FeatureFlagConfiguration`), `theatre_configuration_terms` (`ConfigurationTerms`), and `theatre_configuration_versions` (`ConfigurationVersion`).
+- 🌐 **Localization & Formatting:**
+  - ISO 4217 Currency (e.g. `INR`, `USD`, `EUR`, `AED`), IANA Timezone, primary and supported languages, configurable date formats, `12H`/`24H` time formats, `INDIAN` (Lakhs/Crores) vs `INTERNATIONAL` (Millions/Billions) number formatting, and `METRIC`/`IMPERIAL` units.
+- 🎟️ **Booking Quotas & Seat Hold Locks:**
+  - Max seats per booking (1–50), min seats per booking (1–10), advance booking horizon (1–365 days), gate cutoff minutes (0–1440), max concurrent bookings per user, and temporary seat hold lock timer (30–3600 seconds, e.g. 600s = 10 mins).
+- ❌ **Cancellation Policies & Auto-Forfeiture:**
+  - Customer cancellation toggle (`cancellationAllowed`), advance notice deadline (minutes before show), percentage cancellation fee deduction (e.g. `15.00%`), and automated unpaid reservation hold timeout releases.
+- 💵 **Refund Settlement & Payment Gateway Routing:**
+  - Refund eligibility window hours, payout percentages, destination routing (`ORIGINAL_PAYMENT`, `WALLET`, `STORE_CREDIT`), turnaround processing days, and automated payment gateway reversal switch (`gatewayAutoRefund`).
+- 🛡️ **Age Restrictions & Censor Rating Matrix:**
+  - Formal censor certification thresholds enforcing $U \le UA \le A \le S$, minor guardian accompaniment age floors, mandatory gate ID verification, and custom auditorium age disclaimers.
+- ✨ **Modular Feature Flags & Capabilities:**
+  - One-click commercial capability toggles: Loyalty points, promo coupons, digital gift cards, VIP memberships, demand-based dynamic pricing, AI personalized recommendations, and sold-out show waitlisting.
+- 📜 **Customer Legal Agreements:**
+  - Legally binding customer terms, refund caveats, privacy notices, and checkout covenants displayed on confirmation vouchers and digital M-Tickets.
+- 🕰️ **Publishing Workflow & One-Click Rollback:**
+  - Draft-to-publish release cycle (`DRAFT` → `PUBLISHED` / `ARCHIVED`). Publishing stores immutable snapshots in `theatre_configuration_versions` and updates live booking engines.
+  - One-click rollback restores prior snapshots as reviewable working drafts with monotonic version increments.
+- 💻 **Developer Notes:**
+  - **Multi-Tenant Boundary Isolation:** Pre-pagination isolation enforced via `tenantService.assertTenantAccess`.
+  - **Audit Logging & Caching:** Full audit logging through `securityAuditService` with invalidation of `THEATRE_CONFIGURATION` and `PUBLIC_THEATRE_CONFIGURATION` cache tags.
+- 📚 **Dynamic Theatre Configuration Guide:** Detailed technical documentation in [`docs/DYNAMIC_THEATRE_CONFIGURATION_MANAGEMENT.md`](./docs/DYNAMIC_THEATRE_CONFIGURATION_MANAGEMENT.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -734,6 +779,8 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- ⚙️ [`docs/DYNAMIC_THEATRE_CONFIGURATION_MANAGEMENT.md`](./docs/DYNAMIC_THEATRE_CONFIGURATION_MANAGEMENT.md) — Dynamic Theatre Configuration Management Architecture (`TheatreConfiguration`, Decoupled Relational Entities, Localization, Booking Quotas, Cancellation Penalties, Refund Settlements, Age Ratings, Modular Feature Flags, Terms & OCC Rollback) (Phase 3 - Part 9).
+- ⏰ [`docs/THEATRE_OPERATING_HOURS_MANAGEMENT.md`](./docs/THEATRE_OPERATING_HOURS_MANAGEMENT.md) — Multi-Tenant Theatre Operating Hours & Schedules Architecture (`TheatreOperatingProfile`, Weekly Rotations, Holiday Calendars, Facility Maintenance Downtime, Midnight Premieres, Timezone Governance & OCC) (Phase 3 - Part 8).
 - 🏢 [`docs/THEATRE_BUSINESS_INFORMATION_MANAGEMENT.md`](./docs/THEATRE_BUSINESS_INFORMATION_MANAGEMENT.md) — Multi-Tenant Theatre Business & Legal Information Architecture (`TheatreBusinessProfile`, Statutory GST/PAN/CIN Validation, Country-Aware Tax Configuration, Billing Sequence & Invoicing Governance, Decoupled Document Vault, Super Admin Compliance Workflow & OCC) (Phase 3 - Part 7).
 - 📞 [`docs/THEATRE_CONTACT_MANAGEMENT.md`](./docs/THEATRE_CONTACT_MANAGEMENT.md) — Multi-Channel Theatre Contact Directory Architecture (`TheatreContact`, Availability Modes, Verification Badges, Single-Primary Rule, 24/7 Emergency Command Desk, Duty Manager Escalation, Reordering & OCC) (Phase 3 - Part 6).
 - 🛋️ [`docs/THEATRE_AMENITIES_AND_FACILITIES_MANAGEMENT.md`](./docs/THEATRE_AMENITIES_AND_FACILITIES_MANAGEMENT.md) — Centralized Amenity Catalog & Theatre Facilities Architecture (`AmenityCatalog`, Availability Modes, Localization, Facility Metadata, Sequential Reordering & OCC) (Phase 3 - Part 5).
