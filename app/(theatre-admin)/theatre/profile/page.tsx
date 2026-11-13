@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { useTheatreStore, type TheatreProfileState } from "@/store/theatre-store";
 import {
@@ -361,6 +362,14 @@ export default function TheatreProfilePage() {
                   <span className="text-[#64748B]">Multiplex Portal</span>
                   <p className="font-semibold text-[#38BDF8] truncate max-w-[200px]">{profile.website}</p>
                 </div>
+              </div>
+
+              <div className="pt-3 border-t border-[#2A3445]/60">
+                <Link href="/theatre/contacts" className="block w-full">
+                  <Button variant="outline" size="xs" className="w-full border-[#2A3445] text-xs gap-1.5 text-zinc-300 hover:text-white">
+                    <Phone className="h-3.5 w-3.5 text-emerald-400" /> Manage Contact Directory & Desks →
+                  </Button>
+                </Link>
               </div>
             </div>
           </Card>

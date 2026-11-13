@@ -19,6 +19,8 @@ export const CACHE_TAGS = {
   AMENITY_CATALOG: "amenity-catalog:global",
   THEATRE_AMENITIES: (theatreId: string) => `theatre-amenities:${theatreId}`,
   PUBLIC_THEATRE_AMENITIES: (slugOrId: string) => `public-theatre-amenities:${slugOrId}`,
+  THEATRE_CONTACTS: (theatreId: string) => `theatre-contacts:${theatreId}`,
+  PUBLIC_THEATRE_CONTACTS: (slugOrId: string) => `public-theatre-contacts:${slugOrId}`,
   PAYMENT_CONFIGS: (theatreId: string) => `payment-configs:${theatreId}`,
   SHOW: (showId: string) => `show:${showId}`,
   SHOWS_DAILY: (theatreId: string, date: string) => `shows:${theatreId}:${date}`,

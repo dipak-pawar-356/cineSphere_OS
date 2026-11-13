@@ -675,6 +675,21 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Supports 1..N contiguous display sequence reordering, version ledger snapshots with optimistic locking, and active-only public patron discovery on `/theatre/[slug]`.
 - 📚 **Theatre Amenities Guide:** Detailed technical documentation in [`docs/THEATRE_AMENITIES_AND_FACILITIES_MANAGEMENT.md`](./docs/THEATRE_AMENITIES_AND_FACILITIES_MANAGEMENT.md).
 
+### 2.23 Phase 3 - Part 6: Theatre Contact Management (Completed)
+- 📞 **Decoupled Contact Directory Architecture (`db/schema/theatre-contact.ts`):**
+  - Models $\text{Platform} \to \text{Theatre} \to \text{Theatre Contact Directory} \to \text{Contact Channels} \to \text{Contact Roles}$. Decouples communication channels into 10 structured channel types (`PHONE`, `EMAIL`, `WEBSITE`, `SOCIAL_LINK`, `EMERGENCY`, `MANAGER`, `WHATSAPP`, `TELEGRAM`, `LIVE_CHAT`, `CALL_CENTER`) across 9 operational roles (`CUSTOMER_SUPPORT`, `GENERAL_ENQUIRY`, `EMERGENCY_DESK`, `DUTY_MANAGER`, `BOOKING_BOX_OFFICE`, etc.).
+- 🔄 **Operating Availability Modes & Verification Lifecycle:**
+  - Rich availability states (`STANDARD_BUSINESS_HOURS`, `TWENTY_FOUR_SEVEN`, `EMERGENCY_ONLY`, `SHOWTIME_ONLY`, `TEMPORARILY_INACTIVE`) and verification badges (`UNVERIFIED`, `PENDING_VERIFICATION`, `VERIFIED`, `REJECTED`) displaying authenticated checkmarks to patrons.
+- 🛡️ **Phone / Email Governance & Single-Primary Rule:**
+  - E.164 and country code validation (+91, +1, +44), departmental email inboxes, and automatic single-primary enforcement guaranteeing exactly one primary voice line and primary email per cinema.
+- 🌐 **Safe URL Sanitization, Website Governance & Social Links:**
+  - Complete stored XSS defense rejecting `javascript:`, `data:`, and `vbscript:` URI protocols for official multiplex web portals and verified social media presences (Instagram, Facebook, X, YouTube, LinkedIn, Threads, Custom).
+- 🚨 **24/7 Emergency Incident Command & Duty Manager Escalation:**
+  - Dedicated emergency desk tracking incident commander, primary/alternate phone lines, dispatch availability, and muster protocols. Duty manager profiles tracking shift hours and escalation tiers (Tier 1..3).
+- ⚡ **Sequential Reordering, Pre-Pagination Tenant Isolation & Public Projection:**
+  - 1..N contiguous sequential ordering with optimistic locking (`ConflictError`), strict pre-pagination multi-tenant isolation, immutable version ledger snapshots, and Section 9 public patron discovery on `/theatre/[slug]`.
+- 📚 **Theatre Contact Guide:** Detailed technical documentation in [`docs/THEATRE_CONTACT_MANAGEMENT.md`](./docs/THEATRE_CONTACT_MANAGEMENT.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -695,6 +710,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 📞 [`docs/THEATRE_CONTACT_MANAGEMENT.md`](./docs/THEATRE_CONTACT_MANAGEMENT.md) — Multi-Channel Theatre Contact Directory Architecture (`TheatreContact`, Availability Modes, Verification Badges, Single-Primary Rule, 24/7 Emergency Command Desk, Duty Manager Escalation, Reordering & OCC) (Phase 3 - Part 6).
 - 🛋️ [`docs/THEATRE_AMENITIES_AND_FACILITIES_MANAGEMENT.md`](./docs/THEATRE_AMENITIES_AND_FACILITIES_MANAGEMENT.md) — Centralized Amenity Catalog & Theatre Facilities Architecture (`AmenityCatalog`, Availability Modes, Localization, Facility Metadata, Sequential Reordering & OCC) (Phase 3 - Part 5).
 - 📍 [`docs/THEATRE_LOCATION_MANAGEMENT.md`](./docs/THEATRE_LOCATION_MANAGEMENT.md) — Multi-Location Theatre Address & Location Architecture (`TheatreLocation`, Coordinates Governance, PostGIS & Geohash Placeholders, Super Admin Verification Gate, Turn-by-Turn Navigation & Version Rollback) (Phase 3 - Part 4).
 - 🏢 [`docs/THEATRE_PROFILE_MANAGEMENT.md`](./docs/THEATRE_PROFILE_MANAGEMENT.md) — Decoupled Theatre Profile Management Architecture (`TheatreProfile`, Business Capacity Metrics, Public Profile Slug Separation, Completion Scoring, Multi-Language & Social Link Governance, Version History & Localization) (Phase 3 - Part 3).

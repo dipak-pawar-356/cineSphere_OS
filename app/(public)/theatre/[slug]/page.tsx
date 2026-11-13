@@ -17,6 +17,8 @@ import { getPublicTheatreLocationAction } from "@/actions/theatre-location-actio
 import { PublicTheatreLocationView } from "@/types/theatre-location.types";
 import { getPublicTheatreAmenitiesAction } from "@/actions/theatre-amenity-actions";
 import { PublicTheatreAmenityDTO } from "@/types/theatre-amenity.types";
+import { getPublicTheatreContactsAction } from "@/actions/theatre-contact-actions";
+import { PublicTheatreContactDirectoryBundle } from "@/types/theatre-contact.types";
 import { AmenityIconResolver } from "@/components/theatre-amenity/amenity-icon-resolver";
 import { SOCIAL_PLATFORM_LABELS, THEATRE_CATEGORY_LABELS } from "@/lib/validation/theatre-profile.validation";
 import {
@@ -48,6 +50,12 @@ import {
   Armchair,
   Navigation,
   ExternalLink,
+  Phone,
+  Mail,
+  Globe,
+  Share2,
+  ShieldAlert,
+  UserCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,6 +75,7 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
   const [publicProfile, setPublicProfile] = useState<PublicTheatreProfileView | null>(null);
   const [publicLocation, setPublicLocation] = useState<PublicTheatreLocationView | null>(null);
   const [publicAmenities, setPublicAmenities] = useState<PublicTheatreAmenityDTO[]>([]);
+  const [publicContacts, setPublicContacts] = useState<PublicTheatreContactDirectoryBundle | null>(null);
 
   const allTheatres = useMemo(() => getAllPublishedTheatres(), []);
   const allMovies = useMemo(() => getAllPublishedMovies(), []);
@@ -88,7 +97,8 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
       getPublicTheatreProfileAction({ theatreIdOrSlug: key }, { role: "CUSTOMER" }),
       getPublicTheatreLocationAction({ theatreIdOrSlug: key }, { role: "CUSTOMER" }),
       getPublicTheatreAmenitiesAction({ theatreIdOrSlug: key }, { role: "CUSTOMER" }),
-    ]).then(([mediaRes, profileRes, locationRes, amenitiesRes]) => {
+      getPublicTheatreContactsAction({ theatreIdOrSlug: key }),
+    ]).then(([mediaRes, profileRes, locationRes, amenitiesRes, contactsRes]) => {
       if (cancelled) return;
       if (mediaRes.success && mediaRes.data) {
         setPublicMedia(mediaRes.data);
@@ -101,6 +111,9 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
       }
       if (amenitiesRes.success && amenitiesRes.data) {
         setPublicAmenities(amenitiesRes.data);
+      }
+      if (contactsRes.success && contactsRes.data) {
+        setPublicContacts(contactsRes.data);
       }
     });
     return () => {
@@ -1118,6 +1131,216 @@ export default function TheatreDetailPage({ params }: TheatreDetailPageProps) {
             </div>
           )}
         </div>
+
+        {/* 9. OFFICIAL CONTACT DIRECTORY & SUPPORT CHANNELS (Phase 3 Part 6) */}
+        {publicContacts && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Phone className="h-5 w-5 text-emerald-400" />
+                <span>Official Contact Directory & Response Desks</span>
+              </h3>
+              <span className="text-xs font-mono text-[#94A3B8]">
+                {publicContacts.allPublicContacts.length} Verified Channels
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Primary Voice Desk */}
+              {publicContacts.primaryPhone && (
+                <div className="p-5 rounded-2xl bg-[#111827] border border-[#2A3445] space-y-3 hover:border-emerald-500/40 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                      <Phone className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" /> PRIMARY LINE
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">{publicContacts.primaryPhone.title}</h4>
+                    <p className="text-xs text-[#94A3B8] mt-0.5">
+                      {publicContacts.primaryPhone.businessHours || "Standard Business Hours"}
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-[#1E293B] flex items-center justify-between">
+                    <span className="font-mono text-sm text-zinc-100 font-semibold">
+                      {publicContacts.primaryPhone.phone?.formattedPhone}
+                    </span>
+                    <a
+                      href={`tel:${publicContacts.primaryPhone.phone?.countryCode}${publicContacts.primaryPhone.phone?.phoneNumber}`}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors"
+                    >
+                      <span>Call Now</span>
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Guest Support Email */}
+              {publicContacts.supportEmail && (
+                <div className="p-5 rounded-2xl bg-[#111827] border border-[#2A3445] space-y-3 hover:border-sky-500/40 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="h-10 w-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                      <Mail className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-bold text-sky-400 bg-sky-950/40 border border-sky-800/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" /> OFFICIAL SUPPORT
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">{publicContacts.supportEmail.title}</h4>
+                    <p className="text-xs text-[#94A3B8] mt-0.5">
+                      {publicContacts.supportEmail.email?.department || "Patron Assistance Desk"}
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-[#1E293B] flex items-center justify-between">
+                    <span className="font-mono text-xs text-zinc-300 truncate max-w-[170px]">
+                      {publicContacts.supportEmail.email?.email}
+                    </span>
+                    <a
+                      href={`mailto:${publicContacts.supportEmail.email?.email}`}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium transition-colors"
+                    >
+                      <span>Send Mail</span>
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* 24/7 Emergency Desk */}
+              {publicContacts.emergencyDesk && (
+                <div className="p-5 rounded-2xl bg-[#111827] border border-rose-500/30 space-y-3 bg-gradient-to-br from-[#111827] to-rose-950/20">
+                  <div className="flex items-center justify-between">
+                    <div className="h-10 w-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                      <ShieldAlert className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-bold text-rose-400 bg-rose-950/40 border border-rose-800/40 px-2 py-0.5 rounded-full">
+                      24/7 PRIORITY LINE
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">{publicContacts.emergencyDesk.title}</h4>
+                    <p className="text-xs text-rose-300/80 mt-0.5">
+                      Officer: {publicContacts.emergencyDesk.emergencyContact?.contactPersonName} (
+                      {publicContacts.emergencyDesk.emergencyContact?.roleOrDesignation})
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-[#1E293B] flex items-center justify-between">
+                    <span className="font-mono text-xs text-zinc-200 font-semibold">
+                      {publicContacts.emergencyDesk.emergencyContact?.primaryPhone}
+                    </span>
+                    <a
+                      href={`tel:${publicContacts.emergencyDesk.emergencyContact?.primaryPhone}`}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium transition-colors"
+                    >
+                      <span>Emergency Call</span>
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Duty Manager Contact */}
+              {publicContacts.dutyManager && (
+                <div className="p-5 rounded-2xl bg-[#111827] border border-[#2A3445] space-y-3 hover:border-indigo-500/40 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                      <UserCheck className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-bold text-indigo-400 bg-indigo-950/40 border border-indigo-800/40 px-2 py-0.5 rounded-full">
+                      DUTY ESCALATION
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">
+                      {publicContacts.dutyManager.managerContact?.managerName}
+                    </h4>
+                    <p className="text-xs text-[#94A3B8] mt-0.5">
+                      {publicContacts.dutyManager.managerContact?.designation} • {publicContacts.dutyManager.managerContact?.department}
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-[#1E293B] flex items-center justify-between text-xs">
+                    <span className="font-mono text-zinc-300">
+                      {publicContacts.dutyManager.managerContact?.phone}
+                    </span>
+                    <a
+                      href={`mailto:${publicContacts.dutyManager.managerContact?.email}`}
+                      className="text-indigo-400 hover:underline flex items-center gap-1"
+                    >
+                      <span>Direct Mail</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Official Website */}
+              {publicContacts.officialWebsite && (
+                <div className="p-5 rounded-2xl bg-[#111827] border border-[#2A3445] space-y-3 hover:border-emerald-500/40 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                      <Globe className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-2 py-0.5 rounded-full">
+                      WEB PORTAL
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">{publicContacts.officialWebsite.title}</h4>
+                    <p className="text-xs text-[#94A3B8] mt-0.5 truncate">
+                      {publicContacts.officialWebsite.website?.url}
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-[#1E293B] flex justify-end">
+                    <a
+                      href={publicContacts.officialWebsite.website?.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium transition-colors"
+                    >
+                      <span>Visit Website</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Social Presence Hub */}
+              {publicContacts.socialLinks.length > 0 && (
+                <div className="p-5 rounded-2xl bg-[#111827] border border-[#2A3445] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="h-10 w-10 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
+                      <Share2 className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-bold text-pink-400 bg-pink-950/40 border border-pink-800/40 px-2 py-0.5 rounded-full">
+                      OFFICIAL SOCIALS
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">Social Media & Communities</h4>
+                    <p className="text-xs text-[#94A3B8] mt-0.5">
+                      Connect with CineSphere on official platforms
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-[#1E293B] flex flex-wrap items-center gap-2">
+                    {publicContacts.socialLinks.map((soc) => (
+                      <a
+                        key={soc.id}
+                        href={soc.socialLink?.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 hover:text-white hover:border-zinc-700 transition-colors"
+                      >
+                        <span className="font-medium text-[11px]">{soc.socialLink?.platform}</span>
+                        <ExternalLink className="w-3 h-3 text-zinc-500" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

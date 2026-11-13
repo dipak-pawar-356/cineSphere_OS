@@ -502,4 +502,69 @@ export const amenityEntityTypeEnum = pgEnum("amenity_entity_type", [
   "PREMIUM_SCREEN",
 ]);
 
+// ------------------------------------------------------------------------------
+// Theatre Contact Management Enums (Phase 3 - Part 6)
+// ------------------------------------------------------------------------------
+export const contactChannelTypeEnum = pgEnum("contact_channel_type", [
+  "PHONE",
+  "EMAIL",
+  "WEBSITE",
+  "SOCIAL_LINK",
+  "EMERGENCY",
+  "MANAGER",
+  "WHATSAPP",
+  "TELEGRAM",
+  "LIVE_CHAT",
+  "CALL_CENTER",
+]);
+
+export const contactRoleEnum = pgEnum("contact_role", [
+  "CUSTOMER_SUPPORT",
+  "GENERAL_ENQUIRY",
+  "EMERGENCY_DESK",
+  "DUTY_MANAGER",
+  "BUSINESS_DEVELOPMENT",
+  "CORPORATE_OFFICE",
+  "BOOKING_BOX_OFFICE",
+  "TECHNICAL_OPERATIONS",
+  "LOST_AND_FOUND",
+]);
+
+export const contactAvailabilityModeEnum = pgEnum("contact_availability_mode", [
+  "STANDARD_BUSINESS_HOURS",
+  "TWENTY_FOUR_SEVEN",
+  "EMERGENCY_ONLY",
+  "SHOWTIME_ONLY",
+  "TEMPORARILY_INACTIVE",
+]);
+
+export const contactVerificationStatusEnum = pgEnum("contact_verification_status", [
+  "UNVERIFIED",
+  "PENDING_VERIFICATION",
+  "VERIFIED",
+  "REJECTED",
+]);
+
+export const contactVisibilityEnum = pgEnum("contact_visibility", [
+  "PUBLIC",
+  "HIDDEN",
+  "INTERNAL_ONLY",
+]);
+
+export const contactStatusEnum = pgEnum("contact_status", [
+  "ACTIVE",
+  "INACTIVE",
+  "DRAFT",
+  "ARCHIVED",
+]);
+
+export const contactEntityTypeEnum = pgEnum("contact_entity_type", [
+  "THEATRE",
+  "CHAIN",
+  "CORPORATE",
+  "VENDOR",
+  "SUPPORT_CENTER",
+]);
+
+
 

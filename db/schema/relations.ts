@@ -40,6 +40,16 @@ import {
   amenityMetadata,
   amenityVersions,
 } from "./theatre-amenity";
+import {
+  theatreContacts,
+  theatrePhones,
+  theatreEmails,
+  theatreWebsites,
+  theatreContactSocialLinks,
+  theatreEmergencyContacts,
+  theatreManagerContacts,
+  theatreContactVersions,
+} from "./theatre-contact";
 import { paymentConfigurations, payments } from "./payments";
 import { halls, hallLayouts, hallSections, seatTemplates } from "./halls";
 import {
@@ -227,6 +237,14 @@ export const theatresRelations = relations(theatres, ({ one, many }) => ({
   amenityAssignments: many(theatreAmenityAssignments),
   amenityMetadata: many(amenityMetadata),
   amenityVersions: many(amenityVersions),
+  contacts: many(theatreContacts),
+  contactPhones: many(theatrePhones),
+  contactEmails: many(theatreEmails),
+  contactWebsites: many(theatreWebsites),
+  contactSocialLinks: many(theatreContactSocialLinks),
+  emergencyContacts: many(theatreEmergencyContacts),
+  managerContacts: many(theatreManagerContacts),
+  contactVersions: many(theatreContactVersions),
 }));
 
 export const theatreLifecycleRelations = relations(theatreLifecycle, ({ one }) => ({
@@ -901,6 +919,119 @@ export const amenityVersionsRelations = relations(amenityVersions, ({ one }) => 
     references: [theatres.id],
   }),
 }));
+
+// ------------------------------------------------------------------------------
+// Theatre Contact Management Relations (Phase 3 - Part 6)
+// ------------------------------------------------------------------------------
+export const theatreContactsRelations = relations(theatreContacts, ({ one, many }) => ({
+  theatre: one(theatres, {
+    fields: [theatreContacts.theatreId],
+    references: [theatres.id],
+  }),
+  phone: one(theatrePhones, {
+    fields: [theatreContacts.id],
+    references: [theatrePhones.contactId],
+  }),
+  email: one(theatreEmails, {
+    fields: [theatreContacts.id],
+    references: [theatreEmails.contactId],
+  }),
+  website: one(theatreWebsites, {
+    fields: [theatreContacts.id],
+    references: [theatreWebsites.contactId],
+  }),
+  socialLink: one(theatreContactSocialLinks, {
+    fields: [theatreContacts.id],
+    references: [theatreContactSocialLinks.contactId],
+  }),
+  emergencyContact: one(theatreEmergencyContacts, {
+    fields: [theatreContacts.id],
+    references: [theatreEmergencyContacts.contactId],
+  }),
+  managerContact: one(theatreManagerContacts, {
+    fields: [theatreContacts.id],
+    references: [theatreManagerContacts.contactId],
+  }),
+  versions: many(theatreContactVersions),
+}));
+
+export const theatrePhonesRelations = relations(theatrePhones, ({ one }) => ({
+  contact: one(theatreContacts, {
+    fields: [theatrePhones.contactId],
+    references: [theatreContacts.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatrePhones.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreEmailsRelations = relations(theatreEmails, ({ one }) => ({
+  contact: one(theatreContacts, {
+    fields: [theatreEmails.contactId],
+    references: [theatreContacts.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreEmails.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreWebsitesRelations = relations(theatreWebsites, ({ one }) => ({
+  contact: one(theatreContacts, {
+    fields: [theatreWebsites.contactId],
+    references: [theatreContacts.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreWebsites.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreContactSocialLinksRelations = relations(theatreContactSocialLinks, ({ one }) => ({
+  contact: one(theatreContacts, {
+    fields: [theatreContactSocialLinks.contactId],
+    references: [theatreContacts.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreContactSocialLinks.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreEmergencyContactsRelations = relations(theatreEmergencyContacts, ({ one }) => ({
+  contact: one(theatreContacts, {
+    fields: [theatreEmergencyContacts.contactId],
+    references: [theatreContacts.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreEmergencyContacts.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreManagerContactsRelations = relations(theatreManagerContacts, ({ one }) => ({
+  contact: one(theatreContacts, {
+    fields: [theatreManagerContacts.contactId],
+    references: [theatreContacts.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreManagerContacts.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreContactVersionsRelations = relations(theatreContactVersions, ({ one }) => ({
+  contact: one(theatreContacts, {
+    fields: [theatreContactVersions.contactId],
+    references: [theatreContacts.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreContactVersions.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
 
 
 

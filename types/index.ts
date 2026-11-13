@@ -30,4 +30,5 @@ export * from "./theatre-media.types";
 export * from "./theatre-profile.types";
 export * from "./theatre-location.types";
 export * from "./theatre-amenity.types";
+export * from "./theatre-contact.types";
 

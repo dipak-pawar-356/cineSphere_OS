@@ -71,6 +71,7 @@ export const ROUTES = {
     INFORMATION: "/theatre/information",
     GALLERY: "/theatre/gallery",
     AMENITIES: "/theatre/amenities",
+    CONTACTS: "/theatre/contacts",
     HALLS: "/theatre/halls",
     HALL_DESIGNER: "/theatre/halls/designer",
     MOVIES: "/theatre/movies",

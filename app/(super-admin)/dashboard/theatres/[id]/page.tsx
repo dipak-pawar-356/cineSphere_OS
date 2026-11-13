@@ -74,6 +74,10 @@ const LazyConnectedAmenityWorkspace = dynamic(
   () => import("@/components/theatre-amenity/connected-amenity-workspace").then((m) => m.ConnectedAmenityWorkspace),
   { ssr: false }
 );
+const LazyConnectedContactWorkspace = dynamic(
+  () => import("@/components/theatre-contact/connected-contact-workspace").then((m) => m.ConnectedContactWorkspace),
+  { ssr: false }
+);
 
 const SUPER_ADMIN_ACTOR = {
   userId: "usr-super-1",
@@ -88,7 +92,7 @@ export default function SuperAdminTheatreDetailPage() {
   const [detail, setDetail] = useState<TheatreLifecycleDetailBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "lifecycle" | "profile" | "media" | "location" | "amenities" | "general" | "admin" | "payment" | "subscription" | "metrics" | "audit"
+    "lifecycle" | "profile" | "media" | "location" | "amenities" | "contacts" | "general" | "admin" | "payment" | "subscription" | "metrics" | "audit"
   >("lifecycle");
 
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -447,6 +451,7 @@ export default function SuperAdminTheatreDetailPage() {
             { id: "media", label: "Branding & Media" },
             { id: "location", label: "Address & Location" },
             { id: "amenities", label: "Amenities & Facilities" },
+            { id: "contacts", label: "Contact Directory" },
             { id: "general", label: "General & Hardware" },
             { id: "admin", label: "Admin & Operators" },
             { id: "payment", label: "Payment & UPI Rail" },
@@ -508,6 +513,15 @@ export default function SuperAdminTheatreDetailPage() {
       {/* Tab 0d: Amenities & Facilities Management (Phase 3 Part 5) */}
       {activeTab === "amenities" && (
         <LazyConnectedAmenityWorkspace
+          theatreId={theatre.id}
+          theatreName={theatre.name}
+          isSuperAdmin={true}
+        />
+      )}
+
+      {/* Tab 0e: Contact Directory & Response Desks (Phase 3 Part 6) */}
+      {activeTab === "contacts" && (
+        <LazyConnectedContactWorkspace
           theatreId={theatre.id}
           theatreName={theatre.name}
           isSuperAdmin={true}

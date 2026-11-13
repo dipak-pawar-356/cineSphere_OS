@@ -281,6 +281,12 @@ export const THEATRE_ADMIN_NAV_SECTIONS: NavSectionConfig[] = [
         href: ROUTES.THEATRE_ADMIN.AMENITIES,
         icon: Coffee,
       },
+      {
+        label: "Contact Directory",
+        href: ROUTES.THEATRE_ADMIN.CONTACTS,
+        icon: Headphones,
+        badge: "Directory",
+      },
     ],
   },
   {
