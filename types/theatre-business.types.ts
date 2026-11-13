@@ -197,6 +197,18 @@ export interface TheatreBusinessVersionRecord {
 }
 
 // ------------------------------------------------------------------------------
+// Semantic Domain Entity Type Aliases
+// ------------------------------------------------------------------------------
+export type TheatreBusinessProfile = TheatreBusinessProfileRecord;
+export type BusinessRegistration = TheatreBusinessRegistrationRecord;
+export type BusinessOwner = TheatreBusinessOwnerRecord;
+export type TaxConfiguration = TheatreTaxConfigurationRecord;
+export type InvoiceConfiguration = TheatreInvoiceConfigurationRecord;
+export type BusinessCompliance = TheatreBusinessComplianceRecord;
+export type BusinessDocument = TheatreBusinessDocumentRecord;
+export type BusinessVersion = TheatreBusinessVersionRecord;
+
+// ------------------------------------------------------------------------------
 // Aggregate & Detail Models
 // ------------------------------------------------------------------------------
 
