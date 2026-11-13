@@ -78,6 +78,10 @@ const LazyConnectedContactWorkspace = dynamic(
   () => import("@/components/theatre-contact/connected-contact-workspace").then((m) => m.ConnectedContactWorkspace),
   { ssr: false }
 );
+const LazyConnectedBusinessWorkspace = dynamic(
+  () => import("@/components/theatre-business/connected-business-workspace").then((m) => m.ConnectedBusinessWorkspace),
+  { ssr: false }
+);
 
 const SUPER_ADMIN_ACTOR = {
   userId: "usr-super-1",
@@ -92,7 +96,7 @@ export default function SuperAdminTheatreDetailPage() {
   const [detail, setDetail] = useState<TheatreLifecycleDetailBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "lifecycle" | "profile" | "media" | "location" | "amenities" | "contacts" | "general" | "admin" | "payment" | "subscription" | "metrics" | "audit"
+    "lifecycle" | "profile" | "media" | "location" | "amenities" | "contacts" | "business" | "general" | "admin" | "payment" | "subscription" | "metrics" | "audit"
   >("lifecycle");
 
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -452,6 +456,7 @@ export default function SuperAdminTheatreDetailPage() {
             { id: "location", label: "Address & Location" },
             { id: "amenities", label: "Amenities & Facilities" },
             { id: "contacts", label: "Contact Directory" },
+            { id: "business", label: "Business & Legal Profile" },
             { id: "general", label: "General & Hardware" },
             { id: "admin", label: "Admin & Operators" },
             { id: "payment", label: "Payment & UPI Rail" },
@@ -524,6 +529,14 @@ export default function SuperAdminTheatreDetailPage() {
         <LazyConnectedContactWorkspace
           theatreId={theatre.id}
           theatreName={theatre.name}
+          isSuperAdmin={true}
+        />
+      )}
+
+      {/* Tab 0f: Business Profile & Tax Compliance (Phase 3 Part 7) */}
+      {activeTab === "business" && (
+        <LazyConnectedBusinessWorkspace
+          theatreId={theatre.id}
           isSuperAdmin={true}
         />
       )}

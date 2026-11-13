@@ -690,6 +690,27 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - 1..N contiguous sequential ordering with optimistic locking (`ConflictError`), strict pre-pagination multi-tenant isolation, immutable version ledger snapshots, and Section 9 public patron discovery on `/theatre/[slug]`.
 - 📚 **Theatre Contact Guide:** Detailed technical documentation in [`docs/THEATRE_CONTACT_MANAGEMENT.md`](./docs/THEATRE_CONTACT_MANAGEMENT.md).
 
+### 2.24 Phase 3 - Part 7: Theatre Business Information Management (Completed)
+- 🏢 **Decoupled Business Profile & Legal Identity (`db/schema/theatre-business.ts`):**
+  - Models $\text{Platform} \to \text{Theatre} \to \text{Theatre Business Profile} \to \text{Legal Information} \to \text{Registration Information} \to \text{Tax Configuration} \to \text{Invoice Configuration} \to \text{Compliance Status}$.
+  - Decouples corporate entity identity into dedicated child tables: `theatre_business_profiles`, `theatre_business_registrations`, `theatre_business_owners`, `theatre_tax_configurations`, `theatre_invoice_configurations`, `theatre_business_compliances`, `theatre_business_documents`, and `theatre_business_versions`.
+- 🛡️ **Statutory Registration Validation (GSTIN, PAN, CIN):**
+  - Validates standard Indian statutory regex rules: GSTIN (15-character alphanumeric `^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$`), PAN (10-character `^[A-Z]{5}[0-9]{4}[A-Z]{1}$`), and corporate CIN/LLPIN (21-character `^([LUu])[0-9]{5}[A-Za-z]{2}[0-9]{4}[A-Za-z]{3}[0-9]{6}$`). Normalizes identifiers to uppercase on ingestion.
+- 🌍 **Country-Aware Tax Framework & Pricing Models:**
+  - Configured to support domestic and cross-border admissions tax without database schema modifications: `GST` (India/Australia/Singapore), `VAT` (UK/EU/UAE), `SALES_TAX` (US), and `CUSTOM` systems.
+  - Supports `TAX_INCLUSIVE` (ticket face value includes taxes) and `TAX_EXCLUSIVE` (taxes calculated on top at checkout) ticket pricing models, tax percentage decimals, regional state codes (e.g., `MH-27`), and statutory exemption waivers.
+- 🧾 **Consumer Invoicing & Billing Layout Governance:**
+  - Configurable invoice prefix (e.g. `CSP-PUN-`), monotonically incrementing sequence counters (`invoiceSequenceNext`), customizable statutory header/footer disclosures, brand invoice logo URLs, and feature flags for E-Invoice schema compliance (IRN generation), PDF delivery, and credit notes.
+- 🗄️ **Decoupled Compliance Document Attachment Vault:**
+  - Stores binary document references (`theatre_business_documents`) across 10 statutory document types (`CIN_INCORPORATION`, `GST_CERTIFICATE`, `PAN_CARD`, `FIRE_SAFETY_NOC`, `MUNICIPAL_TRADE_LICENSE`, `ENTERTAINMENT_TAX_PERMIT`, etc.) with independent verification status and expiry tracking without embedding binary blobs into business records.
+- ⚖️ **Super Admin Compliance Workflow & Strict Authorization:**
+  - Formal multi-stage verification state machine (`DRAFT` ➔ `PENDING_VERIFICATION` ➔ `VERIFIED` / `REJECTED` / `ARCHIVED`).
+  - Strict platform role authorization gates verification authority to `SUPER_ADMIN` accounts only; attempts by Theatre Admins are strictly rejected with `AuthorizationError`.
+- ⚡ **Multi-Tenant Boundary Isolation, Optimistic Locking & Audit Ledger:**
+  - Pre-pagination tenant isolation via `tenantService.assertTenantAccess`. Optimistic concurrency control (`ConflictError`) on stale `expectedVersion`.
+  - Immutable version ledger (`theatre_business_versions`) maintaining full cryptographic snapshots with change types (`CREATED`, `PROFILE_UPDATED`, `TAX_CONFIG_UPDATED`, `INVOICE_CONFIG_UPDATED`, `COMPLIANCE_STATUS_CHANGED`, `DOCUMENT_ATTACHED`, `DOCUMENT_REMOVED`, `ARCHIVED`).
+- 📚 **Theatre Business Profile Guide:** Detailed technical documentation in [`docs/THEATRE_BUSINESS_INFORMATION_MANAGEMENT.md`](./docs/THEATRE_BUSINESS_INFORMATION_MANAGEMENT.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -710,6 +731,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🏢 [`docs/THEATRE_BUSINESS_INFORMATION_MANAGEMENT.md`](./docs/THEATRE_BUSINESS_INFORMATION_MANAGEMENT.md) — Multi-Tenant Theatre Business & Legal Information Architecture (`TheatreBusinessProfile`, Statutory GST/PAN/CIN Validation, Country-Aware Tax Configuration, Billing Sequence & Invoicing Governance, Decoupled Document Vault, Super Admin Compliance Workflow & OCC) (Phase 3 - Part 7).
 - 📞 [`docs/THEATRE_CONTACT_MANAGEMENT.md`](./docs/THEATRE_CONTACT_MANAGEMENT.md) — Multi-Channel Theatre Contact Directory Architecture (`TheatreContact`, Availability Modes, Verification Badges, Single-Primary Rule, 24/7 Emergency Command Desk, Duty Manager Escalation, Reordering & OCC) (Phase 3 - Part 6).
 - 🛋️ [`docs/THEATRE_AMENITIES_AND_FACILITIES_MANAGEMENT.md`](./docs/THEATRE_AMENITIES_AND_FACILITIES_MANAGEMENT.md) — Centralized Amenity Catalog & Theatre Facilities Architecture (`AmenityCatalog`, Availability Modes, Localization, Facility Metadata, Sequential Reordering & OCC) (Phase 3 - Part 5).
 - 📍 [`docs/THEATRE_LOCATION_MANAGEMENT.md`](./docs/THEATRE_LOCATION_MANAGEMENT.md) — Multi-Location Theatre Address & Location Architecture (`TheatreLocation`, Coordinates Governance, PostGIS & Geohash Placeholders, Super Admin Verification Gate, Turn-by-Turn Navigation & Version Rollback) (Phase 3 - Part 4).

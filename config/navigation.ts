@@ -287,6 +287,12 @@ export const THEATRE_ADMIN_NAV_SECTIONS: NavSectionConfig[] = [
         icon: Headphones,
         badge: "Directory",
       },
+      {
+        label: "Legal & Business Profile",
+        href: ROUTES.THEATRE_ADMIN.BUSINESS,
+        icon: ShieldCheck,
+        badge: "Tax/GST",
+      },
     ],
   },
   {

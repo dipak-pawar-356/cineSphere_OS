@@ -566,5 +566,75 @@ export const contactEntityTypeEnum = pgEnum("contact_entity_type", [
   "SUPPORT_CENTER",
 ]);
 
+// ------------------------------------------------------------------------------
+// Theatre Business Information Management Enums (Phase 3 - Part 7)
+// ------------------------------------------------------------------------------
+export const businessCategoryEnum = pgEnum("business_category", [
+  "MULTIPLEX",
+  "SINGLE_SCREEN",
+  "ENTERTAINMENT_COMPANY",
+  "CINEMA_CHAIN",
+  "PRIVATE_LIMITED",
+  "LLP",
+  "PARTNERSHIP",
+  "PROPRIETORSHIP",
+  "TRUST",
+  "GOVERNMENT",
+  "CUSTOM",
+]);
+
+export const businessOwnershipTypeEnum = pgEnum("business_ownership_type", [
+  "DIRECT_OWNERSHIP",
+  "LEASED",
+  "FRANCHISE",
+  "JOINT_VENTURE",
+  "MANAGED_OPERATOR",
+]);
+
+export const businessComplianceStatusEnum = pgEnum("business_compliance_status", [
+  "DRAFT",
+  "PENDING_VERIFICATION",
+  "VERIFIED",
+  "REJECTED",
+  "ARCHIVED",
+]);
+
+export const taxSystemTypeEnum = pgEnum("tax_system_type", [
+  "GST",
+  "VAT",
+  "SALES_TAX",
+  "CUSTOM",
+]);
+
+export const pricingTaxModelEnum = pgEnum("pricing_tax_model", [
+  "TAX_INCLUSIVE",
+  "TAX_EXCLUSIVE",
+]);
+
+export const taxStatusEnum = pgEnum("tax_status", [
+  "ACTIVE",
+  "INACTIVE",
+  "PENDING_REVIEW",
+  "EXEMPT",
+]);
+
+export const businessDocumentTypeEnum = pgEnum("business_document_type", [
+  "GST_CERTIFICATE",
+  "PAN_CARD",
+  "CIN_CERTIFICATE",
+  "TRADE_LICENSE",
+  "INCORPORATION_CERTIFICATE",
+  "AUTHORIZATION_LETTER",
+  "BOARD_RESOLUTION",
+  "OTHER",
+]);
+
+export const businessDocumentVerificationStatusEnum = pgEnum("business_document_verification_status", [
+  "PENDING",
+  "VERIFIED",
+  "REJECTED",
+]);
+
+
 
 

@@ -371,6 +371,14 @@ export default function TheatreProfilePage() {
                   </Button>
                 </Link>
               </div>
+
+              <div className="pt-2">
+                <Link href="/theatre/business" className="block w-full">
+                  <Button variant="outline" size="xs" className="w-full border-[#2A3445] text-xs gap-1.5 text-zinc-300 hover:text-white">
+                    <ShieldCheck className="h-3.5 w-3.5 text-indigo-400" /> Manage Legal, GST & Business Profile →
+                  </Button>
+                </Link>
+              </div>
             </div>
           </Card>
 

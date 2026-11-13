@@ -32,6 +32,9 @@ export * from "./theatre-amenity";
 // Theatre Contact Management (Phase 3 - Part 6)
 export * from "./theatre-contact";
 
+// Theatre Business Information Management (Phase 3 - Part 7)
+export * from "./theatre-business";
+
 // Tenant Payment Configurations & Ledger
 export * from "./payments";
 

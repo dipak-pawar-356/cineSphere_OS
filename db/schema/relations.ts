@@ -50,6 +50,16 @@ import {
   theatreManagerContacts,
   theatreContactVersions,
 } from "./theatre-contact";
+import {
+  theatreBusinessProfiles,
+  theatreBusinessRegistrations,
+  theatreBusinessOwners,
+  theatreTaxConfigurations,
+  theatreInvoiceConfigurations,
+  theatreBusinessCompliances,
+  theatreBusinessDocuments,
+  theatreBusinessVersions,
+} from "./theatre-business";
 import { paymentConfigurations, payments } from "./payments";
 import { halls, hallLayouts, hallSections, seatTemplates } from "./halls";
 import {
@@ -245,6 +255,17 @@ export const theatresRelations = relations(theatres, ({ one, many }) => ({
   emergencyContacts: many(theatreEmergencyContacts),
   managerContacts: many(theatreManagerContacts),
   contactVersions: many(theatreContactVersions),
+  businessProfile: one(theatreBusinessProfiles, {
+    fields: [theatres.id],
+    references: [theatreBusinessProfiles.theatreId],
+  }),
+  businessRegistrations: many(theatreBusinessRegistrations),
+  businessOwners: many(theatreBusinessOwners),
+  taxConfigurations: many(theatreTaxConfigurations),
+  invoiceConfigurations: many(theatreInvoiceConfigurations),
+  businessCompliances: many(theatreBusinessCompliances),
+  businessDocuments: many(theatreBusinessDocuments),
+  businessVersions: many(theatreBusinessVersions),
 }));
 
 export const theatreLifecycleRelations = relations(theatreLifecycle, ({ one }) => ({
@@ -1031,6 +1052,116 @@ export const theatreContactVersionsRelations = relations(theatreContactVersions,
     references: [theatres.id],
   }),
 }));
+
+// ------------------------------------------------------------------------------
+// Theatre Business Profile & Legal Compliance Relations (Phase 3 – Part 7)
+// ------------------------------------------------------------------------------
+export const theatreBusinessProfilesRelations = relations(theatreBusinessProfiles, ({ one, many }) => ({
+  theatre: one(theatres, {
+    fields: [theatreBusinessProfiles.theatreId],
+    references: [theatres.id],
+  }),
+  registration: one(theatreBusinessRegistrations, {
+    fields: [theatreBusinessProfiles.id],
+    references: [theatreBusinessRegistrations.businessProfileId],
+  }),
+  owner: one(theatreBusinessOwners, {
+    fields: [theatreBusinessProfiles.id],
+    references: [theatreBusinessOwners.businessProfileId],
+  }),
+  taxConfiguration: one(theatreTaxConfigurations, {
+    fields: [theatreBusinessProfiles.id],
+    references: [theatreTaxConfigurations.businessProfileId],
+  }),
+  invoiceConfiguration: one(theatreInvoiceConfigurations, {
+    fields: [theatreBusinessProfiles.id],
+    references: [theatreInvoiceConfigurations.businessProfileId],
+  }),
+  compliance: one(theatreBusinessCompliances, {
+    fields: [theatreBusinessProfiles.id],
+    references: [theatreBusinessCompliances.businessProfileId],
+  }),
+  documents: many(theatreBusinessDocuments),
+  versions: many(theatreBusinessVersions),
+}));
+
+export const theatreBusinessRegistrationsRelations = relations(theatreBusinessRegistrations, ({ one }) => ({
+  businessProfile: one(theatreBusinessProfiles, {
+    fields: [theatreBusinessRegistrations.businessProfileId],
+    references: [theatreBusinessProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreBusinessRegistrations.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreBusinessOwnersRelations = relations(theatreBusinessOwners, ({ one }) => ({
+  businessProfile: one(theatreBusinessProfiles, {
+    fields: [theatreBusinessOwners.businessProfileId],
+    references: [theatreBusinessProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreBusinessOwners.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreTaxConfigurationsRelations = relations(theatreTaxConfigurations, ({ one }) => ({
+  businessProfile: one(theatreBusinessProfiles, {
+    fields: [theatreTaxConfigurations.businessProfileId],
+    references: [theatreBusinessProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreTaxConfigurations.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreInvoiceConfigurationsRelations = relations(theatreInvoiceConfigurations, ({ one }) => ({
+  businessProfile: one(theatreBusinessProfiles, {
+    fields: [theatreInvoiceConfigurations.businessProfileId],
+    references: [theatreBusinessProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreInvoiceConfigurations.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreBusinessCompliancesRelations = relations(theatreBusinessCompliances, ({ one }) => ({
+  businessProfile: one(theatreBusinessProfiles, {
+    fields: [theatreBusinessCompliances.businessProfileId],
+    references: [theatreBusinessProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreBusinessCompliances.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreBusinessDocumentsRelations = relations(theatreBusinessDocuments, ({ one }) => ({
+  businessProfile: one(theatreBusinessProfiles, {
+    fields: [theatreBusinessDocuments.businessProfileId],
+    references: [theatreBusinessProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreBusinessDocuments.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
+export const theatreBusinessVersionsRelations = relations(theatreBusinessVersions, ({ one }) => ({
+  businessProfile: one(theatreBusinessProfiles, {
+    fields: [theatreBusinessVersions.businessProfileId],
+    references: [theatreBusinessProfiles.id],
+  }),
+  theatre: one(theatres, {
+    fields: [theatreBusinessVersions.theatreId],
+    references: [theatres.id],
+  }),
+}));
+
 
 
 
