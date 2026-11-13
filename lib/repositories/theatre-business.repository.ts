@@ -1100,6 +1100,28 @@ export class TheatreBusinessRepository extends BaseRepository<TheatreBusinessPro
       results = results.filter((p) => p.status === filters.complianceStatus);
     }
 
+    if (filters.isArchived !== undefined) {
+      if (filters.isArchived) {
+        results = results.filter((p) => p.status === "ARCHIVED");
+      } else {
+        results = results.filter((p) => p.status !== "ARCHIVED");
+      }
+    }
+
+    if (filters.registrationStatus) {
+      results = results.filter((p) => {
+        const reg = this.registrationsStore.get(p.id);
+        if (filters.registrationStatus === "VERIFIED") {
+          return reg?.isGstVerified === true && reg?.isPanVerified === true;
+        } else if (filters.registrationStatus === "PENDING") {
+          return reg && (!reg.isGstVerified || !reg.isPanVerified);
+        } else if (filters.registrationStatus === "UNVERIFIED") {
+          return !reg || (!reg.isGstVerified && !reg.isPanVerified);
+        }
+        return true;
+      });
+    }
+
     if (filters.taxSystemType) {
       results = results.filter((p) => {
         const tax = this.taxConfigsStore.get(p.id);
@@ -1122,9 +1144,11 @@ export class TheatreBusinessRepository extends BaseRepository<TheatreBusinessPro
         return (
           p.legalBusinessName.toLowerCase().includes(q) ||
           (p.registeredEntityName && p.registeredEntityName.toLowerCase().includes(q)) ||
+          p.businessCategory.toLowerCase().includes(q) ||
           (reg?.gstNumber && reg.gstNumber.toLowerCase().includes(q)) ||
           (reg?.panNumber && reg.panNumber.toLowerCase().includes(q)) ||
           (reg?.cinNumber && reg.cinNumber.toLowerCase().includes(q)) ||
+          (reg?.businessRegistrationNumber && reg.businessRegistrationNumber.toLowerCase().includes(q)) ||
           (owner?.ownerName && owner.ownerName.toLowerCase().includes(q))
         );
       });

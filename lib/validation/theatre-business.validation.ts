@@ -329,6 +329,8 @@ export const SearchTheatreBusinessFiltersSchema = z.object({
   complianceStatus: BusinessComplianceStatusEnum.optional(),
   taxSystemType: TaxSystemTypeEnum.optional(),
   isTaxExempt: z.boolean().optional(),
+  registrationStatus: z.enum(["VERIFIED", "PENDING", "UNVERIFIED"]).optional(),
+  isArchived: z.boolean().optional(),
   limit: z.number().int().min(1).max(100).default(20),
   offset: z.number().int().min(0).default(0),
 });

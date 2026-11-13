@@ -232,6 +232,8 @@ export interface SearchTheatreBusinessFilters {
   complianceStatus?: BusinessComplianceStatus;
   taxSystemType?: TaxSystemType;
   isTaxExempt?: boolean;
+  registrationStatus?: "VERIFIED" | "PENDING" | "UNVERIFIED";
+  isArchived?: boolean;
   limit?: number;
   offset?: number;
 }

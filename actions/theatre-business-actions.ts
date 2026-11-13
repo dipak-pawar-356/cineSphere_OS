@@ -13,7 +13,9 @@ import {
   ArchiveTheatreBusinessProfileSchema,
   AddTheatreBusinessDocumentSchema,
   DeleteTheatreBusinessDocumentSchema,
+  SearchTheatreBusinessFiltersSchema,
 } from "@/lib/validation/theatre-business.validation";
+import type { PaginatedResult } from "@/lib/performance/cache-strategy";
 import type {
   TheatreBusinessProfileRecord,
   TheatreTaxConfigurationRecord,
@@ -278,5 +280,30 @@ export const deleteTheatreBusinessDocumentAction = createProtectedAction<
     await theatreBusinessService.deleteDocument(input, context.actor);
     revalidateBusinessPaths(input.theatreId);
     return { success: true };
+  }
+);
+
+// ------------------------------------------------------------------------------
+// 11. SEARCH & FILTER THEATRE BUSINESS PROFILES
+// ------------------------------------------------------------------------------
+export const searchTheatreBusinessProfilesAction = createProtectedAction<
+  z.input<typeof SearchTheatreBusinessFiltersSchema>,
+  PaginatedResult<TheatreBusinessProfileRecord>
+>(
+  {
+    actionName: "searchTheatreBusinessProfilesAction",
+    schema: SearchTheatreBusinessFiltersSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: false, // Scoped within service handler based on actor role
+    auditModule: "THEATRE_BUSINESS",
+    auditAction: "SEARCH",
+  },
+  async (input, context) => {
+    // If Theatre Admin, enforce scoped search to their tenant
+    if (context.actor.role === "THEATRE_ADMIN") {
+      input.theatreId = context.actor.theatreId;
+    }
+    return await theatreBusinessService.searchBusinessProfiles(input, context.actor);
   }
 );
