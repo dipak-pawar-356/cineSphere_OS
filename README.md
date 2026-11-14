@@ -827,6 +827,26 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Full audit logging via `securityAuditService.recordAudit` and high-resolution latency tracking (`tookMs`).
 - 📚 **Theatre Search & Filters Guide:** Detailed technical documentation in [`docs/THEATRE_SEARCH_AND_FILTERS_ARCHITECTURE.md`](./docs/THEATRE_SEARCH_AND_FILTERS_ARCHITECTURE.md).
 
+### 2.30 Phase 3 - Part 13: Public Theatre Page Read Model (Completed)
+- 🌐 **Dedicated Public Content Layer & Read Model (`PublicTheatreView`):**
+  - Models $\text{Platform} \to \text{Public Content Layer} \to \text{Theatre Public View} \to \text{Public Theatre Page}$.
+  - Completely decouples the customer-facing website from raw operational modules (`theatres`, `movies`, `halls`, `shows`, `amenities`, `contacts`, `business`, `payments`) by aggregating an immutable, sanitized read model containing only public-facing information.
+- 🛡️ **Zero Sensitive Data Leakage Perimeter:**
+  - Guarantees complete information disclosure protection: strictly excludes internal corporate credentials (GSTIN, PAN, CIN), staff rosters, payment merchant VPAs, gateway secrets, internal seat hold lock intervals, refund policy formulas, and audit logs.
+- 🚦 **Content Visibility & Compliance State Machine:**
+  - Strict publication gating: public guests are immediately served `404 NotFoundError` for non-published venues (`DRAFT`, `PENDING_APPROVAL`, `SUSPENDED`, `ARCHIVED`). Authorized administrators (`SUPER_ADMIN` or `THEATRE_ADMIN`) can preview unapproved venues in preview mode with full audit logging (`securityAuditService.recordAudit`).
+- 🌍 **Autonomous Multi-Tenant Localization:**
+  - Displayed values automatically use the venue's own configuration without platform hardcoding:
+    - **Theatre A (Pune `th-pun-001`):** Currency `INR` (`₹`), Timezone `Asia/Kolkata`, Indian number formatting (Lakhs/Crores), Ticket price displayed like `₹280`.
+    - **Theatre B (Mumbai `th-mum-001`):** Currency `USD` (`$`), Timezone `America/New_York`, International formatting (Millions), Ticket price displayed like `$18.50`.
+    - **Theatre C (Dubai `th-dxb-001`):** Currency `AED` (`AED `), Timezone `Asia/Dubai`, International formatting, Ticket price displayed like `AED 45`.
+- ⚡ **Next.js 15 Server Component with ISR & Schema.org JSON-LD:**
+  - Server-rendered page route (`/theatre/[slug]`) with `revalidate = 3600` (1-hour ISR) and tagged cache invalidation (`PUBLIC_THEATRE_VIEW:<slug-or-id>`).
+  - Dynamic SEO metadata generation and Schema.org `MovieTheater` JSON-LD structured data injection.
+- 🎨 **Modular Luxury UI Components (`components/public-theatre/`):**
+  - Hero with verification badge and Google Maps routing, 4-card Quick Specs, About & Story, Running Movies & Premieres separation, Available Shows with format tags & seat quotas, Auditorium Fleet breakdown (Laser 4K, 12-ch / 64-ch spatial audio), Public Amenities with facility metadata, Lightbox Architectural Gallery, Live Operating Hours with 7-day schedule, Multi-desk Public Contact directory, and Non-functional Reviews architecture placeholder.
+- 📚 **Public Theatre Page Architecture Guide:** Detailed technical documentation in [`docs/PUBLIC_THEATRE_PAGE_ARCHITECTURE.md`](./docs/PUBLIC_THEATRE_PAGE_ARCHITECTURE.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -847,6 +867,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🌐 [`docs/PUBLIC_THEATRE_PAGE_ARCHITECTURE.md`](./docs/PUBLIC_THEATRE_PAGE_ARCHITECTURE.md) — Public Theatre Page Read Model Architecture (Public Content Layer, Read Model Aggregation, Zero Sensitive Data Leakage, Content Visibility State Machine, Multi-Tenant Localization, Next.js 15 ISR & Schema.org MovieTheater JSON-LD) (Phase 3 - Part 13).
 - 🔍 [`docs/THEATRE_SEARCH_AND_FILTERS_ARCHITECTURE.md`](./docs/THEATRE_SEARCH_AND_FILTERS_ARCHITECTURE.md) — Multi-Tenant Theatre Search & Filters Engine Architecture (`TheatreSearchDocument`, `theatre_search_index`, Generic Search Framework, Weighted Multi-Field Scoring, Dynamic Facets, Multi-Attribute Sorter, Enterprise Saved Presets & RBAC Gating) (Phase 3 - Part 12).
 - 📊 [`docs/THEATRE_DASHBOARD_ARCHITECTURE.md`](./docs/THEATRE_DASHBOARD_ARCHITECTURE.md) — Multi-Tenant Theatre Dashboard & Dedicated Analytics Layer Architecture (`theatre_dashboard_materialized_metrics`, `user_dashboard_preferences`, `dashboard_activity_feed`, Pre-Aggregated Operational Metrics, Declarative Metadata-Driven Widget Registry, Capability RBAC Gating, Multi-Tenant Localization & Urgent Start Alerts) (Phase 3 - Part 11).
 - 👥 [`docs/THEATRE_STAFF_MANAGEMENT.md`](./docs/THEATRE_STAFF_MANAGEMENT.md) — Multi-Tenant Theatre Staff Management & Dynamic RBAC Architecture (`role_templates`, `theatre_roles`, `theatre_permissions`, `staff_departments`, `theatre_staff`, `staff_role_assignments`, `staff_role_history`, `future_shift_placeholders`, Capability Authorization & Lifecycle Governance) (Phase 3 - Part 10).
