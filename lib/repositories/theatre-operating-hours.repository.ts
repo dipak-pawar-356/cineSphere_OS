@@ -169,6 +169,41 @@ const SEED_MUM_WEEKLY: TheatreWeeklyScheduleRecord[] = DAYS.map((day, idx) => ({
   updatedAt: new Date("2026-01-01T00:00:00.000Z"),
 }));
 
+// Seed Dubai CineSphere (th-dxb-001) - Timezone: Asia/Dubai
+const SEED_DXB_PROFILE: TheatreOperatingProfileRecord = {
+  id: "op-dxb-001",
+  theatreId: "th-dxb-001",
+  timezone: "Asia/Dubai",
+  regularOpeningTime: "10:00",
+  regularClosingTime: "02:00",
+  is24x7: false,
+  lateNightClosing: true,
+  breakHours: [],
+  status: "ACTIVE",
+  version: 1,
+  createdBy: "usr-super-1",
+  updatedBy: "usr-th-dxb",
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
+
+const SEED_DXB_WEEKLY: TheatreWeeklyScheduleRecord[] = DAYS.map((day, idx) => ({
+  id: `ws-dxb-${idx + 1}`,
+  operatingProfileId: "op-dxb-001",
+  theatreId: "th-dxb-001",
+  dayOfWeek: day,
+  isOpen: true,
+  openTime: "10:00",
+  closeTime: day === "FRIDAY" || day === "SATURDAY" ? "02:00" : "00:00",
+  isOvernight: day === "FRIDAY" || day === "SATURDAY",
+  timeSlots: [
+    { slotName: "Standard Shows", startTime: "10:00", endTime: "22:00" },
+    { slotName: "Late Night Screenings", startTime: "22:30", endTime: "02:00" },
+  ],
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+}));
+
 export class TheatreOperatingHoursRepository extends BaseRepository<TheatreOperatingProfileRecord> {
   protected entityName = "TheatreOperatingProfile";
   protected tableName = "theatre_operating_profiles";
@@ -213,6 +248,10 @@ export class TheatreOperatingHoursRepository extends BaseRepository<TheatreOpera
     // Seed Mumbai Palladium
     this.profilesStore.set(SEED_MUM_PROFILE.id, { ...SEED_MUM_PROFILE });
     SEED_MUM_WEEKLY.forEach((w) => this.weeklyStore.set(w.id, { ...w }));
+
+    // Seed Dubai CineSphere (th-dxb-001)
+    this.profilesStore.set(SEED_DXB_PROFILE.id, { ...SEED_DXB_PROFILE });
+    SEED_DXB_WEEKLY.forEach((w) => this.weeklyStore.set(w.id, { ...w }));
   }
 
   // ----------------------------------------------------------------------------

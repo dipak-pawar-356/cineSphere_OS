@@ -207,6 +207,179 @@ const SEED_MUM_CANCEL: CancellationConfigurationRecord = {
   updatedAt: new Date("2026-01-01T00:00:00.000Z"),
 };
 
+const SEED_MUM_REFUND: RefundConfigurationRecord = {
+  id: "ref-mum-001",
+  configurationId: "cfg-mum-001",
+  theatreId: "th-mum-001",
+  refundWindowHours: 0,
+  refundPercentage: "0.00",
+  refundMethod: "ORIGINAL_PAYMENT",
+  processingTimeDays: 0,
+  gatewayAutoRefund: false,
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
+
+const SEED_MUM_AGE: AgeRestrictionConfigurationRecord = {
+  id: "age-mum-001",
+  configurationId: "cfg-mum-001",
+  theatreId: "th-mum-001",
+  minAgeU: 0,
+  minAgeUA: 13,
+  minAgeA: 17,
+  minAgeS: 18,
+  customAgeRules: "MPAA film rating restrictions strictly enforced at box office and kiosks.",
+  guardianRequiredUnderAge: 13,
+  requireAgeVerificationAtGate: true,
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
+
+const SEED_MUM_FLAGS: FeatureFlagConfigurationRecord = {
+  id: "ff-mum-001",
+  configurationId: "cfg-mum-001",
+  theatreId: "th-mum-001",
+  enableLoyalty: false,
+  enableCoupons: false,
+  enableGiftCards: false,
+  enableMemberships: false,
+  enableDynamicPricing: false,
+  enableAiRecommendations: false,
+  enableWaitlist: false,
+  customFlags: {},
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
+
+const SEED_MUM_TERMS: ConfigurationTermsRecord = {
+  id: "trm-mum-001",
+  configurationId: "cfg-mum-001",
+  theatreId: "th-mum-001",
+  bookingTerms: "All ticket purchases are final. No refunds or exchanges are permitted.",
+  refundTerms: "No refunds will be granted except upon complete cancellation of the presentation.",
+  privacyNotice: "Personal information processed under global privacy standards.",
+  customerAgreement: "I agree to the non-refundable ticketing terms.",
+  version: 1,
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
+
+// ------------------------------------------------------------------------------
+// Seed Theatre C: Dubai CineSphere (th-dxb-001) - AED, 15 Days, Max 6, Arabic
+// ------------------------------------------------------------------------------
+const SEED_DXB_CONFIG: TheatreConfigurationRecord = {
+  id: "cfg-dxb-001",
+  theatreId: "th-dxb-001",
+  status: "PUBLISHED",
+  version: 1,
+  publishedAt: new Date("2026-01-01T00:00:00.000Z"),
+  createdBy: "usr-super-1",
+  updatedBy: "usr-th-dxb",
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
+
+const SEED_DXB_LOC: LocalizationConfigurationRecord = {
+  id: "loc-dxb-001",
+  configurationId: "cfg-dxb-001",
+  theatreId: "th-dxb-001",
+  currency: "AED",
+  timezone: "Asia/Dubai",
+  primaryLanguage: "ar",
+  supportedLanguages: ["ar", "en"],
+  dateFormat: "DD/MM/YYYY",
+  timeFormat: "24H",
+  numberFormat: "INTERNATIONAL",
+  measurementUnits: "METRIC",
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
+
+const SEED_DXB_BOOKING: BookingConfigurationRecord = {
+  id: "bk-dxb-001",
+  configurationId: "cfg-dxb-001",
+  theatreId: "th-dxb-001",
+  maxSeatsPerBooking: 6,
+  minSeatsPerBooking: 1,
+  advanceBookingDays: 15,
+  bookingCutoffMinutes: 20,
+  maxConcurrentBookingsPerUser: 2,
+  seatHoldDurationSeconds: 450,
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
+
+const SEED_DXB_CANCEL: CancellationConfigurationRecord = {
+  id: "cnc-dxb-001",
+  configurationId: "cfg-dxb-001",
+  theatreId: "th-dxb-001",
+  cancellationAllowed: true,
+  cancellationDeadlineMinutes: 60,
+  cancellationFeePercent: "5.00",
+  autoCancellationEnabled: false,
+  autoCancellationTimeoutMinutes: null,
+  notes: "Cancellations allowed up to 1 hour before scheduled showtime.",
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
+
+const SEED_DXB_REFUND: RefundConfigurationRecord = {
+  id: "ref-dxb-001",
+  configurationId: "cfg-dxb-001",
+  theatreId: "th-dxb-001",
+  refundWindowHours: 48,
+  refundPercentage: "95.00",
+  refundMethod: "STORE_CREDIT",
+  processingTimeDays: 3,
+  gatewayAutoRefund: true,
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
+
+const SEED_DXB_AGE: AgeRestrictionConfigurationRecord = {
+  id: "age-dxb-001",
+  configurationId: "cfg-dxb-001",
+  theatreId: "th-dxb-001",
+  minAgeU: 0,
+  minAgeUA: 15,
+  minAgeA: 18,
+  minAgeS: 21,
+  customAgeRules: "UAE National Media Council age rating guidelines enforced.",
+  guardianRequiredUnderAge: 15,
+  requireAgeVerificationAtGate: true,
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
+
+const SEED_DXB_FLAGS: FeatureFlagConfigurationRecord = {
+  id: "ff-dxb-001",
+  configurationId: "cfg-dxb-001",
+  theatreId: "th-dxb-001",
+  enableLoyalty: true,
+  enableCoupons: true,
+  enableGiftCards: true,
+  enableMemberships: true,
+  enableDynamicPricing: true,
+  enableAiRecommendations: true,
+  enableWaitlist: true,
+  customFlags: {},
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
+
+const SEED_DXB_TERMS: ConfigurationTermsRecord = {
+  id: "trm-dxb-001",
+  configurationId: "cfg-dxb-001",
+  theatreId: "th-dxb-001",
+  bookingTerms: "Bookings governed by UAE Federal Consumer Protection Laws.",
+  refundTerms: "Refunds issued as CineSphere credits or original mode within 3 banking days.",
+  privacyNotice: "Compliant with UAE Personal Data Protection Law (PDPL).",
+  customerAgreement: "I accept the CineSphere UAE customer terms and conditions.",
+  version: 1,
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
+
 export class TheatreConfigurationRepository extends BaseRepository<TheatreConfigurationRecord> {
   protected entityName = "TheatreConfiguration";
   protected tableName = "theatre_configurations";
@@ -258,11 +431,67 @@ export class TheatreConfigurationRepository extends BaseRepository<TheatreConfig
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
     });
 
-    // Seed Mumbai (USD, Spanish, No cancellation)
+    // Seed Mumbai (Theatre B: USD, Spanish, 60 days, 12 seats, No cancellation)
     this.configsStore.set(SEED_MUM_CONFIG.id, { ...SEED_MUM_CONFIG });
     this.localizationsStore.set(SEED_MUM_CONFIG.id, { ...SEED_MUM_LOC });
     this.bookingsStore.set(SEED_MUM_CONFIG.id, { ...SEED_MUM_BOOKING });
     this.cancellationsStore.set(SEED_MUM_CONFIG.id, { ...SEED_MUM_CANCEL });
+    this.refundsStore.set(SEED_MUM_CONFIG.id, { ...SEED_MUM_REFUND });
+    this.ageRestrictionsStore.set(SEED_MUM_CONFIG.id, { ...SEED_MUM_AGE });
+    this.featureFlagsStore.set(SEED_MUM_CONFIG.id, { ...SEED_MUM_FLAGS });
+    this.termsStore.set(SEED_MUM_CONFIG.id, { ...SEED_MUM_TERMS });
+
+    this.versionsStore.push({
+      id: "ver-cfg-mum-001",
+      configurationId: SEED_MUM_CONFIG.id,
+      theatreId: SEED_MUM_CONFIG.theatreId,
+      versionNumber: 1,
+      snapshot: {
+        config: { ...SEED_MUM_CONFIG },
+        localization: { ...SEED_MUM_LOC },
+        booking: { ...SEED_MUM_BOOKING },
+        cancellation: { ...SEED_MUM_CANCEL },
+        refund: { ...SEED_MUM_REFUND },
+        ageRestriction: { ...SEED_MUM_AGE },
+        featureFlags: { ...SEED_MUM_FLAGS },
+        terms: { ...SEED_MUM_TERMS },
+      },
+      changeSummary: "Initial publication of Theatre B international operational configuration.",
+      changedBy: "usr-super-1",
+      changedRole: "SUPER_ADMIN",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    // Seed Dubai (Theatre C: AED, Arabic, 15 days, 6 seats, Cancellation allowed)
+    this.configsStore.set(SEED_DXB_CONFIG.id, { ...SEED_DXB_CONFIG });
+    this.localizationsStore.set(SEED_DXB_CONFIG.id, { ...SEED_DXB_LOC });
+    this.bookingsStore.set(SEED_DXB_CONFIG.id, { ...SEED_DXB_BOOKING });
+    this.cancellationsStore.set(SEED_DXB_CONFIG.id, { ...SEED_DXB_CANCEL });
+    this.refundsStore.set(SEED_DXB_CONFIG.id, { ...SEED_DXB_REFUND });
+    this.ageRestrictionsStore.set(SEED_DXB_CONFIG.id, { ...SEED_DXB_AGE });
+    this.featureFlagsStore.set(SEED_DXB_CONFIG.id, { ...SEED_DXB_FLAGS });
+    this.termsStore.set(SEED_DXB_CONFIG.id, { ...SEED_DXB_TERMS });
+
+    this.versionsStore.push({
+      id: "ver-cfg-dxb-001",
+      configurationId: SEED_DXB_CONFIG.id,
+      theatreId: SEED_DXB_CONFIG.theatreId,
+      versionNumber: 1,
+      snapshot: {
+        config: { ...SEED_DXB_CONFIG },
+        localization: { ...SEED_DXB_LOC },
+        booking: { ...SEED_DXB_BOOKING },
+        cancellation: { ...SEED_DXB_CANCEL },
+        refund: { ...SEED_DXB_REFUND },
+        ageRestriction: { ...SEED_DXB_AGE },
+        featureFlags: { ...SEED_DXB_FLAGS },
+        terms: { ...SEED_DXB_TERMS },
+      },
+      changeSummary: "Initial publication of Theatre C Middle East operational configuration.",
+      changedBy: "usr-super-1",
+      changedRole: "SUPER_ADMIN",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
   }
 
   // ----------------------------------------------------------------------------

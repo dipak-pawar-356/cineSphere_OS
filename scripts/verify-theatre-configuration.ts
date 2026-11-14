@@ -318,8 +318,54 @@ async function runConfigurationVerification() {
   }
   assert(hierarchyBlocked, "Invalid censor hierarchy prevented");
 
+  // --------------------------------------------------------------------------
+  // TEST 11: Multi-Theatre Isolation Matrix (Theatre A vs Theatre B vs Theatre C)
+  // --------------------------------------------------------------------------
+  console.log("\n👉 Test 11: Multi-Theatre Isolation Matrix (Theatre A vs Theatre B vs Theatre C)");
+
+  const bundleA = await theatreConfigurationService.getConfigurationBundle("th-pun-001", SUPER_ADMIN);
+  const bundleB = await theatreConfigurationService.getConfigurationBundle("th-mum-001", SUPER_ADMIN);
+  const bundleC = await theatreConfigurationService.getConfigurationBundle("th-dxb-001", SUPER_ADMIN);
+
+  // Theatre A verification (INR, 45 Days, 8 Seats, Cancellation Allowed, English)
+  assert(bundleA.localization?.currency === "INR", "Theatre A currency is INR");
+  assert(bundleA.booking?.advanceBookingDays === 45, "Theatre A booking window is 45 days (updated in Test 3)");
+  assert(bundleA.booking?.maxSeatsPerBooking === 8, "Theatre A max seats is 8");
+  assert(bundleA.cancellation?.cancellationAllowed === true, "Theatre A cancellation is Allowed");
+  assert(bundleA.localization?.primaryLanguage === "en", "Theatre A language is English");
+
+  // Theatre B verification (USD, 60 Days, 12 Seats, Cancellation Not Allowed, Spanish)
+  assert(bundleB.localization?.currency === "USD", "Theatre B currency is USD");
+  assert(bundleB.booking?.advanceBookingDays === 60, "Theatre B booking window is 60 days");
+  assert(bundleB.booking?.maxSeatsPerBooking === 12, "Theatre B max seats is 12");
+  assert(bundleB.cancellation?.cancellationAllowed === false, "Theatre B cancellation is Not Allowed");
+  assert(bundleB.localization?.primaryLanguage === "es", "Theatre B language is Spanish");
+
+  // Theatre C verification (AED, 15 Days, 6 Seats, Cancellation Allowed, Arabic)
+  assert(bundleC.localization?.currency === "AED", "Theatre C currency is AED");
+  assert(bundleC.booking?.advanceBookingDays === 15, "Theatre C booking window is 15 days");
+  assert(bundleC.booking?.maxSeatsPerBooking === 6, "Theatre C max seats is 6");
+  assert(bundleC.cancellation?.cancellationAllowed === true, "Theatre C cancellation is Allowed");
+  assert(bundleC.localization?.primaryLanguage === "ar", "Theatre C language is Arabic");
+
+  // Mutate Theatre A and verify zero bleed into Theatre B or C
+  await theatreConfigurationService.updateBookingConfig(
+    {
+      theatreId: "th-pun-001",
+      maxSeatsPerBooking: 10,
+    },
+    SUPER_ADMIN
+  );
+  const updatedA = await theatreConfigurationService.getConfigurationBundle("th-pun-001", SUPER_ADMIN);
+  const unchangedB = await theatreConfigurationService.getConfigurationBundle("th-mum-001", SUPER_ADMIN);
+  const unchangedC = await theatreConfigurationService.getConfigurationBundle("th-dxb-001", SUPER_ADMIN);
+
+  assert(updatedA.booking?.maxSeatsPerBooking === 10, "Theatre A max seats updated to 10");
+  assert(unchangedB.booking?.maxSeatsPerBooking === 12, "Theatre B max seats completely unaffected (remains 12)");
+  assert(unchangedC.booking?.maxSeatsPerBooking === 6, "Theatre C max seats completely unaffected (remains 6)");
+
   console.log("\n==============================================================================");
-  console.log("🎉  ALL 10 DYNAMIC THEATRE CONFIGURATION TEST SUITES PASSED SUCCESSFULLY!");
+  console.log("🎉  ALL 11 DYNAMIC THEATRE CONFIGURATION TEST SUITES PASSED SUCCESSFULLY!");
   console.log("==============================================================================\n");
 }
 

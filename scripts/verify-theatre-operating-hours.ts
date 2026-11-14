@@ -262,8 +262,26 @@ async function runOperatingHoursVerification() {
   assert(finalBundle.specialEvents.length >= 1, "Final bundle includes special events");
   assert(finalBundle.versions && finalBundle.versions.length >= 1, "Final bundle includes version audit trail");
 
+  // --------------------------------------------------------------------------
+  // TEST 11: International Timezone Handling & Independent Operating Profiles
+  // --------------------------------------------------------------------------
+  console.log("\n👉 Test 11: International Timezone Handling & Multi-Theatre Operating Profiles");
+
+  const dxbBundle = await theatreOperatingHoursService.getOperatingBundle("th-dxb-001", SUPER_ADMIN);
+  assert(dxbBundle.profile !== null, "Dubai CineSphere operating profile exists");
+  assert(dxbBundle.profile?.timezone === "Asia/Dubai", "Dubai timezone is Asia/Dubai");
+  assert(dxbBundle.profile?.regularOpeningTime === "10:00", "Dubai regular opening time is 10:00");
+  assert(dxbBundle.weeklySchedules.length === 7, "Dubai has full 7-day weekly schedule");
+  assert(dxbBundle.weeklySchedules[4].dayOfWeek === "FRIDAY", "Dubai Friday schedule exists");
+  assert(dxbBundle.weeklySchedules[4].isOvernight === true, "Dubai Friday is marked overnight");
+
+  // Validate Pune profile remains independent
+  const punBundle = await theatreOperatingHoursService.getOperatingBundle("th-pun-001", SUPER_ADMIN);
+  assert(punBundle.profile?.timezone === "Asia/Kolkata", "Pune timezone remains Asia/Kolkata");
+  assert(punBundle.profile?.regularOpeningTime === "08:30", "Pune opening time remains 08:30 (updated in Test 2)");
+
   console.log("\n==============================================================================");
-  console.log("🎉  ALL 10 THEATRE OPERATING HOURS TEST SUITES PASSED SUCCESSFULLY!");
+  console.log("🎉  ALL 11 THEATRE OPERATING HOURS TEST SUITES PASSED SUCCESSFULLY!");
   console.log("==============================================================================\n");
 }
 
