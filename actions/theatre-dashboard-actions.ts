@@ -13,6 +13,8 @@ import type {
   TheatreDashboardBundle,
   UserDashboardPreferences,
   DashboardActivityItem,
+  RevenueMetricsBundle,
+  BookingMetricsBundle,
 } from "@/types/theatre-dashboard.types";
 
 /**
@@ -134,5 +136,59 @@ export const loadDashboardActivitiesAction = createProtectedAction<
       context.actor
     );
     return bundle.activities.slice(0, input.limit || 10);
+  }
+);
+
+// ------------------------------------------------------------------------------
+// 5. Load Revenue Summary Action
+// ------------------------------------------------------------------------------
+export const loadRevenueSummaryAction = createProtectedAction<
+  z.input<typeof dashboardFilterSchema>,
+  RevenueMetricsBundle
+>(
+  {
+    actionName: "loadRevenueSummaryAction",
+    schema: dashboardFilterSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (data) => data.theatreId,
+    auditModule: "THEATRE_DASHBOARD",
+    auditAction: "READ",
+  },
+  async (input, context) => {
+    const bundle = await theatreDashboardService.getDashboardBundle(
+      input.theatreId,
+      input,
+      context.actor
+    );
+    return bundle.revenue;
+  }
+);
+
+// ------------------------------------------------------------------------------
+// 6. Load Booking Summary Action
+// ------------------------------------------------------------------------------
+export const loadBookingSummaryAction = createProtectedAction<
+  z.input<typeof dashboardFilterSchema>,
+  BookingMetricsBundle
+>(
+  {
+    actionName: "loadBookingSummaryAction",
+    schema: dashboardFilterSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (data) => data.theatreId,
+    auditModule: "THEATRE_DASHBOARD",
+    auditAction: "READ",
+  },
+  async (input, context) => {
+    const bundle = await theatreDashboardService.getDashboardBundle(
+      input.theatreId,
+      input,
+      context.actor
+    );
+    return bundle.bookings;
   }
 );
