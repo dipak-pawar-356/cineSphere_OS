@@ -47,6 +47,10 @@ export * from "./theatre-staff";
 // Theatre Dashboard & Analytics Layer (Phase 3 - Part 11)
 export * from "./theatre-dashboard";
 
+// Platform Security & Governance Layer (Phase 3 - Part 14)
+export * from "./theatre-governance";
+
+
 // Tenant Payment Configurations & Ledger
 export * from "./payments";
 
