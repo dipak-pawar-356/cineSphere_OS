@@ -11,6 +11,7 @@ import { SecurityActorContext } from "@/types/security-hardening.types";
 import { OwnershipValidationResult } from "@/types/theatre-security-governance.types";
 import { theatreGovernanceRepository } from "@/lib/repositories/theatre-governance.repository";
 import { OwnershipError } from "@/lib/errors/app-error";
+import { securityMonitoringHooks } from "./monitoring-hooks";
 
 export class OwnershipValidator {
   /**
@@ -101,6 +102,14 @@ export class OwnershipValidator {
     );
 
     if (!result.isOwner) {
+      securityMonitoringHooks.dispatch(
+        "onOwnershipViolation",
+        actor.theatreId,
+        targetTenantId,
+        resourceType,
+        resourceId
+      );
+
       throw new OwnershipError(result.error || "Resource ownership validation failed", {
         resourceType,
         resourceId,

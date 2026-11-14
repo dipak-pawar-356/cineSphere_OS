@@ -16,6 +16,7 @@ import {
 } from "@/types/theatre-security-governance.types";
 import { AuthorizationError, TenantAccessError } from "@/lib/errors/app-error";
 import { isRoleAtLeast } from "@/auth/roles/role-hierarchy";
+import { securityMonitoringHooks } from "../monitoring-hooks";
 
 type PolicyEvaluator = (
   actor: SecurityActorContext,
@@ -281,6 +282,8 @@ export function assertSecurityPolicy(
   const result = evaluateSecurityPolicy(policyKey, actor, context);
 
   if (!result.allowed) {
+    securityMonitoringHooks.dispatch("onPolicyDenied", policyKey, actor, result.reason);
+
     if (result.reason?.toLowerCase().includes("tenant")) {
       throw new TenantAccessError(result.reason, {
         attemptedTenantId: context?.targetTenantId,

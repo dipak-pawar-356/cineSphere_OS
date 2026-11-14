@@ -865,6 +865,10 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Reusable soft delete with `deletedAt`, `deletedBy`, and non-destructive restoration (`isDeleted: false`). Permanent purge is strictly restricted to Super Admin.
 - 📜 **Domain Event Auditing & Chronological Activity History:**
   - Emits structured `DomainSecurityEvent` records to an immutable audit store and updates operator activity history with full correlation tracking.
+- ⏱️ **Endpoint-Specific Sliding-Window Rate Limiting (`checkEndpointRateLimit`):**
+  - Configurable rate limits across `AUTH_REQUESTS`, `MEDIA_UPLOADS`, `SEARCH_REQUESTS`, `CONFIGURATION_UPDATES`, `DASHBOARD_REFRESH`, and `PUBLIC_PAGE_REQUESTS` with automatic 429 `RateLimitError` mitigation and retry windows.
+- 📡 **Platform Security Monitoring Hooks (`SecurityMonitoringHookRegistry`):**
+  - Extensible telemetry hooks (`onDomainSecurityEvent`, `onPolicyDenied`, `onTenantViolation`, `onOwnershipViolation`, `onRateLimitExceeded`, `onConcurrencyConflict`) for external monitoring, alerting, and SIEM readiness.
 - 📚 **Platform Security & Governance Guide:** Detailed technical documentation in [`docs/THEATRE_SECURITY_AND_GOVERNANCE_ARCHITECTURE.md`](./docs/THEATRE_SECURITY_AND_GOVERNANCE_ARCHITECTURE.md).
 
 ---

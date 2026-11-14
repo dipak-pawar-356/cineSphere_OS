@@ -32,6 +32,7 @@ import { tenantService } from "@/lib/services/tenant.service";
 import { theatreGovernanceRepository } from "@/lib/repositories/theatre-governance.repository";
 import { sanitizeObject } from "./input-sanitizer";
 import { validateServerInput } from "./validation-schemas";
+import { securityMonitoringHooks } from "./monitoring-hooks";
 import { createLogger } from "@/lib/observability/structured-logger";
 import {
   AppError,
@@ -278,6 +279,41 @@ export class ValidationPipeline {
     } catch (err: unknown) {
       const errorObj = err instanceof AppError ? err : new AppError(String(err));
       const failedStage = stageResults.find((s) => !s.passed)?.stage;
+
+      // Dispatch specific security monitoring alerts
+      if (failedStage === "2_POLICY_AUTHORIZATION") {
+        securityMonitoringHooks.dispatch(
+          "onPolicyDenied",
+          input.policyKey,
+          input.actor,
+          errorObj.message
+        );
+      }
+      if (errorObj.code === "OWNERSHIP_VIOLATION") {
+        securityMonitoringHooks.dispatch(
+          "onOwnershipViolation",
+          input.actor.theatreId,
+          input.targetTenantId,
+          input.resourceType,
+          input.resourceId
+        );
+      }
+      if (errorObj.code === "TENANT_ACCESS_DENIED") {
+        securityMonitoringHooks.dispatch(
+          "onTenantViolation",
+          input.actor.theatreId,
+          input.targetTenantId,
+          input.resourceType
+        );
+      }
+      if (errorObj.code === "CONFLICT") {
+        securityMonitoringHooks.dispatch(
+          "onConcurrencyConflict",
+          input.resourceId || "",
+          input.expectedVersion || 0,
+          (errorObj as any).currentVersion || 0
+        );
+      }
 
       logger.warn("SECURITY", `[GOVERNANCE_BLOCKED] Operation '${input.operationName}' failed at stage '${failedStage}': ${errorObj.message}`, {
         theatreId: input.targetTenantId,

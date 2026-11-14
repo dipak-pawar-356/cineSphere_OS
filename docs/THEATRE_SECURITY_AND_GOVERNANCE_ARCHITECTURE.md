@@ -188,7 +188,7 @@ The `MediaValidator` ([`lib/security/media-validator.ts`](file:///d:/Project_2k2
 
 ## 9. Reusable Server Actions
 
-The governance layer exposes 7 server actions in [`actions/theatre-governance-actions.ts`](file:///d:/Project_2k24_25/cineSphere_OS/actions/theatre-governance-actions.ts):
+The governance layer exposes 8 server actions in [`actions/theatre-governance-actions.ts`](file:///d:/Project_2k24_25/cineSphere_OS/actions/theatre-governance-actions.ts):
 
 1. `validateResourceOwnershipAction`: Validates ownership across any cinema resource.
 2. `softDeleteResourceAction`: Performs soft deletion with reason tracking.
@@ -197,12 +197,40 @@ The governance layer exposes 7 server actions in [`actions/theatre-governance-ac
 5. `getActivityHistoryAction`: Queries the chronological operator activity history.
 6. `evaluatePolicyAction`: Evaluates security policies for client components.
 7. `updateSecurityConfigAction`: Updates theatre-specific security configurations.
+8. `checkEndpointRateLimitAction`: Assesses endpoint-specific quota consumption and retry deadlines.
 
 ---
 
-## 10. Verification Matrix & Test Results
+## 10. Endpoint-Specific Rate Limiting
 
-The automated test suite in [`scripts/verify-theatre-security-governance.ts`](file:///d:/Project_2k24_25/cineSphere_OS/scripts/verify-theatre-security-governance.ts) verified **12 / 12 test suites (62 assertions)**:
+The layer provides configurable, sliding-window rate limit protection across critical cinema operations:
+- `AUTH_REQUESTS`: 5 requests / 15 min window (with 15 min block duration)
+- `MEDIA_UPLOADS`: 20 requests / 10 min window
+- `SEARCH_REQUESTS`: 60 requests / 1 min window
+- `CONFIGURATION_UPDATES`: 30 requests / 5 min window
+- `DASHBOARD_REFRESH`: 60 requests / 1 min window
+- `PUBLIC_PAGE_REQUESTS`: 120 requests / 1 min window
+
+Threshold breaches trigger `RATE_LIMIT_TRIGGERED` domain security events, dispatch to monitoring hooks, and raise `RateLimitError` (`RATE_LIMIT_EXCEEDED`, HTTP 429) with calculated `retryAfterSec`.
+
+---
+
+## 11. Security Monitoring & Telemetry Hooks
+
+`SecurityMonitoringHookRegistry` ([`lib/security/monitoring-hooks.ts`](file:///d:/Project_2k24_25/cineSphere_OS/lib/security/monitoring-hooks.ts)) provides decoupled lifecycle hooks for platform telemetry and SIEM integration:
+- `onDomainSecurityEvent`: Dispatched on every domain audit event across the platform.
+- `onPolicyEvaluated`: Dispatched upon security policy evaluation.
+- `onPolicyDenied`: Dispatched when a user is denied access by a security policy.
+- `onTenantViolation`: Dispatched when a cross-tenant boundary breach is attempted.
+- `onOwnershipViolation`: Dispatched when resource ownership verification fails.
+- `onRateLimitExceeded`: Dispatched when endpoint rate limit thresholds are crossed.
+- `onConcurrencyConflict`: Dispatched upon optimistic concurrency version collision.
+
+---
+
+## 12. Verification Matrix & Test Results
+
+The automated test suite in [`scripts/verify-theatre-security-governance.ts`](file:///d:/Project_2k24_25/cineSphere_OS/scripts/verify-theatre-security-governance.ts) verified **14 / 14 test suites (74 assertions)**:
 1. **Test 1:** Reusable Platform Security & Governance Layer Architecture.
 2. **Test 2:** Policy-Based Authorization Engine (Super Admin, Theatre Admin, Hall Manager, Customer, Guest).
 3. **Test 3:** Multi-Tenant Boundary Isolation & Cross-Tenant Access Prevention (`TenantAccessError`).
@@ -215,3 +243,6 @@ The automated test suite in [`scripts/verify-theatre-security-governance.ts`](fi
 10. **Test 10:** Domain Security Event Auditing.
 11. **Test 11:** Chronological Activity History Tracking.
 12. **Test 12:** Server Actions & Error Handling Consistency.
+13. **Test 13:** Endpoint-Specific Rate Limiting (Auth, Media, Search, Config, Dashboard, Public).
+14. **Test 14:** Platform Security Monitoring Hooks & Telemetry Dispatch.
+

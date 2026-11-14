@@ -23,6 +23,7 @@ import {
 } from "@/types/theatre-security-governance.types";
 import { SecurityActorContext } from "@/types/security-hardening.types";
 import { ConflictError, NotFoundError, OwnershipError } from "@/lib/errors/app-error";
+import { securityMonitoringHooks } from "@/lib/security/monitoring-hooks";
 
 // ------------------------------------------------------------------------------
 // Seeded Theatre-Specific Security Configurations
@@ -530,6 +531,8 @@ export class TheatreGovernanceRepository {
     if (this.domainEvents.length > 5000) {
       this.domainEvents.pop();
     }
+    // Asynchronously dispatch to platform security monitoring hooks
+    securityMonitoringHooks.dispatch("onDomainSecurityEvent", event);
   }
 
   public queryDomainEvents(filters?: {

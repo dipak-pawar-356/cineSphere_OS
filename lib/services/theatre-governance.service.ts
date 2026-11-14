@@ -21,6 +21,10 @@ import {
   TheatreSecurityConfiguration,
   SoftDeletableEntity,
   OwnershipValidationResult,
+  TheatreRateLimitEndpoint,
+  TheatreEndpointRateLimitConfig,
+  TheatreRateLimitResult,
+  SecurityMonitoringHooks,
 } from "@/types/theatre-security-governance.types";
 import { SecurityActorContext } from "@/types/security-hardening.types";
 import { theatreGovernanceRepository } from "@/lib/repositories/theatre-governance.repository";
@@ -28,9 +32,50 @@ import { evaluateSecurityPolicy, assertSecurityPolicy } from "@/lib/security/pol
 import { OwnershipValidator } from "@/lib/security/ownership-validator";
 import { MediaValidator } from "@/lib/security/media-validator";
 import { ValidationPipeline } from "@/lib/security/validation-pipeline";
+import { checkRateLimit } from "@/lib/security/rate-limiter";
+import { securityMonitoringHooks } from "@/lib/security/monitoring-hooks";
+import { RateLimitError } from "@/lib/errors/app-error";
 import { createLogger } from "@/lib/observability/structured-logger";
 
 const logger = createLogger("TheatreGovernanceService");
+
+export const DEFAULT_THEATRE_RATE_LIMITS: Record<
+  TheatreRateLimitEndpoint,
+  TheatreEndpointRateLimitConfig
+> = {
+  AUTH_REQUESTS: {
+    endpoint: "AUTH_REQUESTS",
+    windowMs: 15 * 60 * 1000,
+    maxRequests: 5,
+    blockDurationMs: 15 * 60 * 1000,
+  },
+  MEDIA_UPLOADS: {
+    endpoint: "MEDIA_UPLOADS",
+    windowMs: 10 * 60 * 1000,
+    maxRequests: 20,
+  },
+  SEARCH_REQUESTS: {
+    endpoint: "SEARCH_REQUESTS",
+    windowMs: 60 * 1000,
+    maxRequests: 60,
+  },
+  CONFIGURATION_UPDATES: {
+    endpoint: "CONFIGURATION_UPDATES",
+    windowMs: 5 * 60 * 1000,
+    maxRequests: 30,
+  },
+  DASHBOARD_REFRESH: {
+    endpoint: "DASHBOARD_REFRESH",
+    windowMs: 60 * 1000,
+    maxRequests: 60,
+  },
+  PUBLIC_PAGE_REQUESTS: {
+    endpoint: "PUBLIC_PAGE_REQUESTS",
+    windowMs: 60 * 1000,
+    maxRequests: 120,
+  },
+};
+
 
 export class TheatreGovernanceService {
   /**
@@ -304,6 +349,102 @@ export class TheatreGovernanceService {
     });
 
     return updated;
+  }
+
+  /**
+   * Registers a platform security monitoring hook subscriber.
+   */
+  public registerMonitoringHook(hook: SecurityMonitoringHooks): () => void {
+    return securityMonitoringHooks.register(hook);
+  }
+
+  /**
+   * Dispatches an event to all registered monitoring hooks.
+   */
+  public dispatchMonitoringHook<K extends keyof SecurityMonitoringHooks>(
+    hookName: K,
+    ...args: any[]
+  ): void {
+    return securityMonitoringHooks.dispatch(hookName, ...args);
+  }
+
+  /**
+   * Checks rate limiting for theatre endpoints (Auth, Media, Search, Config, Dashboard, Public).
+   */
+  public checkEndpointRateLimit(
+    endpoint: TheatreRateLimitEndpoint,
+    key: string,
+    customConfig?: Partial<TheatreEndpointRateLimitConfig>
+  ): TheatreRateLimitResult {
+    const defaultConfig = DEFAULT_THEATRE_RATE_LIMITS[endpoint];
+    const categoryMap: Record<TheatreRateLimitEndpoint, any> = {
+      AUTH_REQUESTS: "LOGIN",
+      MEDIA_UPLOADS: "ADMIN_API",
+      SEARCH_REQUESTS: "SEARCH",
+      CONFIGURATION_UPDATES: "ADMIN_API",
+      DASHBOARD_REFRESH: "ADMIN_API",
+      PUBLIC_PAGE_REQUESTS: "PUBLIC_DEFAULT",
+    };
+
+    const result = checkRateLimit(key, categoryMap[endpoint], {
+      windowMs: customConfig?.windowMs ?? defaultConfig.windowMs,
+      maxRequests: customConfig?.maxRequests ?? defaultConfig.maxRequests,
+      blockDurationMs: customConfig?.blockDurationMs ?? defaultConfig.blockDurationMs,
+    });
+
+    if (!result.allowed) {
+      securityMonitoringHooks.dispatch("onRateLimitExceeded", endpoint, key, result.retryAfterSec);
+      theatreGovernanceRepository.recordDomainEvent({
+        eventId: `evt-rate-${Date.now()}`,
+        eventType: "RATE_LIMIT_TRIGGERED",
+        theatreId: key.startsWith("th-") ? key : "circuit-wide",
+        resourceType: "RATE_LIMIT",
+        resourceId: endpoint,
+        actor: {
+          userId: key,
+          role: "CUSTOMER",
+          permissions: [],
+          correlationId: `rate-${Date.now()}`,
+        },
+        action: `RATE_LIMIT_EXCEEDED_${endpoint}`,
+        module: "SECURITY_GOVERNANCE",
+        metadata: {
+          endpoint,
+          key,
+          retryAfterSec: result.retryAfterSec,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return {
+      allowed: result.allowed,
+      endpoint,
+      key,
+      remaining: result.remaining,
+      total: result.total,
+      resetTimeMs: result.resetTimeMs,
+      retryAfterSec: result.retryAfterSec,
+    };
+  }
+
+  /**
+   * Asserts rate limiting for theatre endpoints, throwing RateLimitError if exceeded.
+   */
+  public assertEndpointRateLimit(
+    endpoint: TheatreRateLimitEndpoint,
+    key: string,
+    customConfig?: Partial<TheatreEndpointRateLimitConfig>,
+    correlationId?: string
+  ): void {
+    const result = this.checkEndpointRateLimit(endpoint, key, customConfig);
+    if (!result.allowed) {
+      throw new RateLimitError(
+        `Rate limit exceeded for endpoint '${endpoint}'. Retry after ${result.retryAfterSec} seconds.`,
+        result.retryAfterSec,
+        correlationId
+      );
+    }
   }
 }
 

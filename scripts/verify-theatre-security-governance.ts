@@ -33,7 +33,9 @@ import {
   getActivityHistoryAction,
   evaluatePolicyAction,
   updateSecurityConfigAction,
+  checkEndpointRateLimitAction,
 } from "../actions/theatre-governance-actions";
+import { securityMonitoringHooks } from "../lib/security/monitoring-hooks";
 import { SecurityActorContext } from "../types/security-hardening.types";
 import {
   AppError,
@@ -42,6 +44,7 @@ import {
   OwnershipError,
   ConflictError,
   BusinessRuleError,
+  RateLimitError,
 } from "../lib/errors/app-error";
 import { z } from "zod";
 
@@ -537,9 +540,153 @@ async function runVerificationSuite(): Promise<void> {
   const updatedPune = theatreGovernanceService.getSecurityConfiguration("th-pun-001");
   assert(updatedPune.mediaUploadLimitMb === 30, "Updated limit actively enforced in service layer");
 
+  // --------------------------------------------------------------------------
+  // TEST 13: Endpoint-Specific Rate Limiting
+  // --------------------------------------------------------------------------
+  console.log("\n👉 Test 13: Endpoint-Specific Rate Limiting (Auth, Media, Search, Config, Dashboard, Public)...");
+
+  // 1. Check rate limit for Search endpoint (60 req/min)
+  const searchRate1 = theatreGovernanceService.checkEndpointRateLimit(
+    "SEARCH_REQUESTS",
+    "user-search-123"
+  );
+  assert(searchRate1.allowed === true, "First search request is allowed");
+  assert(searchRate1.remaining < searchRate1.total, "Search remaining quota decremented");
+
+  // 2. Custom small limit test (max 2 requests) to verify breach behavior
+  const customKey = `rate-test-${Date.now()}`;
+  theatreGovernanceService.checkEndpointRateLimit("MEDIA_UPLOADS", customKey, {
+    maxRequests: 2,
+    windowMs: 60000,
+  });
+  theatreGovernanceService.checkEndpointRateLimit("MEDIA_UPLOADS", customKey, {
+    maxRequests: 2,
+    windowMs: 60000,
+  });
+  const rateBreach = theatreGovernanceService.checkEndpointRateLimit("MEDIA_UPLOADS", customKey, {
+    maxRequests: 2,
+    windowMs: 60000,
+  });
+  assert(rateBreach.allowed === false, "Third media upload exceeded 2 req limit and was blocked");
+  assert(rateBreach.remaining === 0, "Remaining quota is 0 on blocked request");
+  assert(rateBreach.retryAfterSec > 0, "Calculated non-zero retryAfterSec");
+
+  // 3. assertEndpointRateLimit throws RateLimitError
+  let rateErrorThrown = false;
+  try {
+    theatreGovernanceService.assertEndpointRateLimit("MEDIA_UPLOADS", customKey, {
+      maxRequests: 2,
+      windowMs: 60000,
+    });
+  } catch (err) {
+    if (err instanceof RateLimitError) {
+      rateErrorThrown = true;
+      assert(err.statusCode === 429, "RateLimitError has HTTP 429 status");
+      assert(err.code === "RATE_LIMIT_EXCEEDED", "RateLimitError code is RATE_LIMIT_EXCEEDED");
+    }
+  }
+  assert(rateErrorThrown, "assertEndpointRateLimit threw RateLimitError on quota breach");
+
+  // 4. checkEndpointRateLimitAction server action
+  const actionRateRes = await checkEndpointRateLimitAction(
+    {
+      endpoint: "DASHBOARD_REFRESH",
+      key: "theatre-admin-pune",
+    },
+    puneAdminActor
+  );
+  assert(actionRateRes.success === true, "checkEndpointRateLimitAction executed successfully");
+  assert(actionRateRes.data?.allowed === true, "Dashboard refresh permitted under quota");
+
+  // --------------------------------------------------------------------------
+  // TEST 14: Platform Security Monitoring Hooks & Telemetry Dispatch
+  // --------------------------------------------------------------------------
+  console.log("\n👉 Test 14: Platform Security Monitoring Hooks & Telemetry Dispatch...");
+
+  let hookEventReceived: string | null = null;
+  let hookOwnershipViolation: string | null = null;
+  let hookPolicyDenied: string | null = null;
+
+  // 1. Register monitoring hook
+  const unregisterHook = theatreGovernanceService.registerMonitoringHook({
+    onDomainSecurityEvent: (event) => {
+      hookEventReceived = event.eventType;
+    },
+    onPolicyDenied: (policyKey) => {
+      hookPolicyDenied = policyKey;
+    },
+    onOwnershipViolation: (actorTenantId, targetTenantId, resourceType) => {
+      hookOwnershipViolation = `${actorTenantId}->${targetTenantId}:${resourceType}`;
+    },
+  });
+
+  // 2. Trigger domain event via soft delete
+  theatreGovernanceService.softDeleteResource(
+    "th-pun-001",
+    "THEATRE_MEDIA",
+    "hook-test-asset",
+    puneAdminActor,
+    "Testing monitoring hook dispatch"
+  );
+  assert(
+    hookEventReceived === "THEATRE_SOFT_DELETED",
+    "onDomainSecurityEvent monitoring hook received THEATRE_SOFT_DELETED"
+  );
+
+  // 3. Trigger ownership violation directly via OwnershipValidator
+  try {
+    OwnershipValidator.assertResourceOwnership(
+      "th-mum-001",
+      "THEATRE_PROFILE",
+      "prof-mum-001",
+      puneAdminActor
+    );
+  } catch {
+    // Expected OwnershipError
+  }
+  assert(
+    hookOwnershipViolation === "th-pun-001->th-mum-001:THEATRE_PROFILE",
+    "onOwnershipViolation monitoring hook dispatched with correct tenant telemetry"
+  );
+
+  // 4. Trigger policy denied via validation pipeline
+  await theatreGovernanceService.executePipeline(
+    {
+      operationName: "IllegalCrossTenantUpdate",
+      module: "THEATRE_PROFILE",
+      action: "UPDATE_PROFILE",
+      policyKey: "canEditProfile",
+      targetTenantId: "th-mum-001",
+      resourceType: "THEATRE_PROFILE",
+      resourceId: "prof-mum-001",
+      rawInput: { description: "Malicious update" },
+      actor: puneAdminActor, // Pune trying to modify Mumbai
+    },
+    async () => ({ success: false })
+  );
+  assert(
+    hookPolicyDenied === "canEditProfile",
+    "onPolicyDenied monitoring hook received policy rejection from validation pipeline"
+  );
+
+  // 5. Unregister hook and verify clean disposal
+  unregisterHook();
+  hookEventReceived = null;
+  theatreGovernanceService.restoreResource(
+    "th-pun-001",
+    "THEATRE_MEDIA",
+    "hook-test-asset",
+    puneAdminActor
+  );
+  assert(
+    hookEventReceived === null,
+    "Disposed monitoring hook cleanly unsubscribed and did not receive subsequent events"
+  );
+
   console.log("\n==============================================================================");
-  console.log("🎉  ALL 12 THEATRE SECURITY & GOVERNANCE TEST SUITES PASSED! (62 assertions)");
+  console.log("🎉  ALL 14 THEATRE SECURITY & GOVERNANCE TEST SUITES PASSED! (74 assertions)");
   console.log("==============================================================================\n");
+
 }
 
 void runVerificationSuite();

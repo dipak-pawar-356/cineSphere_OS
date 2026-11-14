@@ -321,3 +321,64 @@ export interface OwnershipValidationResult {
   actorTenantId?: string;
   error?: string;
 }
+
+// ------------------------------------------------------------------------------
+// 10. Core Governance Resource Types (11 Protected Module Resources)
+// ------------------------------------------------------------------------------
+
+export type TheatreGovernanceResourceType =
+  | "THEATRE"
+  | "MEDIA"
+  | "CONTACT"
+  | "AMENITY"
+  | "BUSINESS_INFO"
+  | "OPERATING_HOURS"
+  | "CONFIGURATION"
+  | "STAFF"
+  | "DASHBOARD"
+  | "SEARCH"
+  | "PUBLIC_CONTENT";
+
+// ------------------------------------------------------------------------------
+// 11. Endpoint-Specific Rate Limiting Contracts
+// ------------------------------------------------------------------------------
+
+export type TheatreRateLimitEndpoint =
+  | "AUTH_REQUESTS"
+  | "MEDIA_UPLOADS"
+  | "SEARCH_REQUESTS"
+  | "CONFIGURATION_UPDATES"
+  | "DASHBOARD_REFRESH"
+  | "PUBLIC_PAGE_REQUESTS";
+
+export interface TheatreEndpointRateLimitConfig {
+  endpoint: TheatreRateLimitEndpoint;
+  windowMs: number;
+  maxRequests: number;
+  blockDurationMs?: number;
+}
+
+export interface TheatreRateLimitResult {
+  allowed: boolean;
+  endpoint: TheatreRateLimitEndpoint;
+  key: string;
+  remaining: number;
+  total: number;
+  resetTimeMs: number;
+  retryAfterSec: number;
+}
+
+// ------------------------------------------------------------------------------
+// 12. Security Monitoring Hooks Contracts
+// ------------------------------------------------------------------------------
+
+export interface SecurityMonitoringHooks {
+  onDomainSecurityEvent?: (event: DomainSecurityEvent) => void | Promise<void>;
+  onPolicyEvaluated?: (result: PolicyEvaluationResult, actor: SecurityActorContext) => void | Promise<void>;
+  onPolicyDenied?: (policyKey: TheatreSecurityPolicyKey, actor: SecurityActorContext, reason?: string) => void | Promise<void>;
+  onTenantViolation?: (actorTenantId?: string, targetTenantId?: string, resourceType?: string) => void | Promise<void>;
+  onOwnershipViolation?: (actorTenantId?: string, targetTenantId?: string, resourceType?: string, resourceId?: string) => void | Promise<void>;
+  onRateLimitExceeded?: (endpoint: TheatreRateLimitEndpoint, key: string, retryAfterSec: number) => void | Promise<void>;
+  onConcurrencyConflict?: (resourceId: string, expectedVersion: number, currentVersion: number) => void | Promise<void>;
+}
+

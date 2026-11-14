@@ -65,3 +65,23 @@ export const UpdateSecurityConfigSchema = z.object({
   allowedMimeTypes: z.array(z.string()).optional(),
   requireMfaForSensitiveActions: z.boolean().optional(),
 });
+
+export const CheckRateLimitSchema = z.object({
+  endpoint: z.enum([
+    "AUTH_REQUESTS",
+    "MEDIA_UPLOADS",
+    "SEARCH_REQUESTS",
+    "CONFIGURATION_UPDATES",
+    "DASHBOARD_REFRESH",
+    "PUBLIC_PAGE_REQUESTS",
+  ]),
+  key: z.string().trim().min(1, "Rate limit key is required").max(100),
+  customConfig: z
+    .object({
+      windowMs: z.number().int().positive().optional(),
+      maxRequests: z.number().int().positive().optional(),
+      blockDurationMs: z.number().int().positive().optional(),
+    })
+    .optional(),
+});
+

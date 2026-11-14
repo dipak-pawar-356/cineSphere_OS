@@ -11,6 +11,7 @@ import {
   ActivityHistoryQuerySchema,
   EvaluatePolicySchema,
   UpdateSecurityConfigSchema,
+  CheckRateLimitSchema,
 } from "@/lib/validation/theatre-governance.validation";
 import {
   OwnershipValidationResult,
@@ -20,6 +21,7 @@ import {
   PolicyEvaluationResult,
   TheatreSecurityConfiguration,
   TheatreSecurityPolicyKey,
+  TheatreRateLimitResult,
 } from "@/types/theatre-security-governance.types";
 
 /**
@@ -187,3 +189,24 @@ export const updateSecurityConfigAction = createProtectedAction<
     );
   }
 );
+
+// 8. Check Endpoint Rate Limit
+export const checkEndpointRateLimitAction = createProtectedAction<
+  z.input<typeof CheckRateLimitSchema>,
+  TheatreRateLimitResult
+>(
+  {
+    actionName: "checkEndpointRateLimitAction",
+    schema: CheckRateLimitSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["STAFF", "HALL_MANAGER", "THEATRE_ADMIN", "SUPER_ADMIN", "CUSTOMER"],
+  },
+  async (input) => {
+    return theatreGovernanceService.checkEndpointRateLimit(
+      input.endpoint,
+      input.key,
+      input.customConfig
+    );
+  }
+);
+

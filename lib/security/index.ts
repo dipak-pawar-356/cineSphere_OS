@@ -16,3 +16,5 @@ export * from "./policies/theatre-security-policies";
 export * from "./ownership-validator";
 export * from "./media-validator";
 export * from "./validation-pipeline";
+export * from "./monitoring-hooks";
+
