@@ -760,22 +760,30 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
 - 📚 **Dynamic Theatre Configuration Guide:** Detailed technical documentation in [`docs/DYNAMIC_THEATRE_CONFIGURATION_MANAGEMENT.md`](./docs/DYNAMIC_THEATRE_CONFIGURATION_MANAGEMENT.md).
 
 ### 2.27 Phase 3 - Part 10: Theatre Staff Management & Dynamic RBAC Hierarchy (Completed)
-- 👥 **Dynamic RBAC & Tenant-Owned Hierarchy (`db/schema/theatre-staff.ts`):**
-  - Completely decouples staff roles from platform enums, establishing $\text{Platform} \to \text{Permission Catalog} \to \text{Role Templates} \to \text{Theatre} \to \text{Staff Organization}$.
-  - Supported by 8 normalized tables: `role_templates`, `theatre_roles`, `theatre_permissions`, `staff_departments`, `theatre_staff`, `staff_role_assignments`, `staff_role_history`, and `future_shift_placeholders`.
-- 🔑 **Platform Permission Catalog & Granular Authorization:**
-  - 20+ granular capability keys across `THEATRE`, `STAFF`, `HALLS`, `SHOWS`, `BOOKINGS`, `CONCESSIONS`, `ANALYTICS`, and `PLATFORM`.
-  - Permission-based authorization checks (`theatreStaffService.hasPermission(staffId, permissionKey)`), ensuring capability enforcement rather than hardcoded role string matching.
-- 📋 **Platform Template-to-Tenant Instantiation:**
-  - Super Admin curated templates (`TEMPLATE_THEATRE_ADMIN`, `TEMPLATE_HALL_MGR`, `TEMPLATE_PROJECTION`, `TEMPLATE_FOOD_COURT`, etc.) can be instantiated into tenant-owned roles with custom display names, hierarchy weights, and overridden capability grants.
-- 🧑‍💼 **Multi-Role Capability & Lifecycle State Machine:**
-  - Staff members can hold multiple simultaneous operational roles (Primary & Secondary roles).
-  - Lifecycle state machine: `INVITED` → `ACTIVE` ↔ `SUSPENDED` → `RESIGNED` / `ARCHIVED`.
-  - Immediate capability revocation upon suspension or archival, with full audit trail in `staff_role_history`.
-- 🛡️ **Multi-Tenant Boundary Enforcement & Optimistic Guards:**
-  - Strict tenant boundary isolation (`tenantService.assertTenantAccess`), pre-pagination multi-tenant filtering, and security audit logging for cross-tenant violations.
-- 💻 **Connected Workspace Experience (`components/theatre-staff/`):**
-  - Real-time KPI summaries, multi-criteria searching and filtering, tabbed directory (Staff, Roles, Departments, Templates), direct onboarding & email invitation modals, side-drawer profile inspection, and granular permission editing.
+- 👥 **Staff Architecture (`db/schema/theatre-staff.ts`):**
+  - Establishes an enterprise multi-tenant staff organizational hierarchy: $\text{Platform} \to \text{Permission Catalog} \to \text{Role Templates} \to \text{Theatre} \to \text{Staff Organization} \to \text{Departments} \to \text{Roles} \to \text{Permissions} \to \text{Staff Members} \to \text{Future Scheduling}$.
+  - Supported by 8 normalized Drizzle tables: `role_templates`, `theatre_roles`, `theatre_permissions`, `staff_departments`, `theatre_staff`, `staff_role_assignments`, `staff_role_history`, and `future_shift_placeholders`.
+- 📋 **Role Templates:**
+  - Platform-provided standard templates (`TEMPLATE_THEATRE_ADMIN`, `TEMPLATE_HALL_MGR`, `TEMPLATE_TICKET_COUNTER`, `TEMPLATE_SUPPORT`, `TEMPLATE_PROJECTION`, `TEMPLATE_SECURITY`, `TEMPLATE_MAINTENANCE`, `TEMPLATE_CLEANER`, `TEMPLATE_FOOD_COURT`, `TEMPLATE_OPS_MGR`, `TEMPLATE_SUPERVISOR`, `TEMPLATE_CASHIER`).
+  - Supports one-click instantiation into tenant-owned roles with customizable display names, descriptions, hierarchy weighting, and overridden capability grants.
+- 🔑 **Permission Model:**
+  - 20+ granular capability keys across all core modules: `DASHBOARD`, `BOOKINGS`, `PAYMENTS`, `MOVIES`, `SHOWS`, `REPORTS`, `HALLS`, `TICKETS`, `SETTINGS`, `MEDIA`, `BUSINESS_PROFILE`, `STAFF`, and `PLATFORM`.
+  - Permission-based authorization checks (`theatreStaffService.hasPermission(staffId, permissionKey)`), ensuring capability enforcement rather than brittle role string comparisons.
+- 🏢 **Department Structure:**
+  - Supports standard and custom organizational departments: `OPERATIONS`, `PROJECTION`, `CUSTOMER_SUPPORT`, `SECURITY`, `MAINTENANCE`, `FOOD_COURT`, `ADMINISTRATION`, `FINANCE` (placeholder), `MARKETING` (placeholder), and `CUSTOM`.
+  - Tracks department head references, custom department names, unique codes, and headcount statistics.
+- 🔄 **Role Assignment & History:**
+  - Dynamic primary and secondary role assignments with expiration dates and authorization reason tracking.
+  - Lifecycle state machine: `INVITED` → `ACTIVE` ↔ `SUSPENDED` → `RESIGNED` / `ARCHIVED`. Immediate capability revocation upon suspension or archival.
+  - Immutable audit trail ledger in `staff_role_history` recording all transitions (`ASSIGNED`, `PROMOTED`, `DEMOTED`, `TRANSFERRED`, `REVOKED`) with authorizers and timestamps.
+- 🛡️ **Tenant Isolation:**
+  - Every staff member, role, permission grant, and department strictly belongs to exactly one `theatreId`.
+  - Cross-tenant lookups and mutations are prevented via `tenantService.assertTenantAccess` and `createProtectedAction({ enforceTenantIsolation: true })`.
+- 🔮 **Future Scheduling Architecture:**
+  - Architectural stub table `future_shift_placeholders` and extensible interfaces ready for future shift planning, weekly scheduling, attendance, leave management, holiday assignments, payroll integrations, and biometric turnstile integration without requiring future schema redesign.
+- 💻 **Developer Notes:**
+  - **Performance & Cache Invalidation:** Pre-pagination multi-attribute searching (name, code, email, phone, role, department), server-side pagination, and automatic invalidation of `THEATRE_STAFF` and `PUBLIC_THEATRE_STAFF` cache tags.
+  - **Audit Logging:** Tamper-evident logging through `securityAuditService.recordAudit` across all staff creation, invitation, suspension, archival, role assignment, and permission update events.
 - 📚 **Theatre Staff Management Guide:** Detailed technical documentation in [`docs/THEATRE_STAFF_MANAGEMENT.md`](./docs/THEATRE_STAFF_MANAGEMENT.md).
 
 ---
