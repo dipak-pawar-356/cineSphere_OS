@@ -871,6 +871,37 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Extensible telemetry hooks (`onDomainSecurityEvent`, `onPolicyDenied`, `onTenantViolation`, `onOwnershipViolation`, `onRateLimitExceeded`, `onConcurrencyConflict`) for external monitoring, alerting, and SIEM readiness.
 - 📚 **Platform Security & Governance Guide:** Detailed technical documentation in [`docs/THEATRE_SECURITY_AND_GOVERNANCE_ARCHITECTURE.md`](./docs/THEATRE_SECURITY_AND_GOVERNANCE_ARCHITECTURE.md).
 
+### 2.32 Phase 3 - Part 15: Reports & Analytics Layer (Completed)
+- 📊 **Dedicated Analytics & Reporting Layer (`theatre_analytics_aggregates`, `theatre_reports`):**
+  - Models $\text{Platform} \to \text{Analytics Engine} \to \text{Revenue / Occupancy / Halls / Movies / Bookings / Customers / Payments / Growth / KPIs / Report Builder} \to \text{Reports UI}$.
+  - Strictly decouples historical reporting from real-time operational dashboards (Part 11) and transactional tables (`Bookings`, `Payments`, `Shows`, `Halls`), preventing database lock contention and query degradation.
+- 🧮 **Centralized Metric Registry & Canonical KPI Formulas (`lib/analytics/`):**
+  - Defines pure, immutable mathematical formulas in `KpiEngine`: Occupancy Rate %, Average Ticket Value (ATV), Revenue Per Available Seat (RevPAS), Hall Utilization %, Cancellation Rate %, Payment Gateway Success Rate %, and Period Growth Rate (MoM/YoY).
+  - Central `MetricRegistry` catalog mapping measures, canonical formulas, and localized formatting engines.
+- 📋 **Configurable Report Definitions Registry (`ReportDefinitionRegistry`):**
+  - Declarative metadata templates spanning 10 strategic categories:
+    1. `REVENUE_REPORTS`: Daily, weekly, monthly, yearly gross/net revenue, ATV, RevPAS, and dimensional splits.
+    2. `OCCUPANCY_REPORTS`: Seat occupancy %, capacity audits, peak (18:00–21:00) vs low (10:00–13:00) periods.
+    3. `HALL_PERFORMANCE`: Screen-by-screen gross revenue, ticket yield, and top vs least performing screens.
+    4. `MOVIE_PERFORMANCE`: Box office collections, admissions, show counts, and attendance matrices.
+    5. `BOOKING_TRENDS`: Confirmed admissions vs cancellations, cancellation rates, and hourly booking demand.
+    6. `CUSTOMER_ANALYTICS`: New vs returning patron retention, visit frequency, and average customer spend.
+    7. `PAYMENT_ANALYTICS`: Payment rails (UPI, Card, NetBanking, Cash), gateway success rates, and reconciliations.
+    8. `THEATRE_GROWTH`: Month-over-month growth rates for revenue, bookings, customers, and occupancy.
+    9. `OPERATIONAL_KPIS`: Screen turnaround efficiency, turnstile throughput, and staff productivity metrics.
+    10. `EXECUTIVE_SUMMARY`: Board briefings, headline KPIs, top revenue drivers, and ranking scorecards.
+- 🌍 **Autonomous Multi-Tenant Boundary Isolation & Venue Localization:**
+  - Strict tenant scoping prevents cross-theatre data leakage (`TenantAccessError`). Multi-venue localization preserves local currency, timezone, and number formats:
+    - **Theatre A (Pune `th-pun-001`):** Currency `INR` (`₹`), Timezone `Asia/Kolkata`, Indian numbering (Lakhs & Crores: `₹1,84,50,000`).
+    - **Theatre B (Mumbai `th-mum-001`):** Currency `USD` (`$`), Timezone `America/New_York`, International numbering (`$479,700`).
+    - **Theatre C (Dubai `th-dxb-001`):** Currency `AED` (`AED `), Timezone `Asia/Dubai`, Arabic/English language formatting.
+- 📤 **Universal Report Builder & Export Serializers:**
+  - Dynamically synthesizes headline KPI summary cards, visual chart series (Line, Bar, Pie), and granular breakdown rows.
+  - Multi-format export engine supporting CSV (with quoted headers and venue metadata), JSON, and PDF stubs.
+- 🖥️ **Responsive Luxury Operator Workspace (`app/(theatre-admin)/theatre/reports/`):**
+  - Horizontal category selector across 10 strategic domains, date range presets (`TODAY`, `YESTERDAY`, `THIS_WEEK`, `THIS_MONTH`, `THIS_YEAR`), live telemetry refresh, CSV download trigger, historical snapshot archives, and modal inspector.
+- 📚 **Reports & Analytics Guide:** Detailed technical documentation in [`docs/THEATRE_REPORTS_AND_ANALYTICS_ARCHITECTURE.md`](./docs/THEATRE_REPORTS_AND_ANALYTICS_ARCHITECTURE.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -891,6 +922,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 📊 [`docs/THEATRE_REPORTS_AND_ANALYTICS_ARCHITECTURE.md`](./docs/THEATRE_REPORTS_AND_ANALYTICS_ARCHITECTURE.md) — Multi-Tenant Theatre Reports & Analytics Layer Architecture (Decoupled Historical BI Read-Model Store, Metric Registry, Pure KPI Engine, 10 Core Report Categories, Dimensional Slicing, Universal Report Builder, CSV/JSON Exporters & Multi-Tenant Boundary Isolation) (Phase 3 - Part 15).
 - 🛡️ [`docs/THEATRE_SECURITY_AND_GOVERNANCE_ARCHITECTURE.md`](./docs/THEATRE_SECURITY_AND_GOVERNANCE_ARCHITECTURE.md) — Platform Security & Governance Layer Architecture (Policy-Based Authorization, Central 9-Stage Validation Pipeline, Multi-Tenant Boundary Isolation, Resource Ownership Validation, Dynamic Quota Engine, OCC Version Checks, Soft Delete & Domain Event Auditing) (Phase 3 - Part 14).
 - 🌐 [`docs/PUBLIC_THEATRE_PAGE_ARCHITECTURE.md`](./docs/PUBLIC_THEATRE_PAGE_ARCHITECTURE.md) — Public Theatre Page Read Model Architecture (Public Content Layer, Read Model Aggregation, Zero Sensitive Data Leakage, Content Visibility State Machine, Multi-Tenant Localization, Next.js 15 ISR & Schema.org MovieTheater JSON-LD) (Phase 3 - Part 13).
 - 🔍 [`docs/THEATRE_SEARCH_AND_FILTERS_ARCHITECTURE.md`](./docs/THEATRE_SEARCH_AND_FILTERS_ARCHITECTURE.md) — Multi-Tenant Theatre Search & Filters Engine Architecture (`TheatreSearchDocument`, `theatre_search_index`, Generic Search Framework, Weighted Multi-Field Scoring, Dynamic Facets, Multi-Attribute Sorter, Enterprise Saved Presets & RBAC Gating) (Phase 3 - Part 12).

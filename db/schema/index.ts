@@ -50,6 +50,10 @@ export * from "./theatre-dashboard";
 // Platform Security & Governance Layer (Phase 3 - Part 14)
 export * from "./theatre-governance";
 
+// Reports & Analytics Layer (Phase 3 - Part 15)
+export * from "./theatre-reports";
+
+
 
 // Tenant Payment Configurations & Ledger
 export * from "./payments";
