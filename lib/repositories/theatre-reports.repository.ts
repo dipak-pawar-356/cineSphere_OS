@@ -155,25 +155,25 @@ export class TheatreReportsRepository {
         { id: "mov-stree2", label: "Stree 2", revenue: Math.round(3850000 * multiplier), ticketsSold: Math.round(14200 * (multiplier > 0.5 ? 1 : 0.42)), percentageOfTotal: 20.9 },
         { id: "mov-jawan", label: "Jawan", revenue: Math.round(2100000 * multiplier), ticketsSold: Math.round(7400 * (multiplier > 0.5 ? 1 : 0.42)), percentageOfTotal: 11.4 },
         { id: "mov-kantara", label: "Kantara: Chapter 1", revenue: Math.round(1400000 * multiplier), ticketsSold: Math.round(4800 * (multiplier > 0.5 ? 1 : 0.42)), percentageOfTotal: 7.6 },
-      ],
+      ].filter((m) => !filters.movieId || m.id === filters.movieId || m.label.toLowerCase().includes(filters.movieId.toLowerCase())),
       revenueByHall: [
         { id: "hall-1", label: "Auditorium 1 (IMAX Laser)", revenue: Math.round(8450000 * multiplier), ticketsSold: Math.round(24200 * (multiplier > 0.5 ? 1 : 0.42)), percentageOfTotal: 45.8 },
         { id: "hall-2", label: "Auditorium 2 (Dolby Atmos)", revenue: Math.round(4850000 * multiplier), ticketsSold: Math.round(16800 * (multiplier > 0.5 ? 1 : 0.42)), percentageOfTotal: 26.3 },
         { id: "hall-3", label: "Auditorium 3 (Laser Gold)", revenue: Math.round(3150000 * multiplier), ticketsSold: Math.round(11900 * (multiplier > 0.5 ? 1 : 0.42)), percentageOfTotal: 17.1 },
         { id: "hall-4", label: "Auditorium 4 (Standard 7.1)", revenue: Math.round(2000000 * multiplier), ticketsSold: Math.round(8600 * (multiplier > 0.5 ? 1 : 0.42)), percentageOfTotal: 10.8 },
-      ],
+      ].filter((h) => !filters.hallId || h.id === filters.hallId || h.label.toLowerCase().includes(filters.hallId.toLowerCase())),
       revenueByShow: [
         { id: "show-eve", label: "Evening Blockbuster (18:30 - 21:30)", revenue: Math.round(7950000 * multiplier), ticketsSold: Math.round(25800 * (multiplier > 0.5 ? 1 : 0.42)), percentageOfTotal: 43.1 },
         { id: "show-night", label: "Late Night Premiere (21:45 - 00:45)", revenue: Math.round(4820000 * multiplier), ticketsSold: Math.round(16200 * (multiplier > 0.5 ? 1 : 0.42)), percentageOfTotal: 26.1 },
         { id: "show-matinee", label: "Matinee Prime (14:30 - 17:30)", revenue: Math.round(3680000 * multiplier), ticketsSold: Math.round(12900 * (multiplier > 0.5 ? 1 : 0.42)), percentageOfTotal: 19.9 },
         { id: "show-morning", label: "Morning Early Bird (10:30 - 13:30)", revenue: Math.round(2000000 * multiplier), ticketsSold: Math.round(6600 * (multiplier > 0.5 ? 1 : 0.42)), percentageOfTotal: 10.9 },
-      ],
+      ].filter((s) => !filters.showId || s.id === filters.showId || s.label.toLowerCase().includes(filters.showId.toLowerCase())),
       revenueByPaymentMethod: [
         { id: "UPI", label: "Unified Payments Interface (UPI)", revenue: Math.round(baseGross * 0.68), ticketsSold: Math.round(totalTickets * 0.68), percentageOfTotal: 68.0 },
         { id: "CARD", label: "Credit & Debit Cards", revenue: Math.round(baseGross * 0.24), ticketsSold: Math.round(totalTickets * 0.24), percentageOfTotal: 24.0 },
         { id: "NETBANKING", label: "NetBanking Rails", revenue: Math.round(baseGross * 0.06), ticketsSold: Math.round(totalTickets * 0.06), percentageOfTotal: 6.0 },
         { id: "CASH", label: "Box Office Cash Desk", revenue: Math.round(baseGross * 0.02), ticketsSold: Math.round(totalTickets * 0.02), percentageOfTotal: 2.0 },
-      ],
+      ].filter((p) => !filters.paymentMethod || p.id === filters.paymentMethod || p.label.toLowerCase().includes(filters.paymentMethod.toLowerCase())),
       averageTicketValue: atv,
       revenuePerAvailableSeat: revPas,
       totalGrossRevenue: baseGross,
@@ -270,14 +270,25 @@ export class TheatreReportsRepository {
       },
     ];
 
-    const sorted = [...halls].sort((a, b) => b.revenue - a.revenue);
-    const totalRev = halls.reduce((sum, h) => sum + h.revenue, 0);
+    const filteredHalls = halls.filter((h) => {
+      if (filters.hallId && h.hallId !== filters.hallId && !h.hallName.toLowerCase().includes(filters.hallId.toLowerCase())) {
+        return false;
+      }
+      if (filters.format && !h.screenType.toLowerCase().includes(filters.format.toLowerCase())) {
+        return false;
+      }
+      return true;
+    });
+
+    const activeHalls = filteredHalls.length > 0 ? filteredHalls : halls;
+    const sorted = [...activeHalls].sort((a, b) => b.revenue - a.revenue);
+    const totalRev = activeHalls.reduce((sum, h) => sum + h.revenue, 0);
 
     return {
-      halls,
+      halls: activeHalls,
       topPerformingHall: sorted[0] || null,
       leastPerformingHall: sorted[sorted.length - 1] || null,
-      averageHallRevenue: Math.round(totalRev / halls.length),
+      averageHallRevenue: Math.round(totalRev / activeHalls.length),
     };
   }
 
@@ -341,9 +352,18 @@ export class TheatreReportsRepository {
       },
     ];
 
+    const filteredMovies = movies.filter((m) => {
+      if (filters.movieId && m.movieId !== filters.movieId && !m.movieTitle.toLowerCase().includes(filters.movieId.toLowerCase())) {
+        return false;
+      }
+      return true;
+    });
+
+    const activeMovies = filteredMovies.length > 0 ? filteredMovies : movies;
+
     return {
-      movies,
-      topMovies: movies.slice(0, 3),
+      movies: activeMovies,
+      topMovies: activeMovies.slice(0, 3),
       upcomingMovieTrendsPlaceholder: [
         { movieId: "mov-up-1", movieTitle: "Avatar: Fire and Ash", expectedReleaseDate: "2026-12-18", advanceEnquiriesCount: 2480 },
         { movieId: "mov-up-2", movieTitle: "Avengers: Secret Wars", expectedReleaseDate: "2027-05-07", advanceEnquiriesCount: 3820 },
@@ -417,15 +437,23 @@ export class TheatreReportsRepository {
     const multiplier = loc.currency === "INR" ? 1 : loc.currency === "USD" ? 0.026 : 0.077;
     const baseGross = Math.round(18450000 * multiplier);
 
+    const allMethods = [
+      { method: "UPI (Paytm, PhonePe, GPay)", transactionsCount: 16660, totalVolume: Math.round(baseGross * 0.68), successRatePercent: 99.1 },
+      { method: "Credit / Debit Cards", transactionsCount: 5880, totalVolume: Math.round(baseGross * 0.24), successRatePercent: 97.4 },
+      { method: "NetBanking Rails", transactionsCount: 1470, totalVolume: Math.round(baseGross * 0.06), successRatePercent: 96.2 },
+      { method: "Box Office Cash Desk", transactionsCount: 490, totalVolume: Math.round(baseGross * 0.02), successRatePercent: 100.0 },
+    ];
+    const filteredMethods = allMethods.filter((m) => {
+      if (filters.paymentMethod && !m.method.toLowerCase().includes(filters.paymentMethod.toLowerCase())) {
+        return false;
+      }
+      return true;
+    });
+
     return {
       paymentSuccessRatePercent: 98.6,
       paymentFailuresCount: 340,
-      paymentMethodsBreakdown: [
-        { method: "UPI (Paytm, PhonePe, GPay)", transactionsCount: 16660, totalVolume: Math.round(baseGross * 0.68), successRatePercent: 99.1 },
-        { method: "Credit / Debit Cards", transactionsCount: 5880, totalVolume: Math.round(baseGross * 0.24), successRatePercent: 97.4 },
-        { method: "NetBanking Rails", transactionsCount: 1470, totalVolume: Math.round(baseGross * 0.06), successRatePercent: 96.2 },
-        { method: "Box Office Cash Desk", transactionsCount: 490, totalVolume: Math.round(baseGross * 0.02), successRatePercent: 100.0 },
-      ],
+      paymentMethodsBreakdown: filteredMethods.length > 0 ? filteredMethods : allMethods,
       refundsVolumePlaceholder: Math.round(284000 * multiplier),
       refundsCountPlaceholder: 412,
       settlementStatusPlaceholder: {

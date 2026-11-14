@@ -10,7 +10,7 @@ import {
   GeneratedReportPayload,
   ReportCategoryKey,
   ReportDateRangePreset,
-  ReportDefinition,
+  ReportFilterState,
 } from "@/types/theatre-reports-analytics.types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,8 @@ import {
   Users,
   X,
   DollarSign,
+  SlidersHorizontal,
+  RotateCcw,
 } from "lucide-react";
 
 interface CategoryMeta {
@@ -144,6 +146,47 @@ const PRESET_OPTIONS: Array<{ value: ReportDateRangePreset; label: string }> = [
   { value: "THIS_YEAR", label: "This Year" },
 ];
 
+const MOVIE_OPTIONS = [
+  { value: "ALL", label: "All Films in Catalog" },
+  { value: "mov-opp", label: "Oppenheimer" },
+  { value: "mov-dune2", label: "Dune: Part Two" },
+  { value: "mov-stree2", label: "Stree 2" },
+  { value: "mov-jawan", label: "Jawan" },
+  { value: "mov-kantara", label: "Kantara: Chapter 1" },
+];
+
+const HALL_OPTIONS = [
+  { value: "ALL", label: "All Auditoriums" },
+  { value: "hall-1", label: "Auditorium 1 (IMAX Laser)" },
+  { value: "hall-2", label: "Auditorium 2 (Dolby Atmos)" },
+  { value: "hall-3", label: "Auditorium 3 (Laser Gold)" },
+  { value: "hall-4", label: "Auditorium 4 (Standard 7.1)" },
+];
+
+const SHOW_OPTIONS = [
+  { value: "ALL", label: "All Screening Slots" },
+  { value: "show-morning", label: "Morning Early Bird (10:30)" },
+  { value: "show-matinee", label: "Matinee Prime (14:30)" },
+  { value: "show-eve", label: "Evening Blockbuster (18:30)" },
+  { value: "show-night", label: "Late Night Premiere (21:45)" },
+];
+
+const PAYMENT_OPTIONS = [
+  { value: "ALL", label: "All Payment Channels" },
+  { value: "UPI", label: "Unified Payments Interface (UPI)" },
+  { value: "CARD", label: "Credit & Debit Cards" },
+  { value: "NETBANKING", label: "NetBanking Rails" },
+  { value: "CASH", label: "Box Office Cash Desk" },
+];
+
+const FORMAT_OPTIONS = [
+  { value: "ALL", label: "All Projection Formats" },
+  { value: "IMAX 4K", label: "IMAX 4K Laser" },
+  { value: "DOLBY_ATMOS", label: "Dolby Atmos Spatial" },
+  { value: "LASER_GOLD", label: "Laser Gold Luxury" },
+  { value: "STANDARD", label: "Standard 7.1 Surround" },
+];
+
 interface TheatreReportsClientProps {
   initialReports: ReportSnapshot[];
   initialReportPayload?: GeneratedReportPayload;
@@ -162,6 +205,14 @@ export function TheatreReportsClient({
     initialReportPayload || null
   );
 
+  // Advanced Dimensional Filters
+  const [isFilterBarOpen, setIsFilterBarOpen] = useState(false);
+  const [selectedMovie, setSelectedMovie] = useState("ALL");
+  const [selectedHall, setSelectedHall] = useState("ALL");
+  const [selectedShow, setSelectedShow] = useState("ALL");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("ALL");
+  const [selectedFormat, setSelectedFormat] = useState("ALL");
+
   // Historical Snapshot archive state
   const [reports, setReports] = useState<ReportSnapshot[]>(initialReports);
   const [activeSnapshot, setActiveSnapshot] = useState<ReportSnapshot | null>(null);
@@ -173,7 +224,7 @@ export function TheatreReportsClient({
   const [isPending, startTransition] = useTransition();
   const [isExporting, setIsExporting] = useState(false);
 
-  // New legacy snapshot form state
+  // New snapshot form state
   const [newTitle, setNewTitle] = useState("");
   const [newType, setNewType] = useState<ReportType>("REVENUE_PERFORMANCE");
   const [newPreset, setNewPreset] = useState<TimeFilterPreset>("last30days");
@@ -183,16 +234,34 @@ export function TheatreReportsClient({
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Helper to load report for chosen category and preset
-  const handleSelectCategory = (meta: CategoryMeta, preset: ReportDateRangePreset = selectedPreset) => {
+  const activeFilterCount =
+    (selectedMovie !== "ALL" ? 1 : 0) +
+    (selectedHall !== "ALL" ? 1 : 0) +
+    (selectedShow !== "ALL" ? 1 : 0) +
+    (selectedPaymentMethod !== "ALL" ? 1 : 0) +
+    (selectedFormat !== "ALL" ? 1 : 0);
+
+  const buildActiveFilters = (preset: ReportDateRangePreset = selectedPreset): ReportFilterState => ({
+    dateRangePreset: preset,
+    movieId: selectedMovie !== "ALL" ? selectedMovie : undefined,
+    hallId: selectedHall !== "ALL" ? selectedHall : undefined,
+    showId: selectedShow !== "ALL" ? selectedShow : undefined,
+    paymentMethod: selectedPaymentMethod !== "ALL" ? selectedPaymentMethod : undefined,
+    format: selectedFormat !== "ALL" ? selectedFormat : undefined,
+  });
+
+  // Helper to load report for chosen category and filters
+  const handleGenerateReport = (
+    meta: CategoryMeta = CATEGORY_TABS.find((t) => t.key === activeCategory) || CATEGORY_TABS[0],
+    preset: ReportDateRangePreset = selectedPreset
+  ) => {
     setActiveCategory(meta.key);
     startTransition(async () => {
+      const filters = buildActiveFilters(preset);
       const res = await generateReportAction({
         theatreId,
         definitionId: meta.definitionId,
-        filters: {
-          dateRangePreset: preset,
-        },
+        filters,
       });
 
       if (res.success && res.data) {
@@ -203,10 +272,33 @@ export function TheatreReportsClient({
     });
   };
 
+  const handleSelectCategory = (meta: CategoryMeta) => {
+    handleGenerateReport(meta, selectedPreset);
+  };
+
   const handlePresetChange = (newPreset: ReportDateRangePreset) => {
     setSelectedPreset(newPreset);
-    const meta = CATEGORY_TABS.find((t) => t.key === activeCategory) || CATEGORY_TABS[0];
-    handleSelectCategory(meta, newPreset);
+    handleGenerateReport(undefined, newPreset);
+  };
+
+  const handleResetFilters = () => {
+    setSelectedMovie("ALL");
+    setSelectedHall("ALL");
+    setSelectedShow("ALL");
+    setSelectedPaymentMethod("ALL");
+    setSelectedFormat("ALL");
+    startTransition(async () => {
+      const meta = CATEGORY_TABS.find((t) => t.key === activeCategory) || CATEGORY_TABS[0];
+      const res = await generateReportAction({
+        theatreId,
+        definitionId: meta.definitionId,
+        filters: { dateRangePreset: selectedPreset },
+      });
+      if (res.success && res.data) {
+        setCurrentReport(res.data);
+        showToast("Dimensional filters reset to default.");
+      }
+    });
   };
 
   const handleExportCsv = async () => {
@@ -218,7 +310,7 @@ export function TheatreReportsClient({
         theatreId,
         definitionId: activeMeta.definitionId,
         format: "CSV",
-        filters: { dateRangePreset: selectedPreset },
+        filters: buildActiveFilters(selectedPreset),
       });
 
       if (res.success && res.data) {
@@ -249,13 +341,10 @@ export function TheatreReportsClient({
       const res = await generateReportAction({
         theatreId,
         definitionId: activeMeta.definitionId,
-        filters: {
-          dateRangePreset: selectedPreset,
-        },
+        filters: buildActiveFilters(selectedPreset),
       });
 
       if (res.success && res.data) {
-        // Construct snapshot entry for history ledger
         const newSnapshot: ReportSnapshot = {
           id: res.data.reportId,
           theatreId,
@@ -380,11 +469,27 @@ export function TheatreReportsClient({
               </select>
             </div>
 
+            {/* Filter Toggle Button */}
+            <Button
+              variant={isFilterBarOpen ? "primary" : "outline"}
+              size="sm"
+              onClick={() => setIsFilterBarOpen(!isFilterBarOpen)}
+              className="gap-1.5 border-[#2A3445] text-xs"
+            >
+              <Filter className="h-3.5 w-3.5" />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.2 bg-[#FBBF24] text-[#070B12] font-mono font-bold text-[10px] rounded-full">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
+
             {/* Refresh Action */}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleSelectCategory(activeMeta)}
+              onClick={() => handleGenerateReport()}
               disabled={isPending}
               className="gap-1.5 border-[#2A3445] text-xs hover:border-[#FBBF24]"
             >
@@ -416,6 +521,122 @@ export function TheatreReportsClient({
             </Button>
           </div>
         </div>
+
+        {/* Dimensional Filter Drawer */}
+        {isFilterBarOpen && (
+          <div className="p-4 rounded-xl bg-[#0B101B] border border-[#2A3445] space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between pb-2 border-b border-[#1E293B]">
+              <span className="text-xs font-bold text-white font-mono flex items-center gap-2">
+                <SlidersHorizontal className="h-3.5 w-3.5 text-[#FBBF24]" />
+                Multi-Dimensional Slicing & Advanced Filters
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="text-[11px] font-mono text-[#94A3B8] hover:text-[#FBBF24] flex items-center gap-1 transition-colors"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Reset Defaults
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+              {/* Movie Filter */}
+              <div>
+                <label className="text-[10px] text-[#94A3B8] block mb-1 font-mono uppercase">Movie Title</label>
+                <select
+                  value={selectedMovie}
+                  onChange={(e) => setSelectedMovie(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#2A3445] text-white text-xs focus:outline-none focus:border-[#FBBF24]"
+                >
+                  {MOVIE_OPTIONS.map((m) => (
+                    <option key={m.value} value={m.value} className="bg-[#0F172A] text-white">
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Hall Filter */}
+              <div>
+                <label className="text-[10px] text-[#94A3B8] block mb-1 font-mono uppercase">Auditorium / Hall</label>
+                <select
+                  value={selectedHall}
+                  onChange={(e) => setSelectedHall(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#2A3445] text-white text-xs focus:outline-none focus:border-[#FBBF24]"
+                >
+                  {HALL_OPTIONS.map((h) => (
+                    <option key={h.value} value={h.value} className="bg-[#0F172A] text-white">
+                      {h.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Show Slot Filter */}
+              <div>
+                <label className="text-[10px] text-[#94A3B8] block mb-1 font-mono uppercase">Screening Session</label>
+                <select
+                  value={selectedShow}
+                  onChange={(e) => setSelectedShow(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#2A3445] text-white text-xs focus:outline-none focus:border-[#FBBF24]"
+                >
+                  {SHOW_OPTIONS.map((s) => (
+                    <option key={s.value} value={s.value} className="bg-[#0F172A] text-white">
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Payment Rail Filter */}
+              <div>
+                <label className="text-[10px] text-[#94A3B8] block mb-1 font-mono uppercase">Payment Rail</label>
+                <select
+                  value={selectedPaymentMethod}
+                  onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#2A3445] text-white text-xs focus:outline-none focus:border-[#FBBF24]"
+                >
+                  {PAYMENT_OPTIONS.map((p) => (
+                    <option key={p.value} value={p.value} className="bg-[#0F172A] text-white">
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Projection Format Filter */}
+              <div>
+                <label className="text-[10px] text-[#94A3B8] block mb-1 font-mono uppercase">Format & Audio</label>
+                <select
+                  value={selectedFormat}
+                  onChange={(e) => setSelectedFormat(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#2A3445] text-white text-xs focus:outline-none focus:border-[#FBBF24]"
+                >
+                  {FORMAT_OPTIONS.map((f) => (
+                    <option key={f.value} value={f.value} className="bg-[#0F172A] text-white">
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button
+                variant="primary"
+                size="xs"
+                onClick={() => handleGenerateReport()}
+                disabled={isPending}
+                className="gap-1.5 font-bold text-xs"
+              >
+                <span>Apply Slicing Filters</span>
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Live Report Metadata Strip */}
         {currentReport && (

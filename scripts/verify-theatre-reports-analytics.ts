@@ -171,6 +171,28 @@ async function runReportsAnalyticsVerification() {
     assert(rev.revenueByPaymentMethod.length > 0, `Contains revenue sliced by payment method (${rev.revenueByPaymentMethod.length} methods)`);
     assert(rev.averageTicketValue > 0, `Computed valid Average Ticket Value (${rev.averageTicketValue})`);
     assert(rev.revenuePerAvailableSeat > 0, `Computed valid RevPAS (${rev.revenuePerAvailableSeat})`);
+
+    // Dimensional Slicing assertions
+    const movieFiltered = await theatreAnalyticsService.getRevenueAnalytics(
+      "th-pun-001",
+      { dateRangePreset: "THIS_MONTH", movieId: "mov-opp" },
+      actorPuneAdmin
+    );
+    assert(movieFiltered.revenueByMovie.length === 1 && movieFiltered.revenueByMovie[0].id === "mov-opp", "Revenue analytics dynamically slices by Movie ID");
+
+    const hallFiltered = await theatreAnalyticsService.getHallPerformance(
+      "th-pun-001",
+      { dateRangePreset: "THIS_MONTH", hallId: "hall-1" },
+      actorPuneAdmin
+    );
+    assert(hallFiltered.halls.length === 1 && hallFiltered.halls[0].hallId === "hall-1", "Hall performance dynamically slices by Hall ID");
+
+    const payFiltered = await theatreAnalyticsService.getPaymentAnalytics(
+      "th-pun-001",
+      { dateRangePreset: "THIS_MONTH", paymentMethod: "UPI" },
+      actorPuneAdmin
+    );
+    assert(payFiltered.paymentMethodsBreakdown.length === 1 && payFiltered.paymentMethodsBreakdown[0].method.includes("UPI"), "Payment analytics dynamically slices by Payment Rail");
   }
 
   // ----------------------------------------------------------------------------
