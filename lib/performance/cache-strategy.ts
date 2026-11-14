@@ -31,6 +31,8 @@ export const CACHE_TAGS = {
   PUBLIC_THEATRE_STAFF: (slugOrId: string) => `public-theatre-staff:${slugOrId}`,
   THEATRE_DASHBOARD: (theatreId: string) => `theatre-dashboard:${theatreId}`,
   DASHBOARD_PREFERENCES: (userId: string, theatreId: string) => `dashboard-pref:${userId}:${theatreId}`,
+  THEATRE_SEARCH_INDEX: "theatre-search:index",
+  THEATRE_SEARCH_PRESETS: (userId: string) => `theatre-search-presets:${userId}`,
   PAYMENT_CONFIGS: (theatreId: string) => `payment-configs:${theatreId}`,
   SHOW: (showId: string) => `show:${showId}`,
   SHOWS_DAILY: (theatreId: string, date: string) => `shows:${theatreId}:${date}`,

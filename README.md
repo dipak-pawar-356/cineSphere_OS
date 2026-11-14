@@ -808,6 +808,25 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - **Audit Logging & Caching:** Invalidation of `THEATRE_DASHBOARD` and `DASHBOARD_PREFERENCES` cache tags upon mutations.
 - 📚 **Theatre Dashboard Architecture Guide:** Detailed technical documentation in [`docs/THEATRE_DASHBOARD_ARCHITECTURE.md`](./docs/THEATRE_DASHBOARD_ARCHITECTURE.md).
 
+### 2.29 Phase 3 - Part 12: Theatre Search & Filters Engine (Completed)
+- 🔍 **Dedicated Search Index Layer (`TheatreSearchDocument`, `theatre_search_index`):**
+  - Models $\text{Platform} \to \text{Search Engine} \to \text{Theatre Search Index} \to \text{Search API} \to \text{Theatre Search UI}$.
+  - Completely decouples search from slow, locking multi-table SQL `LIKE` queries by aggregating searchable data from Theatre Profile, Location & Geography, Business Identity, Technical Amenities, Lifecycle/Approval Status, Primary Staff Admin, and Operating Localization Parameters into an indexed document structure.
+- 🏗️ **Generic Search Framework & Contracts (`types/theatre-search.types.ts`):**
+  - Defines generic search contracts (`GenericSearchQuery`, `GenericSearchResults`, `FacetBucket`, `GenericPaginationResult`) engineered for plug-and-play migration to dedicated search engines (Elasticsearch, Meilisearch, Algolia) without modifying UI components or server actions.
+- ⚡ **Weighted Relevance Scoring & Punctuation-Preserving Tokenizer (`lib/search/search-query-builder.ts`):**
+  - Tokenizes queries while preserving email dots/at-symbols and statutory tax identifiers; scores matches by field weight: Names & Slugs ($W=10$), Codes & Legal Names ($W=8$), Tax/GST credentials ($W=7$), Cities/Addresses ($W=5$), Primary Admin contact ($W=4$), and Technical Amenities ($W=3$).
+- 🎛️ **Multi-Faceted Filtering & Dynamic Bucket Distributions:**
+  - Real-time multi-select facets for Lifecycle Status (`ACTIVE`, `PENDING_APPROVAL`, `SUSPENDED`, `ARCHIVED`, `DRAFT`), Verification Badge, Circuit Tier (`PREMIUM` vs `STANDARD`), Chain Type (`CHAIN` vs `INDEPENDENT`), Business Categories, Geographic Regions (State/City/Country), Amenities (Dolby Atmos, IMAX, 4DX, VIP Lounge), Screen Count range, and Seating Capacity bounds.
+- 🔄 **Deterministic Multi-Attribute Sorting:**
+  - 8 distinct sorting strategies: `NEWEST` (Creation Date Desc), `OLDEST` (Creation Date Asc), `NAME_ASC` (A-Z), `NAME_DESC` (Z-A), `MOST_SCREENS`, `LARGEST_CAPACITY`, `RECENTLY_UPDATED`, and future distance sort placeholder (`DISTANCE_ASC`).
+- 💾 **Enterprise Saved Searches & Presets Management (`SavedSearchPreset`):**
+  - Per-operator search filter and sort presets persisted and recalled seamlessly (e.g. *"Pending Approval Theatres"*, *"Premium Circuits in Maharashtra"*).
+- 🛡️ **Strict RBAC & Tenant Boundary Gating:**
+  - Public patrons/guests are strictly restricted to `ACTIVE` and `isVerified: true` venues at the domain service layer. Super Administrators retain full visibility across pre-launch, suspended, and archived multiplexes.
+  - Full audit logging via `securityAuditService.recordAudit` and high-resolution latency tracking (`tookMs`).
+- 📚 **Theatre Search & Filters Guide:** Detailed technical documentation in [`docs/THEATRE_SEARCH_AND_FILTERS_ARCHITECTURE.md`](./docs/THEATRE_SEARCH_AND_FILTERS_ARCHITECTURE.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -828,6 +847,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🔍 [`docs/THEATRE_SEARCH_AND_FILTERS_ARCHITECTURE.md`](./docs/THEATRE_SEARCH_AND_FILTERS_ARCHITECTURE.md) — Multi-Tenant Theatre Search & Filters Engine Architecture (`TheatreSearchDocument`, `theatre_search_index`, Generic Search Framework, Weighted Multi-Field Scoring, Dynamic Facets, Multi-Attribute Sorter, Enterprise Saved Presets & RBAC Gating) (Phase 3 - Part 12).
 - 📊 [`docs/THEATRE_DASHBOARD_ARCHITECTURE.md`](./docs/THEATRE_DASHBOARD_ARCHITECTURE.md) — Multi-Tenant Theatre Dashboard & Dedicated Analytics Layer Architecture (`theatre_dashboard_materialized_metrics`, `user_dashboard_preferences`, `dashboard_activity_feed`, Pre-Aggregated Operational Metrics, Declarative Metadata-Driven Widget Registry, Capability RBAC Gating, Multi-Tenant Localization & Urgent Start Alerts) (Phase 3 - Part 11).
 - 👥 [`docs/THEATRE_STAFF_MANAGEMENT.md`](./docs/THEATRE_STAFF_MANAGEMENT.md) — Multi-Tenant Theatre Staff Management & Dynamic RBAC Architecture (`role_templates`, `theatre_roles`, `theatre_permissions`, `staff_departments`, `theatre_staff`, `staff_role_assignments`, `staff_role_history`, `future_shift_placeholders`, Capability Authorization & Lifecycle Governance) (Phase 3 - Part 10).
 - ⚙️ [`docs/DYNAMIC_THEATRE_CONFIGURATION_MANAGEMENT.md`](./docs/DYNAMIC_THEATRE_CONFIGURATION_MANAGEMENT.md) — Dynamic Theatre Configuration Management Architecture (`TheatreConfiguration`, Decoupled Relational Entities, Localization, Booking Quotas, Cancellation Penalties, Refund Settlements, Age Ratings, Modular Feature Flags, Terms & OCC Rollback) (Phase 3 - Part 9).

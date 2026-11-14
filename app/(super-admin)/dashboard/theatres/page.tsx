@@ -293,6 +293,15 @@ export default function SuperAdminTheatresManagementPage() {
         badgeVariant="primary"
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            <Link href="/dashboard/theatres/search">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-[#F59E0B]/40 bg-[#F59E0B]/10 text-xs font-bold text-[#F59E0B] hover:bg-[#F59E0B]/20"
+              >
+                <Search className="h-3.5 w-3.5" /> Search Index Engine
+              </Button>
+            </Link>
             <Button
               onClick={() => {
                 setFormMode("create");
