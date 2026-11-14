@@ -15,6 +15,11 @@ import type {
   DashboardActivityItem,
   RevenueMetricsBundle,
   BookingMetricsBundle,
+  ShowMetricsBundle,
+  HallMetricsBundle,
+  OccupancyMetricsBundle,
+  PaymentMetricsBundle,
+  OperationalAlertsBundle,
 } from "@/types/theatre-dashboard.types";
 
 /**
@@ -192,3 +197,57 @@ export const loadBookingSummaryAction = createProtectedAction<
     return bundle.bookings;
   }
 );
+
+// ------------------------------------------------------------------------------
+// 7. Load Operational Metrics Action
+// ------------------------------------------------------------------------------
+export const loadMetricsAction = createProtectedAction<
+  z.input<typeof dashboardFilterSchema>,
+  {
+    revenue: RevenueMetricsBundle;
+    bookings: BookingMetricsBundle;
+    shows: ShowMetricsBundle;
+    halls: HallMetricsBundle;
+    occupancy: OccupancyMetricsBundle;
+    payments: PaymentMetricsBundle;
+    alerts: OperationalAlertsBundle;
+  }
+>(
+  {
+    actionName: "loadMetricsAction",
+    schema: dashboardFilterSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (data) => data.theatreId,
+    auditModule: "THEATRE_DASHBOARD",
+    auditAction: "READ",
+  },
+  async (input, context) => {
+    const bundle = await theatreDashboardService.getDashboardBundle(
+      input.theatreId,
+      input,
+      context.actor
+    );
+    return {
+      revenue: bundle.revenue,
+      bookings: bundle.bookings,
+      shows: bundle.shows,
+      halls: bundle.halls,
+      occupancy: bundle.occupancy,
+      payments: bundle.payments,
+      alerts: bundle.alerts,
+    };
+  }
+);
+
+// ------------------------------------------------------------------------------
+// 8. Load Notifications / Activity Feed Action Alias
+// ------------------------------------------------------------------------------
+export const loadNotificationsAction = loadDashboardActivitiesAction;
+
+// ------------------------------------------------------------------------------
+// 9. Standardized Action Aliases
+// ------------------------------------------------------------------------------
+export const loadDashboardAction = loadTheatreDashboardAction;
+export const refreshDashboardAction = refreshTheatreDashboardAction;
