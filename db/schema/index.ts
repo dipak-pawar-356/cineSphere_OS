@@ -44,6 +44,9 @@ export * from "./theatre-configuration";
 // Theatre Staff & Dynamic RBAC Management (Phase 3 - Part 10)
 export * from "./theatre-staff";
 
+// Theatre Dashboard & Analytics Layer (Phase 3 - Part 11)
+export * from "./theatre-dashboard";
+
 // Tenant Payment Configurations & Ledger
 export * from "./payments";
 

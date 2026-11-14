@@ -786,6 +786,28 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - **Audit Logging:** Tamper-evident logging through `securityAuditService.recordAudit` across all staff creation, invitation, suspension, archival, role assignment, and permission update events.
 - 📚 **Theatre Staff Management Guide:** Detailed technical documentation in [`docs/THEATRE_STAFF_MANAGEMENT.md`](./docs/THEATRE_STAFF_MANAGEMENT.md).
 
+### 2.28 Phase 3 - Part 11: Theatre Dashboard & Analytics Layer (Completed)
+- 📊 **Dedicated Dashboard Analytics Layer (`db/schema/theatre-dashboard.ts`):**
+  - Models $\text{Platform} \to \text{Analytics Engine} \to \text{Materialized Metrics} \to \text{Widget Registry} \to \text{User Preferences} \to \text{Theatre Dashboard}$.
+  - Decoupled from transactional database tables (`bookings`, `payments`, `shows`, `halls`, `tickets`); pre-aggregates operational metrics into `theatre_dashboard_materialized_metrics`, eliminating database lock contention and query latency under peak box-office traffic.
+- 🧩 **Metadata-Driven Widget Registry (`lib/dashboard/widget-registry.ts`):**
+  - Declarative widget registry defining 10 core operational widgets: Revenue Overview, Booking Quotas, Auditorium Occupancy, Screen Status Summary, Live Shows & Starting Soon, Payment Settlements, Operational Alerts, Activity Stream, Quick Actions, and System Health.
+  - Gated by capability-based RBAC permissions (e.g. `reports:read`, `shows:read`, `halls:read`, `payments:read`, `settings:read`); automatically conceals financial widgets from screen managers.
+- 🎨 **Per-User Dashboard Personalization (`user_dashboard_preferences`):**
+  - Decoupled layout preferences stored per operator: visible widgets, customized display order, collapsed widget states, pinned favorites, and default date preset filters (`TODAY`, `YESTERDAY`, `THIS_WEEK`, `THIS_MONTH`).
+  - Completely decoupled from theatre configuration, ensuring every operator customizes their operational workspace independently.
+- 🌍 **Multi-Tenant Autonomous Localization:**
+  - Automatically formats metrics according to each theatre's profile:
+    - **Theatre A (Pune `th-pun-001`):** INR (`₹`), Indian numbering (Lakhs/Crores), `Asia/Kolkata` (12H), ₹1,25,000 Today's Revenue, 420 Bookings, 82% Occupancy.
+    - **Theatre B (Mumbai `th-mum-001`):** USD (`$`), International numbering (Millions), `America/New_York` (12H), $8,420 Today's Revenue, 215 Bookings, 61% Occupancy.
+    - **Theatre C (Dubai `th-dxb-001`):** AED (`AED `), International numbering, `Asia/Dubai` (24H), AED 32,400 Today's Revenue, 170 Bookings, 74% Occupancy.
+- 🚨 **Real-Time Operational Alerts & Activity Stream (`dashboard_activity_feed`):**
+  - Highlights screenings starting in $<60\text{m}$ with $>90\%$ seat occupancy, hardware maintenance alerts, and live operational activity audit stream.
+- 💻 **Developer Notes:**
+  - **Multi-Tenant Isolation:** Enforced via `tenantService.assertTenantAccess`; cross-tenant requests are strictly blocked and logged to the security audit bus.
+  - **Audit Logging & Caching:** Invalidation of `THEATRE_DASHBOARD` and `DASHBOARD_PREFERENCES` cache tags upon mutations.
+- 📚 **Theatre Dashboard Architecture Guide:** Detailed technical documentation in [`docs/THEATRE_DASHBOARD_ARCHITECTURE.md`](./docs/THEATRE_DASHBOARD_ARCHITECTURE.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -806,6 +828,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 📊 [`docs/THEATRE_DASHBOARD_ARCHITECTURE.md`](./docs/THEATRE_DASHBOARD_ARCHITECTURE.md) — Multi-Tenant Theatre Dashboard & Dedicated Analytics Layer Architecture (`theatre_dashboard_materialized_metrics`, `user_dashboard_preferences`, `dashboard_activity_feed`, Pre-Aggregated Operational Metrics, Declarative Metadata-Driven Widget Registry, Capability RBAC Gating, Multi-Tenant Localization & Urgent Start Alerts) (Phase 3 - Part 11).
 - 👥 [`docs/THEATRE_STAFF_MANAGEMENT.md`](./docs/THEATRE_STAFF_MANAGEMENT.md) — Multi-Tenant Theatre Staff Management & Dynamic RBAC Architecture (`role_templates`, `theatre_roles`, `theatre_permissions`, `staff_departments`, `theatre_staff`, `staff_role_assignments`, `staff_role_history`, `future_shift_placeholders`, Capability Authorization & Lifecycle Governance) (Phase 3 - Part 10).
 - ⚙️ [`docs/DYNAMIC_THEATRE_CONFIGURATION_MANAGEMENT.md`](./docs/DYNAMIC_THEATRE_CONFIGURATION_MANAGEMENT.md) — Dynamic Theatre Configuration Management Architecture (`TheatreConfiguration`, Decoupled Relational Entities, Localization, Booking Quotas, Cancellation Penalties, Refund Settlements, Age Ratings, Modular Feature Flags, Terms & OCC Rollback) (Phase 3 - Part 9).
 - ⏰ [`docs/THEATRE_OPERATING_HOURS_MANAGEMENT.md`](./docs/THEATRE_OPERATING_HOURS_MANAGEMENT.md) — Multi-Tenant Theatre Operating Hours & Schedules Architecture (`TheatreOperatingProfile`, Weekly Rotations, Holiday Calendars, Facility Maintenance Downtime, Midnight Premieres, Timezone Governance & OCC) (Phase 3 - Part 8).

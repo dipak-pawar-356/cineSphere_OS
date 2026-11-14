@@ -746,7 +746,34 @@ export const staffRoleChangeTypeEnum = pgEnum("staff_role_change_type", [
   "REVOKED",
 ]);
 
+// ------------------------------------------------------------------------------
+// Theatre Dashboard & Analytics Layer Enums (Phase 3 - Part 11)
+// ------------------------------------------------------------------------------
 
+export const dashboardPeriodTypeEnum = pgEnum("dashboard_period_type", [
+  "TODAY",
+  "YESTERDAY",
+  "THIS_WEEK",
+  "THIS_MONTH",
+  "CUSTOM",
+]);
 
+export const dashboardWidgetCategoryEnum = pgEnum("dashboard_widget_category", [
+  "METRIC",
+  "STATUS",
+  "SUMMARY",
+  "ALERT",
+  "FEED",
+  "ACTION",
+]);
 
+export const dashboardActivityTypeEnum = pgEnum("dashboard_activity_type", [
+  "NEW_BOOKING",
+  "PAYMENT_RECEIVED",
+  "SHOW_STARTED",
+  "SHOW_COMPLETED",
+  "MAINTENANCE_ALERT",
+  "SYSTEM_ALERT",
+  "STAFF_DUTY",
+]);
 

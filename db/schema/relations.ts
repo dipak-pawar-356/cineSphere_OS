@@ -89,6 +89,11 @@ import {
   staffRoleHistory,
   futureShiftPlaceholders,
 } from "./theatre-staff";
+import {
+  theatreDashboardMetrics,
+  userDashboardPreferences,
+  dashboardActivityFeed,
+} from "./theatre-dashboard";
 import { paymentConfigurations, payments } from "./payments";
 import { halls, hallLayouts, hallSections, seatTemplates } from "./halls";
 import {
@@ -323,6 +328,9 @@ export const theatresRelations = relations(theatres, ({ one, many }) => ({
   staffRoleAssignments: many(staffRoleAssignments),
   staffRoleHistory: many(staffRoleHistory),
   futureShiftPlaceholders: many(futureShiftPlaceholders),
+  dashboardMetrics: many(theatreDashboardMetrics),
+  userDashboardPreferences: many(userDashboardPreferences),
+  dashboardActivityFeed: many(dashboardActivityFeed),
 }));
 
 export const theatreLifecycleRelations = relations(theatreLifecycle, ({ one }) => ({
