@@ -707,6 +707,45 @@ export const configCensorRatingEnum = pgEnum("config_censor_rating", [
   "S",
 ]);
 
+// ------------------------------------------------------------------------------
+// Phase 3 Part 10: Theatre Staff Management & Dynamic RBAC Enums
+// ------------------------------------------------------------------------------
+export const staffEmploymentStatusEnum = pgEnum("staff_employment_status", [
+  "INVITED",
+  "ACTIVE",
+  "INACTIVE",
+  "SUSPENDED",
+  "RESIGNED",
+  "ARCHIVED",
+]);
+
+export const staffDepartmentTypeEnum = pgEnum("staff_department_type", [
+  "OPERATIONS",
+  "PROJECTION",
+  "CUSTOMER_SUPPORT",
+  "SECURITY",
+  "MAINTENANCE",
+  "FOOD_COURT",
+  "ADMINISTRATION",
+  "FINANCE",
+  "MARKETING",
+  "CUSTOM",
+]);
+
+export const theatreRoleStatusEnum = pgEnum("theatre_role_status", [
+  "ACTIVE",
+  "INACTIVE",
+  "ARCHIVED",
+]);
+
+export const staffRoleChangeTypeEnum = pgEnum("staff_role_change_type", [
+  "ASSIGNED",
+  "PROMOTED",
+  "DEMOTED",
+  "TRANSFERRED",
+  "REVOKED",
+]);
+
 
 
 

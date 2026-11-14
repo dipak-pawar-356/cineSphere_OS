@@ -759,6 +759,25 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - **Audit Logging & Caching:** Full audit logging through `securityAuditService` with invalidation of `THEATRE_CONFIGURATION` and `PUBLIC_THEATRE_CONFIGURATION` cache tags.
 - 📚 **Dynamic Theatre Configuration Guide:** Detailed technical documentation in [`docs/DYNAMIC_THEATRE_CONFIGURATION_MANAGEMENT.md`](./docs/DYNAMIC_THEATRE_CONFIGURATION_MANAGEMENT.md).
 
+### 2.27 Phase 3 - Part 10: Theatre Staff Management & Dynamic RBAC Hierarchy (Completed)
+- 👥 **Dynamic RBAC & Tenant-Owned Hierarchy (`db/schema/theatre-staff.ts`):**
+  - Completely decouples staff roles from platform enums, establishing $\text{Platform} \to \text{Permission Catalog} \to \text{Role Templates} \to \text{Theatre} \to \text{Staff Organization}$.
+  - Supported by 8 normalized tables: `role_templates`, `theatre_roles`, `theatre_permissions`, `staff_departments`, `theatre_staff`, `staff_role_assignments`, `staff_role_history`, and `future_shift_placeholders`.
+- 🔑 **Platform Permission Catalog & Granular Authorization:**
+  - 20+ granular capability keys across `THEATRE`, `STAFF`, `HALLS`, `SHOWS`, `BOOKINGS`, `CONCESSIONS`, `ANALYTICS`, and `PLATFORM`.
+  - Permission-based authorization checks (`theatreStaffService.hasPermission(staffId, permissionKey)`), ensuring capability enforcement rather than hardcoded role string matching.
+- 📋 **Platform Template-to-Tenant Instantiation:**
+  - Super Admin curated templates (`TEMPLATE_THEATRE_ADMIN`, `TEMPLATE_HALL_MGR`, `TEMPLATE_PROJECTION`, `TEMPLATE_FOOD_COURT`, etc.) can be instantiated into tenant-owned roles with custom display names, hierarchy weights, and overridden capability grants.
+- 🧑‍💼 **Multi-Role Capability & Lifecycle State Machine:**
+  - Staff members can hold multiple simultaneous operational roles (Primary & Secondary roles).
+  - Lifecycle state machine: `INVITED` → `ACTIVE` ↔ `SUSPENDED` → `RESIGNED` / `ARCHIVED`.
+  - Immediate capability revocation upon suspension or archival, with full audit trail in `staff_role_history`.
+- 🛡️ **Multi-Tenant Boundary Enforcement & Optimistic Guards:**
+  - Strict tenant boundary isolation (`tenantService.assertTenantAccess`), pre-pagination multi-tenant filtering, and security audit logging for cross-tenant violations.
+- 💻 **Connected Workspace Experience (`components/theatre-staff/`):**
+  - Real-time KPI summaries, multi-criteria searching and filtering, tabbed directory (Staff, Roles, Departments, Templates), direct onboarding & email invitation modals, side-drawer profile inspection, and granular permission editing.
+- 📚 **Theatre Staff Management Guide:** Detailed technical documentation in [`docs/THEATRE_STAFF_MANAGEMENT.md`](./docs/THEATRE_STAFF_MANAGEMENT.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -779,6 +798,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 👥 [`docs/THEATRE_STAFF_MANAGEMENT.md`](./docs/THEATRE_STAFF_MANAGEMENT.md) — Multi-Tenant Theatre Staff Management & Dynamic RBAC Architecture (`role_templates`, `theatre_roles`, `theatre_permissions`, `staff_departments`, `theatre_staff`, `staff_role_assignments`, `staff_role_history`, `future_shift_placeholders`, Capability Authorization & Lifecycle Governance) (Phase 3 - Part 10).
 - ⚙️ [`docs/DYNAMIC_THEATRE_CONFIGURATION_MANAGEMENT.md`](./docs/DYNAMIC_THEATRE_CONFIGURATION_MANAGEMENT.md) — Dynamic Theatre Configuration Management Architecture (`TheatreConfiguration`, Decoupled Relational Entities, Localization, Booking Quotas, Cancellation Penalties, Refund Settlements, Age Ratings, Modular Feature Flags, Terms & OCC Rollback) (Phase 3 - Part 9).
 - ⏰ [`docs/THEATRE_OPERATING_HOURS_MANAGEMENT.md`](./docs/THEATRE_OPERATING_HOURS_MANAGEMENT.md) — Multi-Tenant Theatre Operating Hours & Schedules Architecture (`TheatreOperatingProfile`, Weekly Rotations, Holiday Calendars, Facility Maintenance Downtime, Midnight Premieres, Timezone Governance & OCC) (Phase 3 - Part 8).
 - 🏢 [`docs/THEATRE_BUSINESS_INFORMATION_MANAGEMENT.md`](./docs/THEATRE_BUSINESS_INFORMATION_MANAGEMENT.md) — Multi-Tenant Theatre Business & Legal Information Architecture (`TheatreBusinessProfile`, Statutory GST/PAN/CIN Validation, Country-Aware Tax Configuration, Billing Sequence & Invoicing Governance, Decoupled Document Vault, Super Admin Compliance Workflow & OCC) (Phase 3 - Part 7).

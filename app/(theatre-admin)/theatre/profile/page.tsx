@@ -413,6 +413,11 @@ export default function TheatreProfilePage() {
                     <Sliders className="h-3.5 w-3.5 text-cyan-400" /> Dynamic Rules & Feature Flags →
                   </Button>
                 </Link>
+                <Link href="/theatre/staff" className="block w-full">
+                  <Button variant="outline" size="xs" className="w-full border-[#2A3445] text-xs gap-1.5 text-zinc-300 hover:text-white">
+                    <Users className="h-3.5 w-3.5 text-indigo-400" /> Staff Roster & Dynamic RBAC Roles →
+                  </Button>
+                </Link>
               </div>
             </div>
           </Card>

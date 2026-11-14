@@ -79,6 +79,16 @@ import {
   theatreConfigurationTerms,
   theatreConfigurationVersions,
 } from "./theatre-configuration";
+import {
+  roleTemplates,
+  theatreRoles,
+  theatrePermissions,
+  staffDepartments,
+  theatreStaff,
+  staffRoleAssignments,
+  staffRoleHistory,
+  futureShiftPlaceholders,
+} from "./theatre-staff";
 import { paymentConfigurations, payments } from "./payments";
 import { halls, hallLayouts, hallSections, seatTemplates } from "./halls";
 import {
@@ -306,6 +316,13 @@ export const theatresRelations = relations(theatres, ({ one, many }) => ({
   featureFlagConfigurations: many(theatreFeatureFlagConfigurations),
   configurationTerms: many(theatreConfigurationTerms),
   configurationVersions: many(theatreConfigurationVersions),
+  theatreRoles: many(theatreRoles),
+  theatrePermissions: many(theatrePermissions),
+  staffDepartments: many(staffDepartments),
+  staffMembers: many(theatreStaff),
+  staffRoleAssignments: many(staffRoleAssignments),
+  staffRoleHistory: many(staffRoleHistory),
+  futureShiftPlaceholders: many(futureShiftPlaceholders),
 }));
 
 export const theatreLifecycleRelations = relations(theatreLifecycle, ({ one }) => ({

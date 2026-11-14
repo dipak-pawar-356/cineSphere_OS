@@ -41,6 +41,9 @@ export * from "./theatre-operating-hours";
 // Dynamic Theatre Configuration Management (Phase 3 - Part 9)
 export * from "./theatre-configuration";
 
+// Theatre Staff & Dynamic RBAC Management (Phase 3 - Part 10)
+export * from "./theatre-staff";
+
 // Tenant Payment Configurations & Ledger
 export * from "./payments";
 
