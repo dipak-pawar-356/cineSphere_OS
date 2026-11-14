@@ -76,6 +76,33 @@ export class TenantAccessError extends AppError {
   }
 }
 
+export class OwnershipError extends AppError {
+  public readonly resourceType?: string;
+  public readonly resourceId?: string;
+  public readonly ownerTenantId?: string;
+  public readonly actorTenantId?: string;
+
+  constructor(
+    message = "Resource ownership validation failed",
+    options?: {
+      resourceType?: string;
+      resourceId?: string;
+      ownerTenantId?: string;
+      actorTenantId?: string;
+      correlationId?: string;
+    }
+  ) {
+    super(message, "OWNERSHIP_VIOLATION", 403, {
+      correlationId: options?.correlationId,
+      metadata: options,
+    });
+    this.resourceType = options?.resourceType;
+    this.resourceId = options?.resourceId;
+    this.ownerTenantId = options?.ownerTenantId;
+    this.actorTenantId = options?.actorTenantId;
+  }
+}
+
 export class NotFoundError extends AppError {
   public readonly entity?: string;
   public readonly entityId?: string;

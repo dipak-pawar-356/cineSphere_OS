@@ -12,3 +12,7 @@ export * from "./rate-limiter";
 export * from "./validation-schemas";
 export * from "./security-events";
 export * from "./action-guard";
+export * from "./policies/theatre-security-policies";
+export * from "./ownership-validator";
+export * from "./media-validator";
+export * from "./validation-pipeline";

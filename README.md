@@ -847,6 +847,26 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Hero with verification badge and Google Maps routing, 4-card Quick Specs, About & Story, Running Movies & Premieres separation, Available Shows with format tags & seat quotas, Auditorium Fleet breakdown (Laser 4K, 12-ch / 64-ch spatial audio), Public Amenities with facility metadata, Lightbox Architectural Gallery, Live Operating Hours with 7-day schedule, Multi-desk Public Contact directory, and Non-functional Reviews architecture placeholder.
 - 📚 **Public Theatre Page Architecture Guide:** Detailed technical documentation in [`docs/PUBLIC_THEATRE_PAGE_ARCHITECTURE.md`](./docs/PUBLIC_THEATRE_PAGE_ARCHITECTURE.md).
 
+### 2.31 Phase 3 - Part 14: Platform Security & Governance Layer (Completed)
+- 🛡️ **Unified Security & Governance Architecture (`TheatreGovernanceService`, `theatre_governance`):**
+  - Models $\text{Platform} \to \text{Security \& Governance Layer} \to \text{Authorization} \to \text{Validation Pipeline} \to \text{Audit Engine} \to \text{Activity History} \to \text{Version Control} \to \text{Soft Delete} \to \text{Monitoring Hooks} \to \text{All Modules}$.
+  - Centralizes security, ownership validation, policy authorization, and audit logging into a single source of truth across all cinema modules (Theatres, Movies, Halls, Shows, Staff, Bookings, Payments).
+- 📜 **Policy-Based Authorization Framework (`theatre-security-policies.ts`):**
+  - Declarative policy rules (`canManageTheatre`, `canPublishTheatre`, `canUploadMedia`, `canManageStaff`, `canSoftDeleteResource`, etc.) evaluated against the Phase 2 RBAC matrix and role hierarchy, eliminating scattered ad-hoc role checks.
+- 🚦 **Central 9-Stage Validation Pipeline Engine (`ValidationPipeline`):**
+  - Executes mutations in strict, deterministic order:
+    1. Authentication Check $\to$ 2. Policy-Based Authorization $\to$ 3. Tenant Boundary Isolation $\to$ 4. Resource Ownership Validation $\to$ 5. Input Sanitization & Zod Validation $\to$ 6. Theatre-Specific Business Rules $\to$ 7. Optimistic Concurrency Control (OCC) $\to$ 8. Domain Operation Execution $\to$ 9. Domain Event Auditing & Activity History Recording.
+- 🏢 **Multi-Tenant Boundary Isolation & Ownership Validation (`OwnershipValidator`):**
+  - Strictly asserts that resources belong to the target theatre complex before mutation. Prevents cross-tenant access with `OwnershipError` and `TenantAccessError`.
+- 📁 **Media Validation with Dynamic Theatre Limits (`MediaValidator`):**
+  - Dynamically enforces upload quotas configured per venue: Theatre A (Pune) 20 MB, Theatre B (Mumbai) 50 MB, Theatre C (Dubai) 10 MB; path traversal defense, allowed MIME validation, virus scanning, and CDN validation stubs.
+- 🧮 **Optimistic Concurrency Control (OCC) & Soft Delete Engine:**
+  - Resource version increments with ETag placeholders and automatic $409$ `ConflictError` detection preventing concurrent overwrite anomalies.
+  - Reusable soft delete with `deletedAt`, `deletedBy`, and non-destructive restoration (`isDeleted: false`). Permanent purge is strictly restricted to Super Admin.
+- 📜 **Domain Event Auditing & Chronological Activity History:**
+  - Emits structured `DomainSecurityEvent` records to an immutable audit store and updates operator activity history with full correlation tracking.
+- 📚 **Platform Security & Governance Guide:** Detailed technical documentation in [`docs/THEATRE_SECURITY_AND_GOVERNANCE_ARCHITECTURE.md`](./docs/THEATRE_SECURITY_AND_GOVERNANCE_ARCHITECTURE.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -867,6 +887,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🛡️ [`docs/THEATRE_SECURITY_AND_GOVERNANCE_ARCHITECTURE.md`](./docs/THEATRE_SECURITY_AND_GOVERNANCE_ARCHITECTURE.md) — Platform Security & Governance Layer Architecture (Policy-Based Authorization, Central 9-Stage Validation Pipeline, Multi-Tenant Boundary Isolation, Resource Ownership Validation, Dynamic Quota Engine, OCC Version Checks, Soft Delete & Domain Event Auditing) (Phase 3 - Part 14).
 - 🌐 [`docs/PUBLIC_THEATRE_PAGE_ARCHITECTURE.md`](./docs/PUBLIC_THEATRE_PAGE_ARCHITECTURE.md) — Public Theatre Page Read Model Architecture (Public Content Layer, Read Model Aggregation, Zero Sensitive Data Leakage, Content Visibility State Machine, Multi-Tenant Localization, Next.js 15 ISR & Schema.org MovieTheater JSON-LD) (Phase 3 - Part 13).
 - 🔍 [`docs/THEATRE_SEARCH_AND_FILTERS_ARCHITECTURE.md`](./docs/THEATRE_SEARCH_AND_FILTERS_ARCHITECTURE.md) — Multi-Tenant Theatre Search & Filters Engine Architecture (`TheatreSearchDocument`, `theatre_search_index`, Generic Search Framework, Weighted Multi-Field Scoring, Dynamic Facets, Multi-Attribute Sorter, Enterprise Saved Presets & RBAC Gating) (Phase 3 - Part 12).
 - 📊 [`docs/THEATRE_DASHBOARD_ARCHITECTURE.md`](./docs/THEATRE_DASHBOARD_ARCHITECTURE.md) — Multi-Tenant Theatre Dashboard & Dedicated Analytics Layer Architecture (`theatre_dashboard_materialized_metrics`, `user_dashboard_preferences`, `dashboard_activity_feed`, Pre-Aggregated Operational Metrics, Declarative Metadata-Driven Widget Registry, Capability RBAC Gating, Multi-Tenant Localization & Urgent Start Alerts) (Phase 3 - Part 11).

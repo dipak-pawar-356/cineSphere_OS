@@ -34,4 +34,7 @@ export * from "./theatre-contact.types";
 export * from "./theatre-business.types";
 export * from "./theatre-operating-hours.types";
 export * from "./theatre-configuration.types";
+export * from "./theatre-staff.types";
+export * from "./theatre-dashboard.types";
+export * from "./theatre-security-governance.types";
 
