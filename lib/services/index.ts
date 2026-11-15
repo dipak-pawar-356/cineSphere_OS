@@ -11,4 +11,7 @@ export * from "./theatre-configuration.service";
 export * from "./booking-domain.service";
 export * from "./payment-domain.service";
 export * from "./security-audit.service";
+export * from "./theatre-governance.service";
+export * from "./theatre-analytics.service";
+export * from "./enterprise-extensions.service";
 

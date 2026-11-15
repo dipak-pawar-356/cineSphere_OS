@@ -53,6 +53,9 @@ export * from "./theatre-governance";
 // Reports & Analytics Layer (Phase 3 - Part 15)
 export * from "./theatre-reports";
 
+// Enterprise Extension Framework (Phase 3 - Part 16)
+export * from "./enterprise-extensions";
+
 
 
 // Tenant Payment Configurations & Ledger

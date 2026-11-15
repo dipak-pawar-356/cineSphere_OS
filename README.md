@@ -902,6 +902,33 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Horizontal category selector across 10 strategic domains, date range presets (`TODAY`, `YESTERDAY`, `THIS_WEEK`, `THIS_MONTH`, `THIS_YEAR`), live telemetry refresh, CSV download trigger, historical snapshot archives, and modal inspector.
 - 📚 **Reports & Analytics Guide:** Detailed technical documentation in [`docs/THEATRE_REPORTS_AND_ANALYTICS_ARCHITECTURE.md`](./docs/THEATRE_REPORTS_AND_ANALYTICS_ARCHITECTURE.md).
 
+### 2.33 Phase 3 - Part 16: Enterprise Extension Framework (Completed)
+- 🧩 **Enterprise Extension Framework Architecture (`lib/enterprise/`):**
+  - Models $\text{Platform Core} \to \text{Enterprise Extension Framework} \to \text{8 Sub-Platforms} \to \text{Independent Enterprise Modules}$.
+  - Strictly decouples future business capabilities (VIP memberships, loyalty rewards, franchise management, dynamic pricing) and infrastructure capabilities (IoT auditorium hardware, digital signage, kiosks, external developer APIs, multi-region stacks) from core cinema operations.
+- 📡 **Decoupled Domain Event Bus (`EnterpriseDomainEventBus`):**
+  - Asynchronous event pub/sub kernel dispatching domain events (`BOOKING_CREATED`, `PAYMENT_COMPLETED`, `SHOW_CREATED`, `THEATRE_ACTIVATED`, `DEVICE_TELEMETRY_RECORDED`, `PRICING_SURGE_TRIGGERED`, etc.).
+  - Supports priority subscriber execution (100 -> 50 -> 10), predicate-based filtering, subscriber error isolation, and historical event replay buffer.
+- 🎛️ **4-Tier Hierarchical Feature Flag Precedence (`EnterpriseFeatureFlagManager`):**
+  - Centralized feature flag evaluation cascading through 5 levels:
+    $$\text{Tier 1: User / Staff Override} \succ \text{Tier 2: Theatre Override} \succ \text{Tier 3: Organization Override} \succ \text{Tier 4: Platform Switch} \succ \text{Default}$$
+  - Deterministic canary rollout hashing for phased staged deployments (0% to 100%).
+- 🔌 **Pluggable Extension SDK Kernel (`EnterpriseExtensionRegistry`):**
+  - Declarative manifests, dependency validation, and formal lifecycle hooks (`onInstall`, `onEnable`, `onDisable`, `onUpgrade`).
+  - Dynamic route aggregation (`registerRoutes`), security permission injection (`registerPermissions`), and background recurring cron jobs (`registerBackgroundJobs`).
+- 🏢 **8 Enterprise Sub-Platforms & Reference Module Implementations:**
+  1. **Organization Platform:** Multi-branch circuits, regional offices, branch groups, franchise revenue sharing (e.g. 12.5% royalty), and B2B corporate credit accounts.
+  2. **Customer Experience:** VIP Cinema Passports (Gold, VIP Black), spend-based reward points ledger, and promotional digital gift cards.
+  3. **Pricing Engine:** Rule-based demand surge (+25% peak weekend), occupancy thresholds, and early-bird morning discounts (-15%).
+  4. **Device Platform (IoT):** Auditorium environmental sensors, projector lamp hours telemetry, lobby digital signage playlists, and smart ticketing kiosks.
+  5. **AI Platform (Stubs):** Collaborative movie recommendation, optimal seat allocation, and concession upsell recommendation stubs.
+  6. **Integration Platform:** Developer API keys, granular API scopes (`SHOWS_READ`, `BOOKINGS_WRITE`), and asynchronous webhook subscriptions.
+  7. **Regional Platform:** Multi-region deployment configurations, statutory tax frameworks (GST, VAT, Sales Tax), and multi-currency stacks.
+  8. **Extension SDK:** Pluggable runtime kernel managing lifecycle execution and background cron tasks.
+- 🖥️ **Super Admin Enterprise Workspace (`app/(super-admin)/dashboard/extensions/`):**
+  - 8-Platform Architecture Matrix, Installed Extension Modules Manager with live toggles, Interactive 4-Tier Feature Flag Hierarchy Simulator with real-time override injection, Dynamic Pricing Surge Evaluator, Connected IoT Hardware Registry, and Live Domain Event Bus Telemetry Stream.
+- 📚 **Enterprise Extension Framework Guide:** Detailed technical documentation in [`docs/ENTERPRISE_EXTENSION_FRAMEWORK_ARCHITECTURE.md`](./docs/ENTERPRISE_EXTENSION_FRAMEWORK_ARCHITECTURE.md).
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -922,6 +949,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🧩 [`docs/ENTERPRISE_EXTENSION_FRAMEWORK_ARCHITECTURE.md`](./docs/ENTERPRISE_EXTENSION_FRAMEWORK_ARCHITECTURE.md) — Enterprise Extension Framework Architecture (Pluggable 8 Sub-Platforms, Extension SDK Kernel, Lifecycle Hooks, 4-Tier Hierarchical Feature Flag Cascading, Deterministic Canary Rollouts, Decoupled Domain Event Bus Pub/Sub, IoT Device Registry & Multi-Region Stacks) (Phase 3 - Part 16).
 - 📊 [`docs/THEATRE_REPORTS_AND_ANALYTICS_ARCHITECTURE.md`](./docs/THEATRE_REPORTS_AND_ANALYTICS_ARCHITECTURE.md) — Multi-Tenant Theatre Reports & Analytics Layer Architecture (Decoupled Historical BI Read-Model Store, Metric Registry, Pure KPI Engine, 10 Core Report Categories, Dimensional Slicing, Universal Report Builder, CSV/JSON Exporters & Multi-Tenant Boundary Isolation) (Phase 3 - Part 15).
 - 🛡️ [`docs/THEATRE_SECURITY_AND_GOVERNANCE_ARCHITECTURE.md`](./docs/THEATRE_SECURITY_AND_GOVERNANCE_ARCHITECTURE.md) — Platform Security & Governance Layer Architecture (Policy-Based Authorization, Central 9-Stage Validation Pipeline, Multi-Tenant Boundary Isolation, Resource Ownership Validation, Dynamic Quota Engine, OCC Version Checks, Soft Delete & Domain Event Auditing) (Phase 3 - Part 14).
 - 🌐 [`docs/PUBLIC_THEATRE_PAGE_ARCHITECTURE.md`](./docs/PUBLIC_THEATRE_PAGE_ARCHITECTURE.md) — Public Theatre Page Read Model Architecture (Public Content Layer, Read Model Aggregation, Zero Sensitive Data Leakage, Content Visibility State Machine, Multi-Tenant Localization, Next.js 15 ISR & Schema.org MovieTheater JSON-LD) (Phase 3 - Part 13).
