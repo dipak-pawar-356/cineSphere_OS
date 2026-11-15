@@ -78,6 +78,8 @@ export const loadAnalyticsSummaryAction = createProtectedAction<
     requiredRole: ["STAFF", "HALL_MANAGER", "THEATRE_ADMIN", "SUPER_ADMIN"],
     enforceTenantIsolation: true,
     tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "ANALYTICS_REPORTING",
+    auditAction: "VIEW_ANALYTICS",
   },
   async (input, context) => {
     const filters = resolveFilters(input.filters);
@@ -134,7 +136,57 @@ export const exportReportAction = createProtectedAction<
   }
 );
 
-// 4. Get Available Report Definitions Action
+// 4. Refresh Analytics Action
+export const refreshAnalyticsAction = createProtectedAction<
+  z.input<typeof LoadAnalyticsSummarySchema>,
+  any
+>(
+  {
+    actionName: "refreshAnalyticsAction",
+    schema: LoadAnalyticsSummarySchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["STAFF", "HALL_MANAGER", "THEATRE_ADMIN", "SUPER_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "ANALYTICS_REPORTING",
+    auditAction: "REFRESH_ANALYTICS",
+  },
+  async (input, context) => {
+    const filters = resolveFilters(input.filters);
+    return theatreAnalyticsService.getExecutiveSummary(input.theatreId, filters, context.actor);
+  }
+);
+
+// 5. Apply Filters Action
+export const applyReportFiltersAction = createProtectedAction<
+  z.input<typeof GenerateReportSchema>,
+  GeneratedReportPayload
+>(
+  {
+    actionName: "applyReportFiltersAction",
+    schema: GenerateReportSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["STAFF", "HALL_MANAGER", "THEATRE_ADMIN", "SUPER_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "ANALYTICS_REPORTING",
+    auditAction: "APPLY_FILTERS",
+  },
+  async (input, context) => {
+    const filters = resolveFilters(input.filters);
+    return theatreAnalyticsService.generateReport(
+      input.theatreId,
+      input.definitionId,
+      filters,
+      context.actor
+    );
+  }
+);
+
+// 6. Export Placeholder Action (Explicit Alias)
+export const exportReportPlaceholderAction = exportReportAction;
+
+// 7. Get Available Report Definitions Action
 export const getAvailableReportDefinitionsAction = createProtectedAction<
   void,
   ReportDefinition[]
@@ -149,7 +201,7 @@ export const getAvailableReportDefinitionsAction = createProtectedAction<
   }
 );
 
-// 5. Get Metric Registry Action
+// 8. Get Metric Registry Action
 export const getMetricRegistryAction = createProtectedAction<
   void,
   MetricDefinition[]

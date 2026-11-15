@@ -25,6 +25,16 @@ import { theatreReportsRepository } from "../lib/repositories/theatre-reports.re
 import { theatreAnalyticsService } from "../lib/services/theatre-analytics.service";
 import { SecurityActorContext } from "../types/security-hardening.types";
 import { TenantAccessError } from "../lib/errors/app-error";
+import {
+  generateReportAction,
+  loadAnalyticsSummaryAction,
+  refreshAnalyticsAction,
+  applyReportFiltersAction,
+  exportReportAction,
+  exportReportPlaceholderAction,
+  getAvailableReportDefinitionsAction,
+  getMetricRegistryAction,
+} from "../actions/theatre-reports-actions";
 
 let passedTests = 0;
 let totalTests = 0;
@@ -353,6 +363,48 @@ async function runReportsAnalyticsVerification() {
     assert(jsonExport.mimeType === "application/json", "Exporter produces application/json MIME type");
     const parsed = JSON.parse(jsonExport.content);
     assert(parsed.reportId === report.reportId, "JSON export accurately preserves report payload structure");
+
+    // 12.4 Server Actions Integration (Generate, Load, Refresh, Apply Filters, Export Placeholder)
+    const applyRes = await applyReportFiltersAction(
+      {
+        theatreId: "th-pun-001",
+        definitionId: "DEF_REVENUE_PERFORMANCE",
+        filters: { dateRangePreset: "THIS_MONTH", movieId: "mov-opp" },
+      },
+      actorPuneAdmin
+    );
+    assert(applyRes.success === true, "applyReportFiltersAction executed successfully");
+    assert(applyRes.data?.theatreId === "th-pun-001", "applyReportFiltersAction returned Pune report payload");
+
+    const refreshRes = await refreshAnalyticsAction(
+      {
+        theatreId: "th-pun-001",
+        category: "EXECUTIVE_SUMMARY",
+        filters: { dateRangePreset: "THIS_MONTH" },
+      },
+      actorPuneAdmin
+    );
+    assert(refreshRes.success === true, "refreshAnalyticsAction executed successfully");
+
+    const exportPlaceholderRes = await exportReportPlaceholderAction(
+      {
+        theatreId: "th-pun-001",
+        definitionId: "DEF_REVENUE_PERFORMANCE",
+        format: "CSV",
+        filters: { dateRangePreset: "THIS_MONTH" },
+      },
+      actorPuneAdmin
+    );
+    assert(exportPlaceholderRes.success === true, "exportReportPlaceholderAction executed successfully");
+    assert(exportPlaceholderRes.data?.format === "CSV", "exportReportPlaceholderAction exported CSV");
+
+    const defsRes = await getAvailableReportDefinitionsAction(undefined, actorPuneAdmin);
+    assert(defsRes.success === true, "getAvailableReportDefinitionsAction executed successfully");
+    assert(defsRes.data!.length >= 10, "getAvailableReportDefinitionsAction returned >= 10 definitions");
+
+    const metricsRes = await getMetricRegistryAction(undefined, actorPuneAdmin);
+    assert(metricsRes.success === true, "getMetricRegistryAction executed successfully");
+    assert(metricsRes.data!.length >= 20, "getMetricRegistryAction returned canonical KPI definitions");
   }
 
   // ----------------------------------------------------------------------------
