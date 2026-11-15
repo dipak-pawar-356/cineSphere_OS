@@ -16,4 +16,5 @@ export * from "./theatre-analytics.service";
 export * from "./enterprise-extensions.service";
 export * from "./hall-designer.service";
 export * from "./section-row-designer.service";
+export * from "./seat-generator.service";
 

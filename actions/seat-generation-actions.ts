@@ -103,8 +103,8 @@ export async function generateSeatTemplateAction(
   }
 }
 
-// Reusable Alias matching prompt naming
-export const generateSeatsAction = generateSeatTemplateAction;
+// Legacy Phase 2 Alias
+export const legacyGenerateSeatsAction = generateSeatTemplateAction;
 
 /**
  * Server Action: Regenerate Seat Template
@@ -173,8 +173,8 @@ export async function regenerateSeatTemplateAction(
   }
 }
 
-// Reusable Alias matching prompt naming
-export const regenerateSeatsAction = regenerateSeatTemplateAction;
+// Legacy Phase 2 Alias
+export const legacyRegenerateSeatsAction = regenerateSeatTemplateAction;
 
 /**
  * Server Action: Validate Layout Capacity
@@ -227,7 +227,7 @@ export const previewLayoutAction = previewGeneratedSeatsAction;
 /**
  * Server Action: Delete Generated Seat Template
  */
-export async function deleteGeneratedSeatsAction(
+export async function deleteSeatTemplateAction(
   theatreId: string,
   hallId: string,
   userId: string = "usr_theatre_admin"

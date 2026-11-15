@@ -62,6 +62,9 @@ export * from "./hall-designer";
 // Section Designer & Row Designer (Phase 4 - Parts 3 & 4)
 export * from "./section-row-designer";
 
+// Automatic Seat Generator & Category Registry (Phase 4 - Parts 5 & 6)
+export * from "./seat-generator";
+
 
 
 // Tenant Payment Configurations & Ledger

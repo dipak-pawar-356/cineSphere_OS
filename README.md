@@ -989,6 +989,27 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Multi-venue initial seeds: Pune (VIP Red, A–C, 1.0m spacing, Alphabetical), Mumbai (Luxury Purple, 1–20, 0.9m spacing, Numeric), Dubai (Balcony Blue, AA–AZ, 1.2m spacing, Custom).
 - 📚 **Section & Row Designer Architecture Guide:** Detailed technical documentation in [`docs/SECTION_AND_ROW_DESIGNER_ARCHITECTURE.md`](./docs/SECTION_AND_ROW_DESIGNER_ARCHITECTURE.md).
 
+### 2.38 Phase 4 - Part 5: Automatic Seat Generator & Physical Coordinates (Completed)
+- 🪑 **Automatic Seat Generation Engine (`lib/engine/seat-generator-engine.ts`, `lib/repositories/seat-generator.repository.ts`):**
+  - Decouples editable Seat Templates from physical runtime Seat Inventory.
+  - Generates immutable permanent internal UUIDs for every seat template (`crypto.randomUUID()`).
+  - Mathematical Coordinate Precision:
+    - Straight rows: Uniform horizontal pitch progression.
+    - Curved rows: Circular arc sagitta depth calculation $y_c = y_0 + R(1 - \cos \theta_c)$ and tangential rotation.
+    - Angled rows: Coordinate projection along vector angles $(\cos \phi, \sin \phi)$.
+  - Configurable numbering styles: Numeric, Alphabetic, Alphanumeric, Roman numerals, Custom, reversed, and skip numbers (e.g. skip 13).
+  - Accessibility classification: Wheelchair berths, companion seat anchoring, accessible route tags, reserved tiers, and technical hidden seats.
+  - Spatial collision detection checking Euclidean distances and duplicate seat code prevention.
+
+### 2.39 Phase 4 - Part 6: Dynamic Seat Category Registry & Decoupled Pricing (Completed)
+- 🏷️ **Dynamic Category Registry System (`db/schema/seat-generator.ts`, `lib/services/seat-generator.service.ts`):**
+  - Database-driven registry replacing hardcoded enums, allowing circuits to define unlimited custom categories (*Kids*, *Luxury*, *Executive*, *Private Box*, *Accessible Premium*).
+  - **Decoupled Pricing Law:** Categories define classification, spatial aesthetics, and priorities only; ticket pricing is strictly resolved per show by the Show Pricing Engine.
+  - Category lifecycle management: Create, update, duplicate, archive, and restore.
+  - Multi-venue category configurations: Pune (VIP Red, Recliner Gold, Executive Green, Standard Blue, Wheelchair Purple), Mumbai (Luxury Purple, IMAX Prime Indigo, Economy Slate), Dubai (Majlis Private Box Gold, Grand Recliner Rose, Balcony Blue).
+  - Caching performance hook [`useSeatGenerator`](./lib/hooks/use-seat-generator.ts) with in-memory cache refs and optimistic UI updates.
+- 📚 **Seat Generator & Category Architecture Guide:** Detailed technical documentation in [`docs/SEAT_GENERATOR_AND_CATEGORIES_ARCHITECTURE.md`](./docs/SEAT_GENERATOR_AND_CATEGORIES_ARCHITECTURE.md).
+
 
 ---
 
@@ -1010,6 +1031,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🪑 [`docs/SEAT_GENERATOR_AND_CATEGORIES_ARCHITECTURE.md`](./docs/SEAT_GENERATOR_AND_CATEGORIES_ARCHITECTURE.md) — Automatic Seat Generator & Dynamic Category Registry Architecture (Immutable Seat UUID Identity, Straight/Curved/Angled Spatial Coordinates, Dynamic Category Registry, and Strict Decoupled Pricing Architecture) (Phase 4 - Parts 5 & 6).
 - 🪑 [`docs/SECTION_AND_ROW_DESIGNER_ARCHITECTURE.md`](./docs/SECTION_AND_ROW_DESIGNER_ARCHITECTURE.md) — Section & Row Designer Architecture (Hierarchical DDD Section Layer, Row Sequencing & Auto-Numbering Engine, Straight/Curved/Arc/Angled Geometries, Accessibility Tiers, and Independent Venue Conventions) (Phase 4 - Parts 3 & 4).
 - 🏛️ [`docs/HALL_DESIGNER_ARCHITECTURE.md`](./docs/HALL_DESIGNER_ARCHITECTURE.md) — Auditorium Hall Designer & Canvas Grid System Architecture (Immutable Layout Definition Layer, Draft vs Published vs Archived State Machine, In-Flight Booking Isolation, Pure Layout Validator, Multi-Density Grid Snapping, Unit Conversion Engine, Viewport Fit-To-Screen, Geometric Seat Alignment Tools & Per-Theatre Canvas Preferences) (Phase 4 - Parts 1 & 2).
 - 🧩 [`docs/ENTERPRISE_EXTENSION_FRAMEWORK_ARCHITECTURE.md`](./docs/ENTERPRISE_EXTENSION_FRAMEWORK_ARCHITECTURE.md) — Enterprise Extension Framework Architecture (Pluggable 8 Sub-Platforms, Extension SDK Kernel, Lifecycle Hooks, 4-Tier Hierarchical Feature Flag Cascading, Deterministic Canary Rollouts, Decoupled Domain Event Bus Pub/Sub, IoT Device Registry & Multi-Region Stacks) (Phase 3 - Part 16).

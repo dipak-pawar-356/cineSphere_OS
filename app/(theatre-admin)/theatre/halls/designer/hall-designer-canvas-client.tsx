@@ -48,6 +48,9 @@ import {
   ChevronRight,
   PlusCircle,
   MoveVertical,
+  Sparkles,
+  Tag,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +75,13 @@ import {
   RowNumberingStrategy,
   RowAccessibilityType,
 } from "@/types/section-row-designer.types";
+import {
+  SeatTemplate,
+  SeatCategoryRegistryItem,
+  SeatNumberingStyle,
+  SeatAccessibilityType,
+  SeatGeometryCalculationType,
+} from "@/types/seat-generator.types";
 import { CanvasGridEngine } from "@/lib/engine/canvas-grid-engine";
 import {
   listLayoutDefinitionsAction,
@@ -102,6 +112,17 @@ import {
   duplicateRowAction,
   reorderRowsAction,
 } from "@/actions/section-row-actions";
+import {
+  generateSeatsAction,
+  regenerateSeatsAction,
+  deleteGeneratedSeatsAction,
+  loadSeatsAction,
+  createCategoryAction,
+  loadCategoriesAction,
+  archiveCategoryAction,
+  restoreCategoryAction,
+  duplicateCategoryAction,
+} from "@/actions/seat-generator-actions";
 
 interface HallDesignerCanvasClientProps {
   initialTheatreId?: string;
@@ -175,13 +196,49 @@ export function HallDesignerCanvasClient({
   const [isPanning, setIsPanning] = useState(false);
   const [startPan, setStartPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<"layout" | "sections" | "canvas">("layout");
+  const [activeTab, setActiveTab] = useState<"layout" | "sections" | "seats" | "canvas">("layout");
 
   // Status & Feedback
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [validationResult, setValidationResult] = useState<LayoutValidationResult | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+
+  // Seat Generator & Category Registry State (Phase 4 – Parts 5 & 6)
+  const [seatCategories, setSeatCategories] = useState<SeatCategoryRegistryItem[]>([]);
+  const [selectedSeatRowId, setSelectedSeatRowId] = useState<string>("");
+  const [generatedSeatTemplates, setGeneratedSeatTemplates] = useState<SeatTemplate[]>([]);
+  const [seatGenNumberingStyle, setSeatGenNumberingStyle] = useState<SeatNumberingStyle>("ALPHABETIC");
+  const [seatGenPrefix, setSeatGenPrefix] = useState<string>("");
+  const [seatGenSuffix, setSeatGenSuffix] = useState<string>("");
+  const [seatGenStartNum, setSeatGenStartNum] = useState<number>(1);
+  const [seatGenSkipNums, setSeatGenSkipNums] = useState<string>("");
+  const [seatGenIsReversed, setSeatGenIsReversed] = useState<boolean>(false);
+  const [seatGenSpacing, setSeatGenSpacing] = useState<number>(10);
+  const [seatGenGeometry, setSeatGenGeometry] = useState<SeatGeometryCalculationType>("STRAIGHT");
+  const [seatGenRadius, setSeatGenRadius] = useState<number>(600);
+  const [seatGenArcAngle, setSeatGenArcAngle] = useState<number>(30);
+  const [seatGenCategoryCode, setSeatGenCategoryCode] = useState<string>("VIP");
+  const [seatGenWheelchairIndices, setSeatGenWheelchairIndices] = useState<string>("");
+  const [seatGenCompanionIndices, setSeatGenCompanionIndices] = useState<string>("");
+  const [isAddingCategory, setIsAddingCategory] = useState<boolean>(false);
+  const [newCategoryData, setNewCategoryData] = useState<{
+    code: string;
+    name: string;
+    displayName: string;
+    color: string;
+    priority: number;
+    accessibility: SeatAccessibilityType;
+    isPremium: boolean;
+  }>({
+    code: "",
+    name: "",
+    displayName: "",
+    color: "#38BDF8",
+    priority: 1,
+    accessibility: "STANDARD",
+    isPremium: false,
+  });
 
   // Section & Row Designer State (Parts 3 & 4)
   const [detailedSections, setDetailedSections] = useState<HallSection[]>([]);
@@ -255,6 +312,12 @@ export function HallDesignerCanvasClient({
           setAllVersions([]);
           setDetailedSections([]);
         }
+      }
+
+      // 3. Load Dynamic Category Registry for this theatre
+      const catRes = await loadCategoriesAction({ theatreId, includeArchived: true });
+      if (catRes.success && catRes.data) {
+        setSeatCategories(catRes.data);
       }
     } catch (err: any) {
       setStatusMessage({ type: "error", text: err.message || "Failed to load designer data" });
@@ -484,6 +547,221 @@ export function HallDesignerCanvasClient({
       }
     } catch (err: any) {
       setStatusMessage({ type: "error", text: err.message || "Failed to reorder row." });
+    }
+  };
+
+  // ----------------------------------------------------------------------------
+  // Seat Generator & Category Registry Handlers (Phase 4 – Parts 5 & 6)
+  // ----------------------------------------------------------------------------
+  const handleGenerateSeatsForRow = async (isRegeneration = false) => {
+    if (!currentVersion || currentVersion.status !== "DRAFT") {
+      setStatusMessage({ type: "error", text: "Cannot generate seats on an immutable published layout. Create a draft first." });
+      return;
+    }
+    if (!selectedSeatRowId) {
+      setStatusMessage({ type: "error", text: "Please select a target row first." });
+      return;
+    }
+
+    let targetRow: HallRow | null = null;
+    let targetSection: HallSection | null = null;
+    for (const sec of detailedSections) {
+      const foundRow = sec.rows.find((r) => r.id === selectedSeatRowId);
+      if (foundRow) {
+        targetRow = foundRow;
+        targetSection = sec;
+        break;
+      }
+    }
+
+    if (!targetRow || !targetSection) {
+      setStatusMessage({ type: "error", text: "Selected row was not found in layout." });
+      return;
+    }
+
+    const parsedSkipNums = seatGenSkipNums
+      ? seatGenSkipNums.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n))
+      : [];
+    const parsedWheelchair = seatGenWheelchairIndices
+      ? seatGenWheelchairIndices.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n))
+      : [];
+    const parsedCompanion = seatGenCompanionIndices
+      ? seatGenCompanionIndices.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n))
+      : [];
+
+    setIsLoading(true);
+    try {
+      const payload = {
+        theatreId,
+        layoutVersionId: currentVersion.id,
+        sectionId: targetSection.id,
+        rowId: targetRow.id,
+        rowName: targetRow.rowName,
+        sectionName: targetSection.name,
+        categoryCode: seatGenCategoryCode,
+        seatCount: targetRow.seatCount,
+        seatWidth: 40,
+        seatHeight: 40,
+        spacing: seatGenSpacing,
+        startX: targetRow.geometry?.offsetX || 100,
+        startY: targetRow.geometry?.offsetY || 100,
+        rotation: targetRow.geometry?.angle || 0,
+        numbering: {
+          style: seatGenNumberingStyle,
+          prefix: seatGenPrefix || undefined,
+          suffix: seatGenSuffix || undefined,
+          startNumber: seatGenStartNum,
+          isReversed: seatGenIsReversed,
+          skipNumbers: parsedSkipNums,
+        },
+        accessibility: {
+          wheelchairSeatIndices: parsedWheelchair,
+          companionSeatIndices: parsedCompanion,
+        },
+        geometry: {
+          type: seatGenGeometry,
+          radius: seatGenRadius,
+          arcAngle: seatGenArcAngle,
+          angle: targetRow.geometry?.angle,
+        },
+      };
+
+      const res = isRegeneration
+        ? await regenerateSeatsAction(payload)
+        : await generateSeatsAction(payload);
+
+      if (res.success && res.data) {
+        setGeneratedSeatTemplates(res.data.seats);
+
+        const canvasSeatDefs: SeatDefinition[] = res.data.seats.map((st) => ({
+          id: st.id,
+          seatNumber: st.seatNumber,
+          row: targetRow!.rowName,
+          column: st.columnNumber,
+          sectionId: targetSection!.id,
+          sectionName: targetSection!.name,
+          category: st.categoryCode as any,
+          type: st.accessibility.isWheelchairAccessible ? "WHEELCHAIR" : "STANDARD",
+          seatType: (st.accessibility.isWheelchairAccessible ? "WHEELCHAIR" : "STANDARD") as any,
+          isActive: true,
+          status: "AVAILABLE",
+          coordinates: {
+            x: st.coordinates.x,
+            y: st.coordinates.y,
+            z: 0,
+          },
+        }));
+
+        const filtered = currentVersion.seats.filter((s) => s.row !== targetRow!.rowName || s.sectionId !== targetSection!.id);
+        const merged = [...filtered, ...canvasSeatDefs];
+        setCurrentVersion({
+          ...currentVersion,
+          seats: merged,
+        });
+
+        setStatusMessage({
+          type: "success",
+          text: `Successfully ${isRegeneration ? "regenerated" : "generated"} ${res.data.generatedCount} seat templates with permanent UUIDs.`,
+        });
+      } else {
+        const errStr = typeof res.error === "string" ? res.error : res.error?.message || "Seat generation failed.";
+        setStatusMessage({ type: "error", text: errStr });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Seat generation failed." });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteSeatsForRow = async () => {
+    if (!currentVersion || currentVersion.status !== "DRAFT" || !selectedSeatRowId) return;
+    try {
+      const res = await deleteGeneratedSeatsAction({
+        theatreId,
+        layoutVersionId: currentVersion.id,
+        rowId: selectedSeatRowId,
+      });
+      if (res.success) {
+        setGeneratedSeatTemplates([]);
+        setStatusMessage({ type: "success", text: `Deleted ${res.data?.deletedCount || 0} seat templates for row.` });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to delete seats." });
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryData.code || !newCategoryData.name) {
+      setStatusMessage({ type: "error", text: "Category code and name are required." });
+      return;
+    }
+    try {
+      const res = await createCategoryAction({
+        theatreId,
+        code: newCategoryData.code,
+        name: newCategoryData.name,
+        displayName: newCategoryData.displayName || newCategoryData.name,
+        color: newCategoryData.color,
+        priority: newCategoryData.priority,
+        accessibility: newCategoryData.accessibility,
+        isPremium: newCategoryData.isPremium,
+      });
+      if (res.success && res.data) {
+        setSeatCategories((prev) => [...prev, res.data!].sort((a, b) => a.priority - b.priority));
+        setIsAddingCategory(false);
+        setNewCategoryData({
+          code: "",
+          name: "",
+          displayName: "",
+          color: "#38BDF8",
+          priority: 1,
+          accessibility: "STANDARD",
+          isPremium: false,
+        });
+        setStatusMessage({ type: "success", text: `Created category '${res.data.name}' in registry.` });
+      } else {
+        const errStr = typeof res.error === "string" ? res.error : res.error?.message || "Failed to create category.";
+        setStatusMessage({ type: "error", text: errStr });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to create category." });
+    }
+  };
+
+  const handleArchiveCategory = async (catId: string) => {
+    try {
+      const res = await archiveCategoryAction({ theatreId, categoryId: catId });
+      if (res.success && res.data) {
+        setSeatCategories((prev) => prev.map((c) => (c.id === catId ? res.data! : c)));
+        setStatusMessage({ type: "success", text: `Category archived.` });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to archive category." });
+    }
+  };
+
+  const handleRestoreCategory = async (catId: string) => {
+    try {
+      const res = await restoreCategoryAction({ theatreId, categoryId: catId });
+      if (res.success && res.data) {
+        setSeatCategories((prev) => prev.map((c) => (c.id === catId ? res.data! : c)));
+        setStatusMessage({ type: "success", text: `Category restored to active.` });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to restore category." });
+    }
+  };
+
+  const handleDuplicateCategory = async (catId: string) => {
+    try {
+      const res = await duplicateCategoryAction({ theatreId, categoryId: catId });
+      if (res.success && res.data) {
+        setSeatCategories((prev) => [...prev, res.data!].sort((a, b) => a.priority - b.priority));
+        setStatusMessage({ type: "success", text: `Category duplicated: '${res.data.displayName}'` });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to duplicate category." });
     }
   };
 
@@ -1477,7 +1755,17 @@ export function HallDesignerCanvasClient({
                   : "border-transparent text-slate-400 hover:text-slate-200"
               }`}
             >
-              <Armchair className="w-3.5 h-3.5 inline mr-1.5" /> Sections
+              <Armchair className="w-3.5 h-3.5 inline mr-1" /> Sections
+            </button>
+            <button
+              onClick={() => setActiveTab("seats")}
+              className={`flex-1 py-2.5 text-xs font-semibold border-b-2 transition ${
+                activeTab === "seats"
+                  ? "border-cyan-500 text-cyan-400 bg-slate-800/50"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 inline mr-1" /> Seats
             </button>
             <button
               onClick={() => setActiveTab("canvas")}
@@ -1487,7 +1775,7 @@ export function HallDesignerCanvasClient({
                   : "border-transparent text-slate-400 hover:text-slate-200"
               }`}
             >
-              <Settings className="w-3.5 h-3.5 inline mr-1.5" /> Preferences
+              <Settings className="w-3.5 h-3.5 inline mr-1" /> Preferences
             </button>
           </div>
 
@@ -2118,7 +2406,408 @@ export function HallDesignerCanvasClient({
               </div>
             )}
 
-            {/* TAB 3: THEATRE CANVAS PREFERENCES (Part 2) */}
+            {/* TAB 3: AUTOMATIC SEAT GENERATOR & CATEGORY REGISTRY (Parts 5 & 6) */}
+            {activeTab === "seats" && (
+              <div className="space-y-4">
+                {/* 1. Header with Decoupled Pricing Banner */}
+                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      Seat Generator & Registry
+                    </h3>
+                    <Badge variant="outline" className="text-[9px] border-amber-800 text-amber-300">
+                      Parts 5 & 6
+                    </Badge>
+                  </div>
+                  <p className="text-[10px] text-slate-400 leading-relaxed">
+                    Generates immutable Seat Templates from row geometries. Pricing is decoupled and resolved strictly per Show.
+                  </p>
+                </div>
+
+                {/* 2. Target Row Selector */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-slate-300 block">
+                    Target Row for Seat Generation
+                  </label>
+                  <select
+                    value={selectedSeatRowId}
+                    onChange={(e) => setSelectedSeatRowId(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
+                  >
+                    <option value="">-- Choose Row --</option>
+                    {detailedSections.map((sec) => (
+                      <optgroup key={sec.id} label={`${sec.name} (${sec.seatCategory})`}>
+                        {sec.rows.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            Row {r.rowName} ({r.seatCount} seats)
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 3. Seat Generation Configuration */}
+                <Card className="p-3 bg-slate-900 border-amber-800/40 text-xs space-y-3">
+                  <div className="text-xs font-semibold text-amber-300 flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5" /> Generation Parameters
+                  </div>
+
+                  {/* Numbering Style & Category */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">Numbering Style</label>
+                      <select
+                        value={seatGenNumberingStyle}
+                        onChange={(e) => setSeatGenNumberingStyle(e.target.value as any)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none"
+                      >
+                        <option value="ALPHABETIC">Alphabetic (A, B, C)</option>
+                        <option value="NUMERIC">Numeric (1, 2, 3)</option>
+                        <option value="ALPHANUMERIC">Alphanumeric (A1, A2)</option>
+                        <option value="ROMAN">Roman (I, II, III)</option>
+                        <option value="CUSTOM">Custom Convention</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">Seat Category</label>
+                      <select
+                        value={seatGenCategoryCode}
+                        onChange={(e) => setSeatGenCategoryCode(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none"
+                      >
+                        {seatCategories.map((cat) => (
+                          <option key={cat.id} value={cat.code}>
+                            {cat.displayName} ({cat.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">Prefix</label>
+                      <Input
+                        placeholder="e.g. VIP-"
+                        value={seatGenPrefix}
+                        onChange={(e) => setSeatGenPrefix(e.target.value)}
+                        className="h-7 text-xs bg-slate-950 border-slate-700 text-white font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">Suffix</label>
+                      <Input
+                        placeholder="e.g. -A"
+                        value={seatGenSuffix}
+                        onChange={(e) => setSeatGenSuffix(e.target.value)}
+                        className="h-7 text-xs bg-slate-950 border-slate-700 text-white font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">Start Number</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={seatGenStartNum}
+                        onChange={(e) => setSeatGenStartNum(parseInt(e.target.value, 10) || 1)}
+                        className="h-7 text-xs bg-slate-950 border-slate-700 text-white font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Skip Numbers & Reverse */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">Skip Numbers</label>
+                      <Input
+                        placeholder="e.g. 13, 14"
+                        value={seatGenSkipNums}
+                        onChange={(e) => setSeatGenSkipNums(e.target.value)}
+                        className="h-7 text-xs bg-slate-950 border-slate-700 text-white font-mono"
+                      />
+                    </div>
+                    <div className="flex items-end pb-1">
+                      <label className="flex items-center gap-1.5 text-[11px] text-slate-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={seatGenIsReversed}
+                          onChange={(e) => setSeatGenIsReversed(e.target.checked)}
+                          className="rounded border-slate-700 bg-slate-950 text-amber-500 focus:ring-0"
+                        />
+                        <span>Reverse Numbering</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Geometry & Curvature */}
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">Row Topology</label>
+                      <select
+                        value={seatGenGeometry}
+                        onChange={(e) => setSeatGenGeometry(e.target.value as any)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none"
+                      >
+                        <option value="STRAIGHT">Straight</option>
+                        <option value="CURVED">Curved Arc</option>
+                        <option value="ARC">Radial Arc</option>
+                        <option value="ANGLED">Angled Incline</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">Spacing (px)</label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={seatGenSpacing}
+                        onChange={(e) => setSeatGenSpacing(parseInt(e.target.value, 10) || 10)}
+                        className="h-7 text-xs bg-slate-950 border-slate-700 text-white font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {(seatGenGeometry === "CURVED" || seatGenGeometry === "ARC") && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Curvature Radius (px)</label>
+                        <Input
+                          type="number"
+                          min="200"
+                          max="2000"
+                          step="50"
+                          value={seatGenRadius}
+                          onChange={(e) => setSeatGenRadius(parseInt(e.target.value, 10) || 600)}
+                          className="h-7 text-xs bg-slate-950 border-slate-700 text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Arc Angle (deg)</label>
+                        <Input
+                          type="number"
+                          min="5"
+                          max="120"
+                          value={seatGenArcAngle}
+                          onChange={(e) => setSeatGenArcAngle(parseInt(e.target.value, 10) || 30)}
+                          className="h-7 text-xs bg-slate-950 border-slate-700 text-white font-mono"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Accessibility Indices */}
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">♿ Wheelchair Indices</label>
+                      <Input
+                        placeholder="e.g. 1, 2"
+                        value={seatGenWheelchairIndices}
+                        onChange={(e) => setSeatGenWheelchairIndices(e.target.value)}
+                        className="h-7 text-xs bg-slate-950 border-slate-700 text-white font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">🤝 Companion Indices</label>
+                      <Input
+                        placeholder="e.g. 3"
+                        value={seatGenCompanionIndices}
+                        onChange={(e) => setSeatGenCompanionIndices(e.target.value)}
+                        className="h-7 text-xs bg-slate-950 border-slate-700 text-white font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleGenerateSeatsForRow(false)}
+                      disabled={!selectedSeatRowId || isLoading}
+                      className="flex-1 h-8 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 mr-1" />
+                      Auto Generate Seats
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleGenerateSeatsForRow(true)}
+                      disabled={!selectedSeatRowId || isLoading}
+                      className="h-8 border-amber-800/80 text-amber-300 hover:bg-amber-950/40 text-xs"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                      Regenerate
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* 4. Category Registry Section (Part 6) */}
+                <div className="pt-2 border-t border-slate-800 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Tag className="w-3.5 h-3.5 text-cyan-400" />
+                        Seat Category Registry
+                      </h4>
+                      <p className="text-[10px] text-slate-400">
+                        Independent dynamic categories for {theatres.find((t) => t.id === theatreId)?.name}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsAddingCategory((prev) => !prev)}
+                      className="h-6 text-[10px] border-cyan-800 text-cyan-300 hover:bg-cyan-950/60"
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      {isAddingCategory ? "Cancel" : "Add Category"}
+                    </Button>
+                  </div>
+
+                  {/* Add Category Form */}
+                  {isAddingCategory && (
+                    <Card className="p-2.5 bg-slate-950 border-cyan-800/60 text-xs space-y-2">
+                      <div className="text-[11px] font-semibold text-cyan-300">New Category Specification</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[9px] text-slate-400 block mb-0.5">Code</label>
+                          <Input
+                            placeholder="e.g. LUXURY"
+                            value={newCategoryData.code}
+                            onChange={(e) => setNewCategoryData((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                            className="h-6 text-[11px] bg-slate-900 border-slate-700 text-white font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-slate-400 block mb-0.5">Name</label>
+                          <Input
+                            placeholder="e.g. Luxury Suite"
+                            value={newCategoryData.name}
+                            onChange={(e) =>
+                              setNewCategoryData((prev) => ({
+                                ...prev,
+                                name: e.target.value,
+                                displayName: e.target.value,
+                              }))
+                            }
+                            className="h-6 text-[11px] bg-slate-900 border-slate-700 text-white"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-[9px] text-slate-400 block mb-0.5">Color</label>
+                          <input
+                            type="color"
+                            value={newCategoryData.color}
+                            onChange={(e) => setNewCategoryData((prev) => ({ ...prev, color: e.target.value }))}
+                            className="w-full h-6 rounded bg-slate-900 border border-slate-700 cursor-pointer"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-slate-400 block mb-0.5">Priority</label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={newCategoryData.priority}
+                            onChange={(e) => setNewCategoryData((prev) => ({ ...prev, priority: parseInt(e.target.value, 10) || 1 }))}
+                            className="h-6 text-[11px] bg-slate-900 border-slate-700 text-white"
+                          />
+                        </div>
+                        <div className="flex items-end pb-1">
+                          <label className="flex items-center gap-1 text-[10px] text-slate-300 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={newCategoryData.isPremium}
+                              onChange={(e) => setNewCategoryData((prev) => ({ ...prev, isPremium: e.target.checked }))}
+                              className="rounded border-slate-700 bg-slate-900 text-cyan-500"
+                            />
+                            <span>Premium</span>
+                          </label>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={handleCreateCategory}
+                        className="w-full h-6 text-[11px] bg-cyan-600 hover:bg-cyan-500 text-white font-medium"
+                      >
+                        Save Category to Registry
+                      </Button>
+                    </Card>
+                  )}
+
+                  {/* Categories List */}
+                  <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                    {seatCategories.map((cat) => (
+                      <div
+                        key={cat.id}
+                        className={`p-2 rounded border flex items-center justify-between text-xs transition ${
+                          cat.status === "ARCHIVED"
+                            ? "bg-slate-950/40 border-slate-800 opacity-60"
+                            : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0"
+                            style={{ backgroundColor: cat.color }}
+                          />
+                          <div>
+                            <div className="font-semibold text-slate-200 flex items-center gap-1.5">
+                              {cat.displayName}
+                              {cat.isPremium && (
+                                <Badge variant="outline" className="text-[8px] py-0 px-1 border-amber-800 text-amber-300">
+                                  PREMIUM
+                                </Badge>
+                              )}
+                              {cat.accessibility === "WHEELCHAIR" && (
+                                <Badge variant="outline" className="text-[8px] py-0 px-1 border-purple-800 text-purple-300">
+                                  ♿ ADA
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              Code: {cat.code} • Priority: {cat.priority}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleDuplicateCategory(cat.id)}
+                            title="Duplicate Category"
+                            className="p-1 text-slate-400 hover:text-cyan-300 transition"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                          {cat.status === "ACTIVE" ? (
+                            <button
+                              onClick={() => handleArchiveCategory(cat.id)}
+                              title="Archive Category"
+                              className="p-1 text-slate-400 hover:text-amber-400 transition"
+                            >
+                              <Archive className="w-3 h-3" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleRestoreCategory(cat.id)}
+                              title="Restore Category"
+                              className="p-1 text-slate-400 hover:text-emerald-400 transition"
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: THEATRE CANVAS PREFERENCES (Part 2) */}
             {activeTab === "canvas" && (
               <div className="space-y-4">
                 <div>

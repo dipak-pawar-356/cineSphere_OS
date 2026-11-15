@@ -60,4 +60,26 @@ export type {
   RowValidationResult,
 } from "./section-row-designer.types";
 
+export type {
+  SeatNumberingStyle,
+  SeatAccessibilityType,
+  SeatTemplateStatus,
+  SeatCategoryStatus,
+  SeatGeometryCalculationType,
+  SeatCoordinates,
+  SeatMetadata,
+  SeatAccessibility,
+  SeatTemplate,
+  SeatCategoryMetadata,
+  SeatCategoryRule,
+  SeatCategoryRegistryItem,
+  SeatCategory,
+  SeatNumberingConfig,
+  SeatGenerationConfig,
+  SeatCollisionPair,
+  SeatValidationResult,
+  CategoryValidationResult,
+  BulkSeatGenerationResult,
+} from "./seat-generator.types";
+
 
