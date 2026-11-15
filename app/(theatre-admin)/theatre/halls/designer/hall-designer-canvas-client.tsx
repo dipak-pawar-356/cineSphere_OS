@@ -8,6 +8,7 @@ import {
   ZoomOut,
   Maximize,
   RotateCcw,
+  RotateCw,
   Grid,
   Magnet,
   Sliders,
@@ -33,6 +34,13 @@ import {
   AlignEndVertical,
   AlignCenterHorizontal,
   AlignCenterVertical,
+  AlignHorizontalDistributeCenter,
+  AlignVerticalDistributeCenter,
+  Undo2,
+  Redo2,
+  GitCompare,
+  Paintbrush,
+  Scaling,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,12 +62,14 @@ import {
   listLayoutDefinitionsAction,
   getLayoutDefinitionAction,
   getLayoutVersionAction,
+  createLayoutDefinitionAction,
   createDraftVersionAction,
   updateDraftLayoutAction,
   validateLayoutVersionAction,
   publishLayoutVersionAction,
   duplicateLayoutAction,
   archiveLayoutAction,
+  restoreLayoutAction,
   loadCanvasPreferencesAction,
   saveCanvasPreferencesAction,
   resetCanvasPreferencesAction,
@@ -84,7 +94,7 @@ export function HallDesignerCanvasClient({
   ],
 }: HallDesignerCanvasClientProps) {
   // ----------------------------------------------------------------------------
-  // 1. Core Selection State
+  // 1. Core Selection & Entity State
   // ----------------------------------------------------------------------------
   const [theatreId, setTheatreId] = useState(initialTheatreId);
   const [selectedHallId, setSelectedHallId] = useState(halls[0]?.id || "hall-pun-aud1");
@@ -94,6 +104,17 @@ export function HallDesignerCanvasClient({
   const [currentDef, setCurrentDef] = useState<LayoutDefinition | null>(null);
   const [currentVersion, setCurrentVersion] = useState<LayoutVersion | null>(null);
   const [allVersions, setAllVersions] = useState<LayoutVersion[]>([]);
+
+  // Undo / Redo Stacks (Undo/Redo Placeholders)
+  const [undoStack, setUndoStack] = useState<SeatDefinition[][]>([]);
+  const [redoStack, setRedoStack] = useState<SeatDefinition[][]>([]);
+
+  // Modals & Popups
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newLayoutName, setNewLayoutName] = useState("");
+  const [newLayoutDesc, setNewLayoutDesc] = useState("");
+  const [showCompareModal, setShowCompareModal] = useState(false);
+  const [compareTargetVersionId, setCompareTargetVersionId] = useState<string>("");
 
   // Canvas Preferences State
   const [preferences, setPreferences] = useState<CanvasPreferences>({
@@ -176,12 +197,13 @@ export function HallDesignerCanvasClient({
       setCurrentDef(res.data.definition);
       setAllVersions(res.data.versions);
 
-      // Prefer active draft if present, else published version, else latest version
       const targetVer =
         res.data.activeDraftVersion ||
         res.data.currentPublishedVersion ||
         res.data.versions[0];
       setCurrentVersion(targetVer || null);
+      setUndoStack([]);
+      setRedoStack([]);
     }
   };
 
@@ -200,8 +222,9 @@ export function HallDesignerCanvasClient({
   };
 
   const handleResetZoom = () => {
+    const norm = preferences.defaultZoom > 5 ? preferences.defaultZoom / 100 : preferences.defaultZoom;
     setTransform({
-      zoom: preferences.defaultZoom || 1.0,
+      zoom: norm || 1.0,
       panX: 80,
       panY: 60,
     });
@@ -243,7 +266,7 @@ export function HallDesignerCanvasClient({
   };
 
   // ----------------------------------------------------------------------------
-  // 4. Seating Selection & Alignment (Part 2)
+  // 4. Seating Selection & Alignment Operations (Part 2)
   // ----------------------------------------------------------------------------
   const handleToggleSeat = (seatId: string, multiSelect: boolean) => {
     if (multiSelect) {
@@ -255,11 +278,44 @@ export function HallDesignerCanvasClient({
     }
   };
 
+  const pushUndoState = () => {
+    if (currentVersion) {
+      setUndoStack((prev) => [...prev, JSON.parse(JSON.stringify(currentVersion.seats))]);
+      setRedoStack([]);
+    }
+  };
+
+  const handleUndo = () => {
+    if (undoStack.length === 0 || !currentVersion) return;
+    const previousSeats = undoStack[undoStack.length - 1];
+    setRedoStack((prev) => [...prev, JSON.parse(JSON.stringify(currentVersion.seats))]);
+    setUndoStack((prev) => prev.slice(0, prev.length - 1));
+    setCurrentVersion({ ...currentVersion, seats: previousSeats });
+    setStatusMessage({ type: "info", text: "Undo: Restored previous seating layout state." });
+  };
+
+  const handleRedo = () => {
+    if (redoStack.length === 0 || !currentVersion) return;
+    const nextSeats = redoStack[redoStack.length - 1];
+    setUndoStack((prev) => [...prev, JSON.parse(JSON.stringify(currentVersion.seats))]);
+    setRedoStack((prev) => prev.slice(0, prev.length - 1));
+    setCurrentVersion({ ...currentVersion, seats: nextSeats });
+    setStatusMessage({ type: "info", text: "Redo: Re-applied seating layout modification." });
+  };
+
   const handleAlignSelectedSeats = (
-    op: "ALIGN_LEFT" | "ALIGN_RIGHT" | "ALIGN_TOP" | "ALIGN_BOTTOM" | "CENTER_HORIZONTAL" | "CENTER_VERTICAL"
+    op:
+      | "ALIGN_LEFT"
+      | "ALIGN_RIGHT"
+      | "ALIGN_TOP"
+      | "ALIGN_BOTTOM"
+      | "CENTER_HORIZONTAL"
+      | "CENTER_VERTICAL"
+      | "DISTRIBUTE_HORIZONTALLY"
+      | "DISTRIBUTE_VERTICALLY"
   ) => {
     if (!currentVersion || selectedSeatIds.length < 2) {
-      setStatusMessage({ type: "info", text: "Select at least 2 seats to align." });
+      setStatusMessage({ type: "info", text: "Select at least 2 seats to align or distribute." });
       return;
     }
     if (currentVersion.status !== "DRAFT") {
@@ -267,18 +323,160 @@ export function HallDesignerCanvasClient({
       return;
     }
 
+    pushUndoState();
     const selectedSeats = currentVersion.seats.filter((s) => selectedSeatIds.includes(s.id));
     const alignedSelected = CanvasGridEngine.alignSeats(selectedSeats, op);
     const alignedMap = new Map(alignedSelected.map((s) => [s.id, s]));
     const updatedSeats = currentVersion.seats.map((s) => alignedMap.get(s.id) || s);
 
     setCurrentVersion({ ...currentVersion, seats: updatedSeats });
-    setStatusMessage({ type: "success", text: `Applied ${op.replace("_", " ").toLowerCase()} alignment to ${selectedSeatIds.length} seats.` });
+    setStatusMessage({
+      type: "success",
+      text: `Applied ${op.replace("_", " ").toLowerCase()} alignment to ${selectedSeatIds.length} seats.`,
+    });
+  };
+
+  // Rotation operation
+  const handleRotateSelectedSeats = () => {
+    if (!currentVersion || selectedSeatIds.length === 0) return;
+    if (currentVersion.status !== "DRAFT") {
+      setStatusMessage({ type: "error", text: "Only draft layouts can be rotated." });
+      return;
+    }
+
+    pushUndoState();
+    const selectedSeats = currentVersion.seats.filter((s) => selectedSeatIds.includes(s.id));
+    const centerX = Math.round(selectedSeats.reduce((acc, s) => acc + s.coordinates.x, 0) / selectedSeats.length);
+    const centerY = Math.round(selectedSeats.reduce((acc, s) => acc + s.coordinates.y, 0) / selectedSeats.length);
+
+    // Rotate coordinates 90 degrees around center
+    const rotated = selectedSeats.map((seat) => {
+      const dx = seat.coordinates.x - centerX;
+      const dy = seat.coordinates.y - centerY;
+      return {
+        ...seat,
+        coordinates: {
+          x: centerX - dy,
+          y: centerY + dx,
+        },
+      };
+    });
+
+    const rotatedMap = new Map(rotated.map((s) => [s.id, s]));
+    const updatedSeats = currentVersion.seats.map((s) => rotatedMap.get(s.id) || s);
+    setCurrentVersion({ ...currentVersion, seats: updatedSeats });
+    setStatusMessage({ type: "success", text: `Rotated ${selectedSeatIds.length} seats by 90°.` });
   };
 
   // ----------------------------------------------------------------------------
   // 5. Versioning & Validation Actions (Part 1)
   // ----------------------------------------------------------------------------
+  const handleCreateNewLayout = async () => {
+    if (!newLayoutName.trim()) return;
+    setIsLoading(true);
+    try {
+      const res = await createLayoutDefinitionAction({
+        theatreId,
+        hallId: selectedHallId,
+        name: newLayoutName.trim(),
+        description: newLayoutDesc.trim() || undefined,
+      });
+
+      if (res.success && res.data) {
+        setShowCreateModal(false);
+        setNewLayoutName("");
+        setNewLayoutDesc("");
+        await loadData();
+        setStatusMessage({
+          type: "success",
+          text: `Created layout '${res.data.definition.name}' with initial v1 Draft!`,
+        });
+      } else {
+        setStatusMessage({ type: "error", text: res.error?.message || "Failed to create layout." });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to create layout." });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDuplicateLayout = async () => {
+    if (!currentDef) return;
+    setIsLoading(true);
+    try {
+      const res = await duplicateLayoutAction({
+        theatreId,
+        layoutDefinitionId: currentDef.id,
+        newName: `${currentDef.name} (Copy)`,
+      });
+
+      if (res.success && res.data) {
+        await loadData();
+        setStatusMessage({
+          type: "success",
+          text: `Duplicated layout as '${res.data.definition.name}'.`,
+        });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to duplicate layout." });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleArchiveLayout = async () => {
+    if (!currentDef) return;
+    if (!confirm(`Are you sure you want to archive layout '${currentDef.name}'?`)) return;
+
+    setIsLoading(true);
+    try {
+      const res = await archiveLayoutAction({
+        theatreId,
+        layoutDefinitionId: currentDef.id,
+      });
+
+      if (res.success && res.data) {
+        await loadData();
+        setStatusMessage({
+          type: "success",
+          text: `Archived layout '${res.data.name}'.`,
+        });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to archive layout." });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRestoreVersion = async (targetVersion: LayoutVersion) => {
+    if (!currentDef) return;
+    if (!confirm(`Create new draft derived from v${targetVersion.versionNumber}?`)) return;
+
+    setIsLoading(true);
+    try {
+      const res = await restoreLayoutAction({
+        theatreId,
+        layoutDefinitionId: currentDef.id,
+        versionId: targetVersion.id,
+      });
+
+      if (res.success && res.data) {
+        await loadDefinitionDetails(currentDef.id);
+        setCurrentVersion(res.data);
+        setStatusMessage({
+          type: "success",
+          text: `Rollback / Restore: Created Draft v${res.data.versionNumber} from v${targetVersion.versionNumber}.`,
+        });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to restore version." });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSaveDraft = async () => {
     if (!currentVersion || currentVersion.status !== "DRAFT") {
       setStatusMessage({ type: "error", text: "Cannot save non-draft version. Create a new draft first." });
@@ -432,10 +630,16 @@ export function HallDesignerCanvasClient({
     };
   }, [preferences.canvasWidth, preferences.canvasHeight, preferences.measurementUnit]);
 
+  // Version Comparison Diff State
+  const compareTargetVersion = useMemo(() => {
+    if (!compareTargetVersionId) return null;
+    return allVersions.find((v) => v.id === compareTargetVersionId) || null;
+  }, [compareTargetVersionId, allVersions]);
+
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-slate-950 text-slate-100 overflow-hidden select-none">
       {/* ------------------------------------------------------------------------ */}
-      {/* 1. TOP HEADER BAR */}
+      {/* 1. TOP HEADER BAR: IMMUTABLE DEFINITION LAYER & STATUS */}
       {/* ------------------------------------------------------------------------ */}
       <header className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 z-30">
         <div className="flex items-center gap-4">
@@ -495,6 +699,17 @@ export function HallDesignerCanvasClient({
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setShowCreateModal(true)}
+            className="border-slate-700 text-slate-300 hover:text-white"
+            title="Create New Layout Definition"
+          >
+            <Plus className="w-4 h-4 mr-1.5 text-cyan-400" />
+            New Layout
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleValidateVersion}
             className="border-slate-700 text-slate-300 hover:text-white"
           >
@@ -546,8 +761,32 @@ export function HallDesignerCanvasClient({
       {/* 2. SUB-TOOLBAR: CANVAS & GRID CONTROLS (Part 2) */}
       {/* ------------------------------------------------------------------------ */}
       <div className="flex items-center justify-between px-4 py-2 bg-slate-900/80 border-b border-slate-800 text-xs">
-        {/* Left: Viewport & Zoom */}
+        {/* Left: Viewport, Zoom & Undo/Redo */}
         <div className="flex items-center gap-1.5">
+          {/* Undo / Redo Placeholders */}
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={undoStack.length === 0}
+            onClick={handleUndo}
+            className="h-7 w-7 p-0 text-slate-300 hover:text-white disabled:opacity-40"
+            title="Undo (Ctrl+Z)"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={redoStack.length === 0}
+            onClick={handleRedo}
+            className="h-7 w-7 p-0 text-slate-300 hover:text-white disabled:opacity-40"
+            title="Redo (Ctrl+Y)"
+          >
+            <Redo2 className="w-3.5 h-3.5" />
+          </Button>
+
+          <div className="h-4 w-px bg-slate-800 mx-1" />
+
           <span className="text-slate-400 mr-1 font-medium">Zoom:</span>
           <Button
             variant="ghost"
@@ -584,12 +823,12 @@ export function HallDesignerCanvasClient({
             size="sm"
             onClick={handleResetZoom}
             className="h-7 px-2 text-slate-300 hover:text-white"
-            title="Reset to 100%"
+            title="Reset to Default"
           >
-            <RotateCcw className="w-3.5 h-3.5 mr-1" /> 100%
+            <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
           </Button>
 
-          <div className="h-4 w-px bg-slate-800 mx-2" />
+          <div className="h-4 w-px bg-slate-800 mx-1.5" />
 
           {/* Grid Density */}
           <span className="text-slate-400 mr-1 font-medium">Grid:</span>
@@ -619,7 +858,7 @@ export function HallDesignerCanvasClient({
             title="Toggle Grid Visibility"
           >
             <Grid className="w-3.5 h-3.5 mr-1" />
-            {preferences.gridVisible ? "Visible" : "Hidden"}
+            {preferences.gridVisible ? "On" : "Off"}
           </Button>
 
           {/* Snap Toggle */}
@@ -635,7 +874,7 @@ export function HallDesignerCanvasClient({
           </Button>
         </div>
 
-        {/* Center: Alignment Tools */}
+        {/* Center: Alignment & Transformation Tools */}
         <div className="flex items-center gap-1 bg-slate-950/60 px-2 py-1 rounded border border-slate-800">
           <span className="text-[11px] text-slate-400 mr-1">Align ({selectedSeatIds.length}):</span>
           <Button
@@ -697,6 +936,32 @@ export function HallDesignerCanvasClient({
             title="Center Vertically"
           >
             <AlignCenterVertical className="w-3.5 h-3.5" />
+          </Button>
+
+          <div className="h-3 w-px bg-slate-800 mx-1" />
+
+          {/* Equal Spacing Placeholder */}
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={selectedSeatIds.length < 3 || currentVersion?.status !== "DRAFT"}
+            onClick={() => handleAlignSelectedSeats("DISTRIBUTE_HORIZONTALLY")}
+            className="h-6 w-6 p-0 text-slate-300 hover:text-white"
+            title="Equal Spacing (Distribute Horizontally)"
+          >
+            <AlignHorizontalDistributeCenter className="w-3.5 h-3.5" />
+          </Button>
+
+          {/* Rotation Tool */}
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={selectedSeatIds.length === 0 || currentVersion?.status !== "DRAFT"}
+            onClick={handleRotateSelectedSeats}
+            className="h-6 w-6 p-0 text-slate-300 hover:text-white"
+            title="Rotate 90°"
+          >
+            <RotateCw className="w-3.5 h-3.5" />
           </Button>
         </div>
 
@@ -846,7 +1111,7 @@ export function HallDesignerCanvasClient({
             </div>
           </div>
 
-          {/* Canvas HUD / Mini Status Indicator (Part 2) */}
+          {/* Canvas HUD Status Indicator */}
           <div className="absolute bottom-4 left-4 bg-slate-900/90 border border-slate-800 rounded-lg px-3 py-2 text-xs flex items-center gap-4 backdrop-blur shadow-xl pointer-events-none">
             <div>
               <span className="text-slate-500">Pan:</span>{" "}
@@ -869,6 +1134,43 @@ export function HallDesignerCanvasClient({
               </span>
             </div>
           </div>
+
+          {/* Mini-Map Indicator Placeholder (Part 2) */}
+          {preferences.showMiniMap && (
+            <div className="absolute bottom-4 right-4 bg-slate-900/95 border border-slate-800 rounded-lg p-2 shadow-2xl backdrop-blur">
+              <div className="text-[10px] font-bold text-slate-400 mb-1 flex items-center justify-between">
+                <span>AUDITORIUM MINI-MAP</span>
+                <span className="text-[9px] text-cyan-400">{Math.round(transform.zoom * 100)}%</span>
+              </div>
+              <div
+                className="relative w-44 h-32 bg-slate-950 border border-slate-800 rounded overflow-hidden"
+              >
+                {/* Mini screen line */}
+                <div className="absolute top-2 left-6 right-6 h-1 bg-cyan-400/80 rounded-full" />
+                {/* Mini dots for seats */}
+                {currentVersion?.seats.slice(0, 80).map((s) => (
+                  <div
+                    key={s.id}
+                    className="absolute w-1 h-1 rounded-full bg-slate-500"
+                    style={{
+                      left: `${(s.coordinates.x / preferences.canvasWidth) * 100}%`,
+                      top: `${(s.coordinates.y / preferences.canvasHeight) * 100}%`,
+                    }}
+                  />
+                ))}
+                {/* Viewport frame indicator */}
+                <div
+                  className="absolute border border-cyan-400/70 bg-cyan-500/10 rounded"
+                  style={{
+                    left: `${Math.max(0, Math.min(80, (-transform.panX / preferences.canvasWidth) * 100))}%`,
+                    top: `${Math.max(0, Math.min(80, (-transform.panY / preferences.canvasHeight) * 100))}%`,
+                    width: `${Math.max(20, Math.min(100, 100 / transform.zoom / 2.5))}%`,
+                    height: `${Math.max(20, Math.min(100, 100 / transform.zoom / 2.5))}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* -------------------------------------------------------------------- */}
@@ -915,7 +1217,25 @@ export function HallDesignerCanvasClient({
             {activeTab === "layout" && (
               <>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-400">Layout Definition</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-400">Layout Definition</label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={handleDuplicateLayout}
+                        className="text-[11px] text-slate-400 hover:text-cyan-400 p-0.5"
+                        title="Duplicate Layout"
+                      >
+                        <Copy className="w-3 h-3 inline mr-1" /> Duplicate
+                      </button>
+                      <button
+                        onClick={handleArchiveLayout}
+                        className="text-[11px] text-slate-400 hover:text-rose-400 p-0.5 ml-1"
+                        title="Archive Layout"
+                      >
+                        <Archive className="w-3 h-3 inline mr-1" /> Archive
+                      </button>
+                    </div>
+                  </div>
                   <select
                     value={currentDef?.id || ""}
                     onChange={(e) => loadDefinitionDetails(e.target.value)}
@@ -944,6 +1264,25 @@ export function HallDesignerCanvasClient({
                   </select>
                 </div>
 
+                {/* Compare Versions Trigger */}
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (allVersions.length >= 2) {
+                        const otherVer = allVersions.find((v) => v.id !== currentVersion?.id);
+                        if (otherVer) setCompareTargetVersionId(otherVer.id);
+                      }
+                      setShowCompareModal(true);
+                    }}
+                    className="w-full border-slate-800 text-slate-300 hover:text-white text-xs"
+                  >
+                    <GitCompare className="w-3.5 h-3.5 mr-1.5 text-cyan-400" />
+                    Compare Versions Diff
+                  </Button>
+                </div>
+
                 {/* Version History List */}
                 <div className="pt-2 border-t border-slate-800">
                   <div className="flex items-center justify-between mb-2">
@@ -959,14 +1298,16 @@ export function HallDesignerCanvasClient({
                     {allVersions.map((v) => (
                       <div
                         key={v.id}
-                        onClick={() => setCurrentVersion(v)}
-                        className={`p-2.5 rounded-lg border text-xs cursor-pointer transition ${
+                        className={`p-2.5 rounded-lg border text-xs transition ${
                           currentVersion?.id === v.id
                             ? "bg-slate-800/90 border-cyan-500/80 shadow"
                             : "bg-slate-950 border-slate-800 hover:border-slate-700"
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-1">
+                        <div
+                          className="flex items-center justify-between mb-1 cursor-pointer"
+                          onClick={() => setCurrentVersion(v)}
+                        >
                           <span className="font-bold text-white">v{v.versionNumber}</span>
                           <Badge
                             variant="outline"
@@ -984,9 +1325,17 @@ export function HallDesignerCanvasClient({
                         <div className="text-[11px] text-slate-400">
                           {v.versionNotes || "No notes"}
                         </div>
-                        <div className="text-[10px] text-slate-500 mt-1 flex justify-between">
+                        <div className="text-[10px] text-slate-500 mt-1 flex justify-between items-center">
                           <span>{v.seats.length} seats</span>
-                          <span>{new Date(v.createdAt).toLocaleDateString()}</span>
+                          {v.status !== "DRAFT" && (
+                            <button
+                              onClick={() => handleRestoreVersion(v)}
+                              className="text-cyan-400 hover:underline flex items-center gap-1"
+                              title="Branch new draft from this version"
+                            >
+                              <RotateCcw className="w-2.5 h-2.5" /> Rollback
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1086,6 +1435,68 @@ export function HallDesignerCanvasClient({
                   </select>
                 </div>
 
+                {/* Canvas Width & Height Settings */}
+                <div className="space-y-2 pt-2 border-t border-slate-800">
+                  <label className="text-xs font-semibold text-slate-300 block">
+                    Canvas Dimensions
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[11px] text-slate-400 block">Width (px):</span>
+                      <Input
+                        type="number"
+                        min="800"
+                        max="8000"
+                        step="100"
+                        value={preferences.canvasWidth}
+                        onChange={(e) =>
+                          handleSavePreferences({ canvasWidth: parseInt(e.target.value, 10) || 2400 })
+                        }
+                        className="h-8 bg-slate-950 border-slate-700 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-400 block">Height (px):</span>
+                      <Input
+                        type="number"
+                        min="600"
+                        max="8000"
+                        step="100"
+                        value={preferences.canvasHeight}
+                        onChange={(e) =>
+                          handleSavePreferences({ canvasHeight: parseInt(e.target.value, 10) || 1800 })
+                        }
+                        className="h-8 bg-slate-950 border-slate-700 text-xs text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Background & Grid Colors */}
+                <div className="space-y-2 pt-2 border-t border-slate-800">
+                  <label className="text-xs font-semibold text-slate-300 block">
+                    Color Settings
+                  </label>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Background:</span>
+                    <input
+                      type="color"
+                      value={preferences.backgroundColor || "#0B0F19"}
+                      onChange={(e) => handleSavePreferences({ backgroundColor: e.target.value })}
+                      className="w-6 h-6 rounded cursor-pointer bg-transparent border-0"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Grid Color:</span>
+                    <input
+                      type="color"
+                      value={preferences.gridColor || "#334155"}
+                      onChange={(e) => handleSavePreferences({ gridColor: e.target.value })}
+                      className="w-6 h-6 rounded cursor-pointer bg-transparent border-0"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2 pt-2 border-t border-slate-800">
                   <label className="text-xs font-semibold text-slate-300 block">
                     Grid Configuration
@@ -1147,6 +1558,20 @@ export function HallDesignerCanvasClient({
                   />
                 </div>
 
+                <div className="pt-2 border-t border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Show Mini-Map:</span>
+                    <button
+                      onClick={() => handleSavePreferences({ showMiniMap: !preferences.showMiniMap })}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                        preferences.showMiniMap ? "bg-cyan-600 text-white" : "bg-slate-800 text-slate-400"
+                      }`}
+                    >
+                      {preferences.showMiniMap ? "Visible" : "Hidden"}
+                    </button>
+                  </div>
+                </div>
+
                 <div className="pt-2 border-t border-slate-800">
                   <Button
                     variant="outline"
@@ -1162,6 +1587,141 @@ export function HallDesignerCanvasClient({
           </div>
         </aside>
       </div>
+
+      {/* ------------------------------------------------------------------------ */}
+      {/* 5. CREATE LAYOUT MODAL */}
+      {/* ------------------------------------------------------------------------ */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 w-full max-w-md shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Plus className="w-4 h-4 text-cyan-400" /> Create Layout Definition
+            </h3>
+            <p className="text-xs text-slate-400">
+              Create an immutable layout blueprint for this auditorium. An initial v1 Draft will be automatically provisioned.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Layout Name</label>
+                <Input
+                  placeholder="e.g. IMAX Laser Premiere Blueprint"
+                  value={newLayoutName}
+                  onChange={(e) => setNewLayoutName(e.target.value)}
+                  className="bg-slate-950 border-slate-700 text-xs text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Description (Optional)</label>
+                <Input
+                  placeholder="e.g. Standard 100-seat layout with VIP recliner section"
+                  value={newLayoutDesc}
+                  onChange={(e) => setNewLayoutDesc(e.target.value)}
+                  className="bg-slate-950 border-slate-700 text-xs text-white"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCreateModal(false)}
+                className="text-slate-400 hover:text-white text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleCreateNewLayout}
+                disabled={!newLayoutName.trim() || isLoading}
+                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs"
+              >
+                Create Layout
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------ */}
+      {/* 6. COMPARE VERSIONS DIFF MODAL (Placeholder) */}
+      {/* ------------------------------------------------------------------------ */}
+      {showCompareModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 w-full max-w-lg shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <GitCompare className="w-4 h-4 text-cyan-400" /> Compare Layout Versions
+            </h3>
+            <p className="text-xs text-slate-400">
+              Inspect structural and seating differences between active version and historical revisions.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-1">
+                <span className="text-[10px] text-slate-500 block uppercase font-bold">Current Version</span>
+                <span className="font-bold text-white text-sm">v{currentVersion?.versionNumber} ({currentVersion?.status})</span>
+                <div className="text-slate-400 text-xs">Total Seats: {currentVersion?.seats.length}</div>
+                <div className="text-slate-400 text-xs">Sections: {currentVersion?.sections.length}</div>
+              </div>
+
+              <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-1">
+                <span className="text-[10px] text-slate-500 block uppercase font-bold">Compare Against</span>
+                <select
+                  value={compareTargetVersionId}
+                  onChange={(e) => setCompareTargetVersionId(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"
+                >
+                  {allVersions.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      v{v.versionNumber} ({v.status}) - {v.seats.length} seats
+                    </option>
+                  ))}
+                </select>
+                {compareTargetVersion && (
+                  <>
+                    <div className="text-slate-400 text-xs">Total Seats: {compareTargetVersion.seats.length}</div>
+                    <div className="text-slate-400 text-xs">Sections: {compareTargetVersion.sections.length}</div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {compareTargetVersion && (
+              <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg text-xs space-y-1 text-slate-300">
+                <div className="font-bold text-cyan-400 mb-1">Delta Analysis:</div>
+                <div>
+                  Capacity Delta:{" "}
+                  <span
+                    className={
+                      (currentVersion?.seats.length || 0) - compareTargetVersion.seats.length >= 0
+                        ? "text-emerald-400 font-mono"
+                        : "text-rose-400 font-mono"
+                    }
+                  >
+                    {(currentVersion?.seats.length || 0) - compareTargetVersion.seats.length >= 0 ? "+" : ""}
+                    {(currentVersion?.seats.length || 0) - compareTargetVersion.seats.length} seats
+                  </span>
+                </div>
+                <div>Status Transition: {compareTargetVersion.status} ➔ {currentVersion?.status}</div>
+                <div className="text-slate-500 text-[11px] pt-1">
+                  In-flight shows on v{compareTargetVersion.versionNumber} will remain unaffected when new version publishes.
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2 border-t border-slate-800">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCompareModal(false)}
+                className="text-slate-300 hover:text-white text-xs"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
