@@ -19,4 +19,7 @@ export * from "./pricing-actions";
 export * from "./seat-generation-actions";
 export * from "./show-actions";
 export * from "./ticket-actions";
+export * from "./enterprise-extensions-actions";
+export * from "./hall-designer-actions";
+export * from "./section-row-actions";
 

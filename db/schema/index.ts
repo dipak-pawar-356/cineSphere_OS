@@ -59,6 +59,9 @@ export * from "./enterprise-extensions";
 // Hall Designer Foundation & Canvas System (Phase 4 - Parts 1 & 2)
 export * from "./hall-designer";
 
+// Section Designer & Row Designer (Phase 4 - Parts 3 & 4)
+export * from "./section-row-designer";
+
 
 
 // Tenant Payment Configurations & Ledger

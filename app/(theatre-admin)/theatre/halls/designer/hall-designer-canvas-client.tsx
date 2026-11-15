@@ -41,6 +41,13 @@ import {
   GitCompare,
   Paintbrush,
   Scaling,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  PlusCircle,
+  MoveVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +64,14 @@ import {
   SeatDefinition,
   HallSectionDefinition,
 } from "@/types/hall-designer.types";
+import {
+  HallSection,
+  HallRow,
+  SectionGeometryType,
+  RowGeometryType,
+  RowNumberingStrategy,
+  RowAccessibilityType,
+} from "@/types/section-row-designer.types";
 import { CanvasGridEngine } from "@/lib/engine/canvas-grid-engine";
 import {
   listLayoutDefinitionsAction,
@@ -74,6 +89,19 @@ import {
   saveCanvasPreferencesAction,
   resetCanvasPreferencesAction,
 } from "@/actions/hall-designer-actions";
+import {
+  listSectionsAction,
+  createSectionAction,
+  updateSectionAction,
+  deleteSectionAction,
+  duplicateSectionAction,
+  reorderSectionsAction,
+  createRowAction,
+  updateRowAction,
+  deleteRowAction,
+  duplicateRowAction,
+  reorderRowsAction,
+} from "@/actions/section-row-actions";
 
 interface HallDesignerCanvasClientProps {
   initialTheatreId?: string;
@@ -155,6 +183,49 @@ export function HallDesignerCanvasClient({
   const [validationResult, setValidationResult] = useState<LayoutValidationResult | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
 
+  // Section & Row Designer State (Parts 3 & 4)
+  const [detailedSections, setDetailedSections] = useState<HallSection[]>([]);
+  const [expandedSectionId, setExpandedSectionId] = useState<string | null>(null);
+  const [isAddingSection, setIsAddingSection] = useState(false);
+  const [newSectionData, setNewSectionData] = useState<{
+    name: string;
+    displayName: string;
+    internalCode: string;
+    color: string;
+    seatCategory: "Standard" | "Recliner" | "VIP" | "Couple" | "Wheelchair" | "Sofa";
+    shapeType: SectionGeometryType;
+    labelPosition: "TOP" | "BOTTOM" | "LEFT" | "RIGHT" | "CENTER" | "HIDDEN";
+    capacity: number;
+  }>({
+    name: "",
+    displayName: "",
+    internalCode: "",
+    color: "#38BDF8",
+    seatCategory: "Standard",
+    shapeType: "RECTANGLE",
+    labelPosition: "TOP",
+    capacity: 0,
+  });
+
+  const [isAddingRowForSectionId, setIsAddingRowForSectionId] = useState<string | null>(null);
+  const [newRowData, setNewRowData] = useState<{
+    rowName: string;
+    displayName: string;
+    seatCount: number;
+    spacing: number;
+    numberingStrategy: RowNumberingStrategy;
+    geometryType: RowGeometryType;
+    accessibility: RowAccessibilityType;
+  }>({
+    rowName: "",
+    displayName: "",
+    seatCount: 10,
+    spacing: 35,
+    numberingStrategy: "ALPHABETICAL",
+    geometryType: "STRAIGHT",
+    accessibility: "STANDARD",
+  });
+
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // ----------------------------------------------------------------------------
@@ -182,12 +253,24 @@ export function HallDesignerCanvasClient({
           setCurrentDef(null);
           setCurrentVersion(null);
           setAllVersions([]);
+          setDetailedSections([]);
         }
       }
     } catch (err: any) {
       setStatusMessage({ type: "error", text: err.message || "Failed to load designer data" });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadSectionsForVersion = async (verId: string) => {
+    try {
+      const res = await listSectionsAction({ theatreId, layoutVersionId: verId });
+      if (res.success && res.data) {
+        setDetailedSections(res.data);
+      }
+    } catch {
+      // fallback
     }
   };
 
@@ -202,8 +285,205 @@ export function HallDesignerCanvasClient({
         res.data.currentPublishedVersion ||
         res.data.versions[0];
       setCurrentVersion(targetVer || null);
+      if (targetVer) {
+        loadSectionsForVersion(targetVer.id);
+      }
       setUndoStack([]);
       setRedoStack([]);
+    }
+  };
+
+  // Section CRUD Handlers
+  const handleCreateSection = async () => {
+    if (!currentVersion || currentVersion.status !== "DRAFT") {
+      setStatusMessage({ type: "error", text: "Cannot add section to immutable live version. Create a draft first." });
+      return;
+    }
+    try {
+      const res = await createSectionAction({
+        theatreId,
+        layoutVersionId: currentVersion.id,
+        name: newSectionData.name || "New Section",
+        displayName: newSectionData.displayName || "New Auditorium Section",
+        internalCode: newSectionData.internalCode || `SEC-${Date.now().toString().slice(-4)}`,
+        color: newSectionData.color || "#38BDF8",
+        seatCategory: newSectionData.seatCategory || "Standard",
+        capacity: newSectionData.capacity || 0,
+        priority: detailedSections.length + 1,
+        displayOrder: detailedSections.length + 1,
+        rotation: 0,
+        position: { x: 100, y: 150 + detailedSections.length * 150 },
+        visibility: "VISIBLE",
+        geometry: {
+          shapeType: newSectionData.shapeType,
+          curvatureRadius: newSectionData.shapeType === "CURVED" || newSectionData.shapeType === "ARC" ? 600 : undefined,
+          arcAngle: newSectionData.shapeType === "CURVED" || newSectionData.shapeType === "ARC" ? 30 : undefined,
+        },
+        labelPosition: newSectionData.labelPosition || "TOP",
+      });
+
+      if (res.success && res.data) {
+        setDetailedSections((prev) => [...prev, res.data!]);
+        setIsAddingSection(false);
+        setNewSectionData({
+          name: "",
+          displayName: "",
+          internalCode: "",
+          color: "#38BDF8",
+          seatCategory: "Standard",
+          shapeType: "RECTANGLE",
+          labelPosition: "TOP",
+          capacity: 0,
+        });
+        setStatusMessage({ type: "success", text: `Section '${res.data.name}' created.` });
+      } else {
+        setStatusMessage({ type: "error", text: res.error?.message || "Failed to create section." });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to create section." });
+    }
+  };
+
+  const handleDeleteSection = async (secId: string) => {
+    if (!currentVersion || currentVersion.status !== "DRAFT") return;
+    try {
+      const res = await deleteSectionAction({ theatreId, sectionId: secId });
+      if (res.success) {
+        setDetailedSections((prev) => prev.filter((s) => s.id !== secId));
+        setStatusMessage({ type: "success", text: "Section deleted." });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to delete section." });
+    }
+  };
+
+  const handleDuplicateSection = async (secId: string) => {
+    if (!currentVersion || currentVersion.status !== "DRAFT") return;
+    try {
+      const res = await duplicateSectionAction({ theatreId, sectionId: secId });
+      if (res.success && res.data) {
+        setDetailedSections((prev) => [...prev, res.data!]);
+        setStatusMessage({ type: "success", text: `Section duplicated as '${res.data.name}'.` });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to duplicate section." });
+    }
+  };
+
+  const handleReorderSection = async (secId: string, direction: "UP" | "DOWN" | "TOP" | "BOTTOM") => {
+    if (!currentVersion || currentVersion.status !== "DRAFT") return;
+    try {
+      const res = await reorderSectionsAction({
+        theatreId,
+        layoutVersionId: currentVersion.id,
+        sectionId: secId,
+        direction,
+      });
+      if (res.success && res.data) {
+        setDetailedSections(res.data);
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to reorder section." });
+    }
+  };
+
+  // Row CRUD Handlers
+  const handleCreateRow = async (secId: string) => {
+    if (!currentVersion || currentVersion.status !== "DRAFT") return;
+    try {
+      const targetSec = detailedSections.find((s) => s.id === secId);
+      const nextSeq = (targetSec?.rows.length || 0) + 1;
+      const res = await createRowAction({
+        theatreId,
+        sectionId: secId,
+        rowName: newRowData.rowName || String.fromCharCode(64 + nextSeq),
+        displayName: newRowData.displayName || `Row ${newRowData.rowName || String.fromCharCode(64 + nextSeq)}`,
+        sequence: nextSeq,
+        seatCount: newRowData.seatCount || 10,
+        spacing: newRowData.spacing || 35,
+        rotation: 0,
+        visibility: "VISIBLE",
+        accessibility: newRowData.accessibility || "STANDARD",
+        geometry: {
+          geometryType: newRowData.geometryType || "STRAIGHT",
+          curveRadius: newRowData.geometryType === "CURVED" ? 600 : undefined,
+        },
+        configuration: {
+          numberingStrategy: newRowData.numberingStrategy || "ALPHABETICAL",
+          isReversed: false,
+          startIndex: 1,
+          endIndex: newRowData.seatCount || 10,
+        },
+      });
+
+      if (res.success && res.data) {
+        setDetailedSections((prev) =>
+          prev.map((s) =>
+            s.id === secId ? { ...s, rows: [...s.rows, res.data!] } : s
+          )
+        );
+        setIsAddingRowForSectionId(null);
+        setNewRowData({
+          rowName: "",
+          displayName: "",
+          seatCount: 10,
+          spacing: 35,
+          numberingStrategy: "ALPHABETICAL",
+          geometryType: "STRAIGHT",
+          accessibility: "STANDARD",
+        });
+        setStatusMessage({ type: "success", text: `Row '${res.data.rowName}' added.` });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to create row." });
+    }
+  };
+
+  const handleDeleteRow = async (secId: string, rowId: string) => {
+    if (!currentVersion || currentVersion.status !== "DRAFT") return;
+    try {
+      const res = await deleteRowAction({ theatreId, rowId });
+      if (res.success) {
+        setDetailedSections((prev) =>
+          prev.map((s) =>
+            s.id === secId ? { ...s, rows: s.rows.filter((r) => r.id !== rowId) } : s
+          )
+        );
+        setStatusMessage({ type: "success", text: "Row deleted." });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to delete row." });
+    }
+  };
+
+  const handleDuplicateRow = async (secId: string, rowId: string) => {
+    if (!currentVersion || currentVersion.status !== "DRAFT") return;
+    try {
+      const res = await duplicateRowAction({ theatreId, rowId });
+      if (res.success && res.data) {
+        setDetailedSections((prev) =>
+          prev.map((s) =>
+            s.id === secId ? { ...s, rows: [...s.rows, res.data!] } : s
+          )
+        );
+        setStatusMessage({ type: "success", text: `Row duplicated as '${res.data.rowName}'.` });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to duplicate row." });
+    }
+  };
+
+  const handleReorderRow = async (secId: string, rowId: string, direction: "UP" | "DOWN") => {
+    if (!currentVersion || currentVersion.status !== "DRAFT") return;
+    try {
+      const res = await reorderRowsAction({ theatreId, sectionId: secId, rowId, direction });
+      if (res.success && res.data) {
+        setDetailedSections((prev) =>
+          prev.map((s) => (s.id === secId ? { ...s, rows: res.data! } : s))
+        );
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Failed to reorder row." });
     }
   };
 
@@ -1379,39 +1659,462 @@ export function HallDesignerCanvasClient({
               </>
             )}
 
-            {/* TAB 2: SECTIONS & CAPACITY */}
+            {/* TAB 2: SECTIONS & ROWS DESIGNER STUDIO (Parts 3 & 4) */}
             {activeTab === "sections" && (
-              <div className="space-y-3">
+              <div className="space-y-4">
+                {/* Header & Add Section Button */}
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-300">Auditorium Sections</span>
-                  <span className="text-[11px] text-cyan-400 font-mono">
-                    Total: {currentVersion?.seats.length || 0} seats
-                  </span>
+                  <div>
+                    <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Armchair className="w-4 h-4 text-cyan-400" />
+                      Section Designer
+                    </h3>
+                    <p className="text-[10px] text-slate-400">
+                      Hierarchy: Section ──► Row ──► Seats
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAddingSection((prev) => !prev)}
+                    className="h-7 text-xs border-cyan-800 text-cyan-300 hover:bg-cyan-950/60"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    {isAddingSection ? "Cancel" : "Add Section"}
+                  </Button>
                 </div>
 
-                {currentVersion?.sections.map((sec) => (
-                  <div
-                    key={sec.id}
-                    className="p-3 bg-slate-950 border border-slate-800 rounded-lg text-xs space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: sec.displayColor }}
+                {/* Add Section Form */}
+                {isAddingSection && (
+                  <Card className="p-3 bg-slate-900 border-cyan-800/60 text-xs space-y-2.5">
+                    <div className="text-xs font-semibold text-cyan-300">New Section Specification</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Section Name</label>
+                        <Input
+                          placeholder="e.g. VIP Prime"
+                          value={newSectionData.name}
+                          onChange={(e) =>
+                            setNewSectionData((prev) => ({
+                              ...prev,
+                              name: e.target.value,
+                              displayName: `${e.target.value} Suite`,
+                              internalCode: `SEC-${e.target.value.toUpperCase().replace(/\s+/g, "-")}`,
+                            }))
+                          }
+                          className="h-7 text-xs bg-slate-950 border-slate-700 text-white"
                         />
-                        <span className="font-bold text-white">{sec.name}</span>
                       </div>
-                      <Badge variant="outline" className="border-slate-700 text-slate-400">
-                        {sec.seatType}
-                      </Badge>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Internal Code</label>
+                        <Input
+                          placeholder="e.g. SEC-VIP-A"
+                          value={newSectionData.internalCode}
+                          onChange={(e) => setNewSectionData((prev) => ({ ...prev, internalCode: e.target.value }))}
+                          className="h-7 text-xs bg-slate-950 border-slate-700 text-white font-mono"
+                        />
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-400">
-                      <span>Rows: {sec.rowLabels.join(", ")}</span>
-                      <span>{sec.seatCount} seats</span>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Seat Category</label>
+                        <select
+                          value={newSectionData.seatCategory}
+                          onChange={(e) =>
+                            setNewSectionData((prev) => ({ ...prev, seatCategory: e.target.value as any }))
+                          }
+                          className="w-full h-7 bg-slate-950 border border-slate-700 rounded px-2 text-xs text-white"
+                        >
+                          <option value="Standard">Standard</option>
+                          <option value="Recliner">Recliner</option>
+                          <option value="VIP">VIP</option>
+                          <option value="Couple">Couple</option>
+                          <option value="Wheelchair">Wheelchair</option>
+                          <option value="Sofa">Sofa</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Geometry Shape</label>
+                        <select
+                          value={newSectionData.shapeType}
+                          onChange={(e) =>
+                            setNewSectionData((prev) => ({ ...prev, shapeType: e.target.value as any }))
+                          }
+                          className="w-full h-7 bg-slate-950 border border-slate-700 rounded px-2 text-xs text-white"
+                        >
+                          <option value="RECTANGLE">Straight Rectangle</option>
+                          <option value="CURVED">Curved Arc</option>
+                          <option value="ARC">Radial Arc</option>
+                          <option value="POLYGON">Polygon</option>
+                          <option value="IRREGULAR">Irregular Shape</option>
+                        </select>
+                      </div>
                     </div>
-                  </div>
-                ))}
+
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-1">Color Palette</label>
+                      <div className="flex items-center gap-1.5">
+                        {["#EF4444", "#8B5CF6", "#3B82F6", "#10B981", "#F59E0B", "#EC4899", "#38BDF8"].map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setNewSectionData((prev) => ({ ...prev, color: c }))}
+                            className={`w-5 h-5 rounded-full border transition-transform ${
+                              newSectionData.color === c ? "scale-125 ring-2 ring-white border-white" : "border-transparent"
+                            }`}
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                        <Input
+                          value={newSectionData.color}
+                          onChange={(e) => setNewSectionData((prev) => ({ ...prev, color: e.target.value }))}
+                          className="w-20 h-6 text-[10px] bg-slate-950 border-slate-700 text-white ml-2 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-1.5 pt-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsAddingSection(false)}
+                        className="h-6 text-[11px] text-slate-400"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={handleCreateSection}
+                        className="h-6 text-[11px] bg-cyan-600 hover:bg-cyan-500 text-white"
+                      >
+                        Save Section
+                      </Button>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Sections List */}
+                <div className="space-y-2.5">
+                  {detailedSections.length === 0 && currentVersion?.sections && currentVersion.sections.length > 0 && (
+                    <div className="text-[11px] text-slate-400 italic p-2 bg-slate-950/60 rounded">
+                      Displaying initial hall sections from draft version. Click &quot;Add Section&quot; to define custom structural layers.
+                    </div>
+                  )}
+
+                  {detailedSections.map((sec, secIdx) => {
+                    const isExpanded = expandedSectionId === sec.id;
+                    const totalRowSeats = sec.rows.reduce((sum, r) => sum + r.seatCount, 0);
+
+                    return (
+                      <div
+                        key={sec.id}
+                        className="bg-slate-950 border border-slate-800 rounded-lg overflow-hidden text-xs transition-colors hover:border-slate-700"
+                      >
+                        {/* Section Header Row */}
+                        <div className="p-3 flex items-center justify-between gap-2">
+                          <div
+                            className="flex items-center gap-2 cursor-pointer flex-1"
+                            onClick={() => setExpandedSectionId(isExpanded ? null : sec.id)}
+                          >
+                            <div
+                              className="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0"
+                              style={{ backgroundColor: sec.color }}
+                            />
+                            <div className="min-w-0">
+                              <div className="font-bold text-white flex items-center gap-1.5 truncate">
+                                <span>{sec.name}</span>
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 border-slate-700 text-slate-400">
+                                  {sec.geometry.shapeType}
+                                </Badge>
+                              </div>
+                              <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                                <span>{sec.internalCode}</span>
+                                <span>•</span>
+                                <span className="text-cyan-400">{sec.rows.length} rows</span>
+                                <span>•</span>
+                                <span>{totalRowSeats} seats</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            {/* Reorder Buttons */}
+                            <button
+                              title="Move Section Up"
+                              disabled={secIdx === 0}
+                              onClick={() => handleReorderSection(sec.id, "UP")}
+                              className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-20"
+                            >
+                              <ArrowUp className="w-3 h-3" />
+                            </button>
+                            <button
+                              title="Move Section Down"
+                              disabled={secIdx === detailedSections.length - 1}
+                              onClick={() => handleReorderSection(sec.id, "DOWN")}
+                              className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-20"
+                            >
+                              <ArrowDown className="w-3 h-3" />
+                            </button>
+
+                            {/* Duplicate Button */}
+                            <button
+                              title="Duplicate Section & Rows"
+                              onClick={() => handleDuplicateSection(sec.id)}
+                              className="p-1 rounded text-slate-400 hover:text-cyan-400 hover:bg-slate-800"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+
+                            {/* Delete Button */}
+                            <button
+                              title="Delete Section"
+                              onClick={() => handleDeleteSection(sec.id)}
+                              className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+
+                            {/* Toggle Expand/Collapse */}
+                            <button
+                              onClick={() => setExpandedSectionId(isExpanded ? null : sec.id)}
+                              className="p-1 rounded text-slate-400 hover:text-white"
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4 text-cyan-400" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Expanded Section Body: Row Designer (Part 4) */}
+                        {isExpanded && (
+                          <div className="px-3 pb-3 pt-1 border-t border-slate-900 bg-slate-900/40 space-y-3">
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-[11px] font-semibold text-slate-300 flex items-center gap-1">
+                                <MoveVertical className="w-3.5 h-3.5 text-cyan-400" />
+                                Rows in {sec.name}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  setIsAddingRowForSectionId(
+                                    isAddingRowForSectionId === sec.id ? null : sec.id
+                                  )
+                                }
+                                className="h-6 text-[10px] text-cyan-300 hover:bg-cyan-950"
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add Row
+                              </Button>
+                            </div>
+
+                            {/* Add Row Form */}
+                            {isAddingRowForSectionId === sec.id && (
+                              <Card className="p-2.5 bg-slate-950 border border-slate-700 rounded text-xs space-y-2">
+                                <div className="text-[11px] font-semibold text-cyan-300">
+                                  Configure Row Parameters
+                                </div>
+                                <div className="grid grid-cols-3 gap-2">
+                                  <div>
+                                    <label className="text-[9px] text-slate-400 block">Row Name</label>
+                                    <Input
+                                      placeholder="e.g. A"
+                                      value={newRowData.rowName}
+                                      onChange={(e) =>
+                                        setNewRowData((prev) => ({ ...prev, rowName: e.target.value }))
+                                      }
+                                      className="h-6 text-xs bg-slate-900 border-slate-700 text-white"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[9px] text-slate-400 block">Seats Count</label>
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      max="50"
+                                      value={newRowData.seatCount}
+                                      onChange={(e) =>
+                                        setNewRowData((prev) => ({
+                                          ...prev,
+                                          seatCount: parseInt(e.target.value, 10) || 1,
+                                        }))
+                                      }
+                                      className="h-6 text-xs bg-slate-900 border-slate-700 text-white"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[9px] text-slate-400 block">Spacing (px)</label>
+                                    <Input
+                                      type="number"
+                                      min="20"
+                                      max="100"
+                                      value={newRowData.spacing}
+                                      onChange={(e) =>
+                                        setNewRowData((prev) => ({
+                                          ...prev,
+                                          spacing: parseInt(e.target.value, 10) || 35,
+                                        }))
+                                      }
+                                      className="h-6 text-xs bg-slate-900 border-slate-700 text-white"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-2">
+                                  <div>
+                                    <label className="text-[9px] text-slate-400 block">Numbering</label>
+                                    <select
+                                      value={newRowData.numberingStrategy}
+                                      onChange={(e) =>
+                                        setNewRowData((prev) => ({
+                                          ...prev,
+                                          numberingStrategy: e.target.value as any,
+                                        }))
+                                      }
+                                      className="w-full h-6 bg-slate-900 border border-slate-700 rounded px-1 text-[10px] text-white"
+                                    >
+                                      <option value="ALPHABETICAL">A, B, C...</option>
+                                      <option value="NUMERIC">1, 2, 3...</option>
+                                      <option value="ROMAN">I, II, III...</option>
+                                      <option value="CUSTOM">Custom AA..</option>
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="text-[9px] text-slate-400 block">Row Geometry</label>
+                                    <select
+                                      value={newRowData.geometryType}
+                                      onChange={(e) =>
+                                        setNewRowData((prev) => ({
+                                          ...prev,
+                                          geometryType: e.target.value as any,
+                                        }))
+                                      }
+                                      className="w-full h-6 bg-slate-900 border border-slate-700 rounded px-1 text-[10px] text-white"
+                                    >
+                                      <option value="STRAIGHT">Straight</option>
+                                      <option value="CURVED">Curved</option>
+                                      <option value="ARC">Arc</option>
+                                      <option value="ANGLED">Angled</option>
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="text-[9px] text-slate-400 block">Accessibility</label>
+                                    <select
+                                      value={newRowData.accessibility}
+                                      onChange={(e) =>
+                                        setNewRowData((prev) => ({
+                                          ...prev,
+                                          accessibility: e.target.value as any,
+                                        }))
+                                      }
+                                      className="w-full h-6 bg-slate-900 border border-slate-700 rounded px-1 text-[10px] text-white"
+                                    >
+                                      <option value="STANDARD">Standard</option>
+                                      <option value="WHEELCHAIR">Wheelchair ♿</option>
+                                      <option value="COMPANION">Companion</option>
+                                      <option value="RESERVED">Reserved</option>
+                                    </select>
+                                  </div>
+                                </div>
+
+                                <div className="flex justify-end gap-1.5 pt-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setIsAddingRowForSectionId(null)}
+                                    className="h-5 text-[10px] text-slate-400"
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={() => handleCreateRow(sec.id)}
+                                    className="h-5 text-[10px] bg-cyan-600 hover:bg-cyan-500 text-white"
+                                  >
+                                    Save Row
+                                  </Button>
+                                </div>
+                              </Card>
+                            )}
+
+                            {/* Rows List */}
+                            <div className="space-y-1.5">
+                              {sec.rows.length === 0 ? (
+                                <div className="text-[10px] text-slate-500 italic py-1">
+                                  No rows added yet. Click &quot;Add Row&quot; above.
+                                </div>
+                              ) : (
+                                sec.rows.map((row, rowIdx) => (
+                                  <div
+                                    key={row.id}
+                                    className="px-2 py-1.5 bg-slate-950 border border-slate-800 rounded flex items-center justify-between text-[11px]"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-white w-6">{row.rowName}</span>
+                                      <Badge
+                                        variant="outline"
+                                        className="text-[9px] px-1 py-0 border-slate-700 text-slate-400"
+                                      >
+                                        {row.seatCount} seats
+                                      </Badge>
+                                      <span className="text-[9px] text-slate-500">
+                                        {row.geometry.geometryType.toLowerCase()} • {row.spacing}px
+                                      </span>
+                                      {row.accessibility === "WHEELCHAIR" && (
+                                        <Badge className="bg-sky-950 text-sky-400 border-sky-800 text-[9px] px-1 py-0">
+                                          ♿ Wheelchair
+                                        </Badge>
+                                      )}
+                                    </div>
+
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        title="Move Row Up"
+                                        disabled={rowIdx === 0}
+                                        onClick={() => handleReorderRow(sec.id, row.id, "UP")}
+                                        className="p-0.5 text-slate-400 hover:text-white disabled:opacity-20"
+                                      >
+                                        <ArrowUp className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        title="Move Row Down"
+                                        disabled={rowIdx === sec.rows.length - 1}
+                                        onClick={() => handleReorderRow(sec.id, row.id, "DOWN")}
+                                        className="p-0.5 text-slate-400 hover:text-white disabled:opacity-20"
+                                      >
+                                        <ArrowDown className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        title="Duplicate Row"
+                                        onClick={() => handleDuplicateRow(sec.id, row.id)}
+                                        className="p-0.5 text-slate-400 hover:text-cyan-400"
+                                      >
+                                        <Copy className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        title="Delete Row"
+                                        onClick={() => handleDeleteRow(sec.id, row.id)}
+                                        className="p-0.5 text-slate-400 hover:text-rose-400"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

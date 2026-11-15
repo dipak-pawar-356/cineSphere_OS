@@ -958,6 +958,37 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Visual cinema screen banner, multi-section color-coded seating matrix, emergency exit indicators, walkway guides, viewport HUD, and collapsible sidebars for Version History, Section Capacity, and Theatre Preferences.
 - 📚 **Hall Designer Architecture Guide:** Detailed technical documentation in [`docs/HALL_DESIGNER_ARCHITECTURE.md`](./docs/HALL_DESIGNER_ARCHITECTURE.md).
 
+### 2.36 Phase 4 - Part 3: Section Designer Studio (Completed)
+- 🏛️ **Hierarchical DDD Section Layer (`lib/repositories/section-row.repository.ts`, `lib/services/section-row-designer.service.ts`):**
+  - Establishes the structural section layer between Hall Layout Definitions and Rows:
+    $$\text{Layout Definition} \to \text{Section} \to \text{Row} \to \text{Seat}$$
+  - Rows belong strictly to Sections (never directly to the Hall or Layout Definition), allowing each section to maintain completely independent geometries, category tiers, and naming behaviors without polluting the hall model.
+  - Multi-tenant Section CRUD, duplication, cascading row deletion, priority ranking, and spatial positioning `(x, y)`.
+  - Multi-geometry boundaries: `RECTANGLE`, `CURVED` (radius & arc angle), `ARC`, `POLYGON`, and `IRREGULAR`.
+  - Configurable section label orientations: `TOP`, `BOTTOM`, `LEFT`, `RIGHT`, `CENTER`, and `HIDDEN`.
+  - Seat category tier assignments: `Standard`, `Recliner`, `VIP`, `Couple`, `Wheelchair`, and `Sofa`.
+  - Display reordering operations: `UP`, `DOWN`, `TOP`, and `BOTTOM`.
+
+### 2.37 Phase 4 - Part 4: Row Designer Engine & Sequencing Studio (Completed)
+- 🪑 **Row Designer & Mathematical Geometry Engine (`lib/engine/section-row-engine.ts`, `lib/engine/section-row-validator.ts`):**
+  - Scope-isolated row generation belonging strictly to sections.
+  - Auto-numbering and sequencing engine:
+    - `ALPHABETICAL`: Standard single/double-letter progression (`A`–`Z`, `AA`–`AZ`).
+    - `NUMERIC`: Sequential integer progression (`1`–`20`).
+    - `ROMAN`: Roman numeral sequencing (`I`–`XX`).
+    - `CUSTOM`: Venue-specific sequences with custom start/end indices.
+    - Reverse numbering support (`isReversed: true`) for flipped patron perspective.
+    - Configurable prefixes and suffixes (e.g. `VIP-A1`, `A1-W`).
+  - Spatial Coordinate Mathematics:
+    - Straight rows: Uniform horizontal pitch progression.
+    - Curved / Arc rows: Circular arc radial distribution conforming to arc sagitta $R(1 - \cos \theta_c)$.
+    - Angled rows: Inclined coordinate vectors applying trigonometric rotation $\cos \theta, \sin \theta$.
+  - Row accessibility tiers: `STANDARD`, `WHEELCHAIR` ♿, `COMPANION`, `RESERVED`, `EMERGENCY_CLEARANCE`, and `HIDDEN`.
+  - Row-level category overrides (e.g., wheelchair berth in standard section).
+  - Validation engine: Unique row name within section, strictly positive spacing ($>0$), non-zero seat counts, sequence consistency, and tenant isolation.
+  - Multi-venue initial seeds: Pune (VIP Red, A–C, 1.0m spacing, Alphabetical), Mumbai (Luxury Purple, 1–20, 0.9m spacing, Numeric), Dubai (Balcony Blue, AA–AZ, 1.2m spacing, Custom).
+- 📚 **Section & Row Designer Architecture Guide:** Detailed technical documentation in [`docs/SECTION_AND_ROW_DESIGNER_ARCHITECTURE.md`](./docs/SECTION_AND_ROW_DESIGNER_ARCHITECTURE.md).
+
 
 ---
 
@@ -979,6 +1010,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🪑 [`docs/SECTION_AND_ROW_DESIGNER_ARCHITECTURE.md`](./docs/SECTION_AND_ROW_DESIGNER_ARCHITECTURE.md) — Section & Row Designer Architecture (Hierarchical DDD Section Layer, Row Sequencing & Auto-Numbering Engine, Straight/Curved/Arc/Angled Geometries, Accessibility Tiers, and Independent Venue Conventions) (Phase 4 - Parts 3 & 4).
 - 🏛️ [`docs/HALL_DESIGNER_ARCHITECTURE.md`](./docs/HALL_DESIGNER_ARCHITECTURE.md) — Auditorium Hall Designer & Canvas Grid System Architecture (Immutable Layout Definition Layer, Draft vs Published vs Archived State Machine, In-Flight Booking Isolation, Pure Layout Validator, Multi-Density Grid Snapping, Unit Conversion Engine, Viewport Fit-To-Screen, Geometric Seat Alignment Tools & Per-Theatre Canvas Preferences) (Phase 4 - Parts 1 & 2).
 - 🧩 [`docs/ENTERPRISE_EXTENSION_FRAMEWORK_ARCHITECTURE.md`](./docs/ENTERPRISE_EXTENSION_FRAMEWORK_ARCHITECTURE.md) — Enterprise Extension Framework Architecture (Pluggable 8 Sub-Platforms, Extension SDK Kernel, Lifecycle Hooks, 4-Tier Hierarchical Feature Flag Cascading, Deterministic Canary Rollouts, Decoupled Domain Event Bus Pub/Sub, IoT Device Registry & Multi-Region Stacks) (Phase 3 - Part 16).
 - 📊 [`docs/THEATRE_REPORTS_AND_ANALYTICS_ARCHITECTURE.md`](./docs/THEATRE_REPORTS_AND_ANALYTICS_ARCHITECTURE.md) — Multi-Tenant Theatre Reports & Analytics Layer Architecture (Decoupled Historical BI Read-Model Store, Metric Registry, Pure KPI Engine, 10 Core Report Categories, Dimensional Slicing, Universal Report Builder, CSV/JSON Exporters & Multi-Tenant Boundary Isolation) (Phase 3 - Part 15).

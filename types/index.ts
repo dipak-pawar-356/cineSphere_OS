@@ -40,5 +40,21 @@ export * from "./theatre-security-governance.types";
 export * from "./theatre-reports-analytics.types";
 export * from "./enterprise-extension-framework.types";
 export * from "./hall-designer.types";
+export type {
+  SectionGeometryType,
+  SectionLabelPosition,
+  SectionVisibility,
+  SectionOrderingDirection,
+  SectionGeometry,
+  DesignerSection,
+  RowGeometryType,
+  RowNumberingStrategy,
+  RowAccessibilityType,
+  RowGeometry,
+  RowConfiguration,
+  HallRow,
+  SectionValidationResult,
+  RowValidationResult,
+} from "./section-row-designer.types";
 
 
