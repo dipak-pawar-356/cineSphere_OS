@@ -20,7 +20,11 @@ Phase 3: Enterprise Governance & Real-Time Infra ────► [ IN PROGRESS ]
   ├─ Part 14: Platform Security & Governance Layer ──► [ COMPLETED ]
   ├─ Part 15: Reports & Analytics Layer ─────────────► [ COMPLETED ]
   └─ Part 16: Enterprise Extension Framework ────────► [ COMPLETED ]
-Phase 4: Concessions & Butler In-Seat Dining ───────► [ PLANNED ]
+Phase 4: Hall Designer & Spatial Auditorium Engine ──► [ IN PROGRESS ]
+  ├─ Part 1: Hall Designer Foundation ───────────────► [ COMPLETED ]
+  ├─ Part 2: Canvas & Grid System Engine ────────────► [ COMPLETED ]
+  ├─ Part 3: Seat Inventory & Show Seat Generator ───► [ PLANNED ]
+  └─ Part 4: F&B Concessions & Butler In-Seat Dining ► [ PLANNED ]
 Phase 5: 3D WebGL Hall Designer (Three.js) ─────────► [ PLANNED ]
 Phase 6: Distributor KDM Key Ingestion & DCI ───────► [ PLANNED ]
 Phase 7: Mobile Kiosk Native PWA & Turnstile ───────► [ PLANNED ]
@@ -84,10 +88,11 @@ Phase 7: Mobile Kiosk Native PWA & Turnstile ───────► [ PLANNED 
 
 ---
 
-## Phase 4: F&B Concessions & In-Seat Butler Dispatch
-- [ ] In-seat dining menu with real-time pantry inventory deduction.
-- [ ] Butler kitchen display system (KDS) with order routing by seat number.
-- [ ] Automated push notifications when concessions are on the way to the guest's seat.
+## Phase 4: Hall Designer & Spatial Auditorium Engine
+- [x] **Part 1: Hall Designer Foundation & Immutable Layout Definition Layer:** Dedicated Layout Definition layer acting as the immutable source of truth; live layout is always a published version derived from a layout definition; isolated Draft editing protects in-flight shows and bookings from ghost seating or desynchronization; status state machine (`DRAFT`, `PUBLISHED`, `ARCHIVED`, `INACTIVE`, `DEPRECATED`); pure mathematical `LayoutValidator` checking duplicate seat numbers, coordinate collisions, grid boundaries, section capacity parity, and legal status transitions; atomic publishing workflow with automatic archival of previous versions; duplication and version history restore; and strict multi-tenant boundary isolation.
+- [x] **Part 2: Visual Canvas & Multi-Density Grid System Engine:** Interactive infinite canvas with pan & zoom viewport controls (0.2x to 3.0x, fit-to-screen bounds calculation, reset); multi-density snapping grid (Small 10px, Medium 20px, Large 40px) with configurable snap strength threshold; unit conversion engine (`PX`, `CM`, `FT`, `M`); geometric seat alignment tools (`ALIGN_LEFT`, `ALIGN_RIGHT`, `ALIGN_TOP`, `ALIGN_BOTTOM`, `CENTER_HORIZONTAL`, `CENTER_VERTICAL`, `DISTRIBUTE_HORIZONTALLY`, `DISTRIBUTE_VERTICALLY`); smart alignment guides; and persisted per-theatre canvas preferences (Pune 20px PX snap ON, Mumbai 10px CM snap OFF, Dubai 25px FT snap ON).
+- [ ] **Part 3: Seat Inventory & Show Seat Generator:** High-performance seat inventory generator instantiating per-show ShowSeat entities from published layouts with Redis cache synchronization.
+- [ ] **Part 4: F&B Concessions & In-Seat Butler Dispatch:** In-seat dining menu with real-time pantry inventory deduction, Butler kitchen display system (KDS), and automated dispatch notifications.
 
 ---
 

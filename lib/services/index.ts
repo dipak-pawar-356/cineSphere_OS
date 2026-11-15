@@ -14,4 +14,5 @@ export * from "./security-audit.service";
 export * from "./theatre-governance.service";
 export * from "./theatre-analytics.service";
 export * from "./enterprise-extensions.service";
+export * from "./hall-designer.service";
 

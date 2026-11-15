@@ -39,5 +39,6 @@ export * from "./theatre-dashboard.types";
 export * from "./theatre-security-governance.types";
 export * from "./theatre-reports-analytics.types";
 export * from "./enterprise-extension-framework.types";
+export * from "./hall-designer.types";
 
 

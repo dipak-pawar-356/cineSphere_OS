@@ -56,6 +56,9 @@ export * from "./theatre-reports";
 // Enterprise Extension Framework (Phase 3 - Part 16)
 export * from "./enterprise-extensions";
 
+// Hall Designer Foundation & Canvas System (Phase 4 - Parts 1 & 2)
+export * from "./hall-designer";
+
 
 
 // Tenant Payment Configurations & Ledger

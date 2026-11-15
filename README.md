@@ -929,6 +929,36 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - 8-Platform Architecture Matrix, Installed Extension Modules Manager with live toggles, Interactive 4-Tier Feature Flag Hierarchy Simulator with real-time override injection, Dynamic Pricing Surge Evaluator, Connected IoT Hardware Registry, and Live Domain Event Bus Telemetry Stream.
 - 📚 **Enterprise Extension Framework Guide:** Detailed technical documentation in [`docs/ENTERPRISE_EXTENSION_FRAMEWORK_ARCHITECTURE.md`](./docs/ENTERPRISE_EXTENSION_FRAMEWORK_ARCHITECTURE.md).
 
+### 2.34 Phase 4 - Part 1: Hall Designer Foundation & Immutable Layout Definition Layer (Completed)
+- 🏛️ **Immutable Layout Definition Layer (`lib/repositories/hall-designer.repository.ts`):**
+  - Establishes the Layout Definition layer as the immutable source of truth:
+    $$\text{Theatre} \to \text{Hall} \to \text{Layout Definition} \to \text{Draft / Published / Archived Versions} \to \text{Validation Engine} \to \text{Published Layout} \to \text{Seat Inventory} \to \text{Show Seat Inventory} \to \text{Booking Engine} \to \text{Ticket System}$$
+  - The Hall Designer strictly never edits live layouts directly; all in-progress changes are isolated in `DRAFT` versions, guaranteeing that in-flight shows and active customer bookings query only the current `PUBLISHED` version without experiencing ghost seating or coordinate desynchronization.
+- 🔄 **Layout Versioning Lifecycle State Machine:**
+  - `DRAFT` ➔ `PUBLISHED` ➔ `ARCHIVED` ➔ `INACTIVE` ➔ `DEPRECATED`.
+  - Publishing automatically transitions the previous live version to `ARCHIVED`, maintaining a complete audit trail. Future shows instantiate seats from the new version, while existing bookings remain permanently linked to the version they were booked with.
+- 🛡️ **Pure Layout Validation Engine (`lib/engine/layout-validator.ts`):**
+  - Mathematical integrity verification before publishing: duplicate seat numbers, coordinate collisions, section referential integrity, seat count parity, grid boundary clearance, curved screen orientation, and legal status transitions.
+- 🗄️ **Multi-Tenant Persistence Schema (`db/schema/hall-designer.ts`):**
+  - PostgreSQL schema for `layoutDefinitions` and `layoutVersions` with foreign keys to `theatres` and `halls`, UUID tracking, and optimistic version incrementing.
+
+### 2.35 Phase 4 - Part 2: Visual Canvas & Multi-Density Grid System Engine (Completed)
+- 📐 **Visual Canvas & Grid Engine (`lib/engine/canvas-grid-engine.ts`):**
+  - Infinite canvas with smooth pan & zoom viewport controls (0.2x to 3.0x zoom, dynamic fit-to-screen bounds calculation, reset).
+  - Multi-density snapping grid: Small (10px), Medium (20px), and Large (40px) with configurable snap strength threshold.
+  - Multi-unit measurement conversion engine converting between Pixels (`PX`), Centimeters (`CM`), Feet (`FT`), and Meters (`M`).
+  - Geometric seat alignment tools: Align Left, Align Right, Align Top, Align Bottom, Center Horizontally, Center Vertically, Distribute Horizontally, and Distribute Vertically.
+  - Smart alignment guides detecting horizontal and vertical alignments within guide thresholds.
+- 🏢 **Theatre-Specific Canvas Preferences Persistence (`canvasPreferences`):**
+  - Stores custom grid defaults per theatre:
+    - **Pune Venue (`th-pun-001`):** 20px grid (Medium), 100% zoom, `PX` unit, Snap ON (8px).
+    - **Mumbai Venue (`th-mum-002`):** 10px grid (Small/High-density), 75% zoom, `CM` unit, Snap OFF.
+    - **Dubai Venue (`th-dxb-003`):** 25px grid (Large), 125% zoom, `FT` unit, Snap ON (10px).
+- 🖥️ **Interactive Luxury Hall Designer Canvas (`app/(theatre-admin)/theatre/halls/designer/`):**
+  - Visual cinema screen banner, multi-section color-coded seating matrix, emergency exit indicators, walkway guides, viewport HUD, and collapsible sidebars for Version History, Section Capacity, and Theatre Preferences.
+- 📚 **Hall Designer Architecture Guide:** Detailed technical documentation in [`docs/HALL_DESIGNER_ARCHITECTURE.md`](./docs/HALL_DESIGNER_ARCHITECTURE.md).
+
+
 ---
 
 ## ☁️ 9. Vercel Deployment Settings
@@ -949,6 +979,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🏛️ [`docs/HALL_DESIGNER_ARCHITECTURE.md`](./docs/HALL_DESIGNER_ARCHITECTURE.md) — Auditorium Hall Designer & Canvas Grid System Architecture (Immutable Layout Definition Layer, Draft vs Published vs Archived State Machine, In-Flight Booking Isolation, Pure Layout Validator, Multi-Density Grid Snapping, Unit Conversion Engine, Viewport Fit-To-Screen, Geometric Seat Alignment Tools & Per-Theatre Canvas Preferences) (Phase 4 - Parts 1 & 2).
 - 🧩 [`docs/ENTERPRISE_EXTENSION_FRAMEWORK_ARCHITECTURE.md`](./docs/ENTERPRISE_EXTENSION_FRAMEWORK_ARCHITECTURE.md) — Enterprise Extension Framework Architecture (Pluggable 8 Sub-Platforms, Extension SDK Kernel, Lifecycle Hooks, 4-Tier Hierarchical Feature Flag Cascading, Deterministic Canary Rollouts, Decoupled Domain Event Bus Pub/Sub, IoT Device Registry & Multi-Region Stacks) (Phase 3 - Part 16).
 - 📊 [`docs/THEATRE_REPORTS_AND_ANALYTICS_ARCHITECTURE.md`](./docs/THEATRE_REPORTS_AND_ANALYTICS_ARCHITECTURE.md) — Multi-Tenant Theatre Reports & Analytics Layer Architecture (Decoupled Historical BI Read-Model Store, Metric Registry, Pure KPI Engine, 10 Core Report Categories, Dimensional Slicing, Universal Report Builder, CSV/JSON Exporters & Multi-Tenant Boundary Isolation) (Phase 3 - Part 15).
 - 🛡️ [`docs/THEATRE_SECURITY_AND_GOVERNANCE_ARCHITECTURE.md`](./docs/THEATRE_SECURITY_AND_GOVERNANCE_ARCHITECTURE.md) — Platform Security & Governance Layer Architecture (Policy-Based Authorization, Central 9-Stage Validation Pipeline, Multi-Tenant Boundary Isolation, Resource Ownership Validation, Dynamic Quota Engine, OCC Version Checks, Soft Delete & Domain Event Auditing) (Phase 3 - Part 14).
