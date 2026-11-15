@@ -7,10 +7,11 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { theatres } from "./theatres";
 import { layoutVersions } from "./hall-designer";
-import {
+import type {
   SectionGeometry,
   RowGeometry,
   RowConfiguration,
@@ -109,4 +110,125 @@ export const hallRows = pgTable(
 );
 
 export const designerHallRows = hallRows;
+
+// ------------------------------------------------------------------------------
+// 3. Normalized Relational Sub-Entity Tables (Part 3 & Part 4)
+// ------------------------------------------------------------------------------
+
+// Section Category Dictionary Table
+export const sectionCategories = pgTable("section_categories", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  theatreId: varchar("theatre_id", { length: 36 })
+    .notNull()
+    .references(() => theatres.id, { onDelete: "cascade" }),
+  code: varchar("code", { length: 50 }).notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  seatCategory: varchar("seat_category", { length: 50 }).notNull().default("Standard"),
+  defaultColor: varchar("default_color", { length: 30 }).notNull().default("#38BDF8"),
+  description: text("description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Section Geometry Specification Table
+export const sectionGeometries = pgTable("section_geometries", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  sectionId: varchar("section_id", { length: 36 })
+    .notNull()
+    .references(() => designerHallSections.id, { onDelete: "cascade" }),
+  shapeType: varchar("shape_type", { length: 30 }).notNull().default("RECTANGLE"),
+  curvatureRadius: integer("curvature_radius"),
+  arcAngle: integer("arc_angle"),
+  polygonPoints: jsonb("polygon_points").$type<Array<{ x: number; y: number }>>().default([]),
+  isMirrored: boolean("is_mirrored").default(false),
+  offsetX: integer("offset_x").default(0),
+  offsetY: integer("offset_y").default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Section Metadata Table
+export const sectionMetadataTable = pgTable("section_metadata", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  sectionId: varchar("section_id", { length: 36 })
+    .notNull()
+    .references(() => designerHallSections.id, { onDelete: "cascade" }),
+  notes: text("notes"),
+  soundZone: varchar("sound_zone", { length: 100 }),
+  acousticProfile: varchar("acoustic_profile", { length: 100 }),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  customAttributes: jsonb("custom_attributes").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Row Geometry Specification Table
+export const rowGeometries = pgTable("row_geometries", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  rowId: varchar("row_id", { length: 36 })
+    .notNull()
+    .references(() => hallRows.id, { onDelete: "cascade" }),
+  geometryType: varchar("geometry_type", { length: 30 }).notNull().default("STRAIGHT"),
+  curveRadius: integer("curve_radius"),
+  angle: integer("angle"),
+  offsetX: integer("offset_x").default(0),
+  offsetY: integer("offset_y").default(0),
+  isMirrored: boolean("is_mirrored").default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Row Metadata Table
+export const rowMetadataTable = pgTable("row_metadata", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  rowId: varchar("row_id", { length: 36 })
+    .notNull()
+    .references(() => hallRows.id, { onDelete: "cascade" }),
+  notes: text("notes"),
+  sightlineScore: integer("sightline_score"),
+  legroomRating: varchar("legroom_rating", { length: 50 }),
+  soundDelayMs: integer("sound_delay_ms"),
+  customAttributes: jsonb("custom_attributes").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Row Configuration Specification Table
+export const rowConfigurations = pgTable("row_configurations", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  rowId: varchar("row_id", { length: 36 })
+    .notNull()
+    .references(() => hallRows.id, { onDelete: "cascade" }),
+  numberingStrategy: varchar("numbering_strategy", { length: 30 }).notNull().default("ALPHABETICAL"),
+  isReversed: boolean("is_reversed").default(false),
+  startIndex: integer("start_index").default(1),
+  endIndex: integer("end_index").default(10),
+  prefix: varchar("prefix", { length: 20 }),
+  suffix: varchar("suffix", { length: 20 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Explicit Semantic Aliases matching DDD Specification
+export const hallSectionTable = designerHallSections;
+export const sectionCategoryTable = sectionCategories;
+export const sectionGeometryTable = sectionGeometries;
+export const sectionMetadataTableAlias = sectionMetadataTable;
+
+export const hallRowTable = hallRows;
+export const rowGeometryTable = rowGeometries;
+export const rowMetadataTableAlias = rowMetadataTable;
+export const rowConfigurationTable = rowConfigurations;
 
