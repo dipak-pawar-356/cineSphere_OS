@@ -219,6 +219,10 @@ export class SectionRowEngine {
         list.push(item);
         break;
       }
+      case "AUTO_SORT": {
+        list.sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name));
+        break;
+      }
     }
 
     // Reassign normalized display orders

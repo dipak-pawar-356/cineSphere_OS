@@ -418,3 +418,7 @@ export const validateRowsAction = createProtectedAction<
     );
   }
 );
+
+// Semantic aliases
+export const loadSectionsAction = listSectionsAction;
+export const loadRowsAction = listRowsAction;

@@ -441,6 +441,43 @@ async function runTestSuite() {
   // Revert reorder
   sectionRowDesignerService.reorderRows(puneActor, "sec-pun-vip-001", "row-pun-vip-A", "UP");
 
+  // Auto Sort Section Reordering
+  const unSortedSections: HallSection[] = [
+    { id: "s-low", priority: 3, name: "Z Economy", displayOrder: 1, rows: [] } as any,
+    { id: "s-high", priority: 1, name: "A VIP", displayOrder: 2, rows: [] } as any,
+  ];
+  const autoSorted = SectionRowEngine.reorderSections(unSortedSections, "s-low", "AUTO_SORT");
+  assert(autoSorted[0].id === "s-high", "AUTO_SORT prioritizes higher tier (priority 1 before priority 3)");
+  assert(autoSorted[0].displayOrder === 1, "AUTO_SORT normalizes display order sequence");
+
+  // Metadata verification on section and row
+  const sectionWithMetadata = repo.createSection(
+    {
+      layoutVersionId: "ver-layout-pun-aud1-main-v4",
+      theatreId: "th-pun-001",
+      name: "Dolby Atmos Terrace",
+      displayName: "Dolby Atmos 360 Terrace",
+      internalCode: "SEC-ATMOS-TERRACE",
+      color: "#06B6D4",
+      seatCategory: "VIP",
+      capacity: 15,
+      priority: 1,
+      displayOrder: 5,
+      rotation: 0,
+      position: { x: 200, y: 800 },
+      visibility: "VISIBLE",
+      geometry: { shapeType: "CURVED", curvatureRadius: 800 },
+      labelPosition: "CENTER",
+      metadata: { soundZone: "OVERHEAD_ATMOS", tags: ["Premium", "Terrace"] },
+    },
+    puneActor
+  );
+  assert(sectionWithMetadata.metadata?.soundZone === "OVERHEAD_ATMOS", "Section metadata soundZone persisted");
+  assert(sectionWithMetadata.metadata?.tags?.includes("Terrace") === true, "Section metadata tags array persisted");
+
+  // Clean up
+  repo.deleteSection(sectionWithMetadata.id, "th-pun-001", puneActor);
+
   // Summary
   console.log("\n==============================================================================");
   console.log(`🎉 ALL ${passedTests}/${totalTests} TESTS PASSED SUCCESSFULLY!`);

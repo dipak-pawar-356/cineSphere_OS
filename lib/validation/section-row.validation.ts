@@ -42,7 +42,7 @@ export const SectionLabelPositionEnum = z.enum([
 
 export const SectionVisibilityEnum = z.enum(["VISIBLE", "HIDDEN"]);
 
-export const SectionOrderingDirectionEnum = z.enum(["UP", "DOWN", "TOP", "BOTTOM"]);
+export const SectionOrderingDirectionEnum = z.enum(["UP", "DOWN", "TOP", "BOTTOM", "AUTO_SORT"]);
 
 export const RowGeometryTypeEnum = z.enum(["STRAIGHT", "CURVED", "ARC", "ANGLED"]);
 

@@ -37,7 +37,17 @@ export type SectionLabelPosition =
 
 export type SectionVisibility = "VISIBLE" | "HIDDEN";
 
-export type SectionOrderingDirection = "UP" | "DOWN" | "TOP" | "BOTTOM";
+export type SectionCategory = SeatType;
+
+export type SectionOrderingDirection = "UP" | "DOWN" | "TOP" | "BOTTOM" | "AUTO_SORT";
+
+export interface SectionMetadata {
+  notes?: string;
+  soundZone?: string;
+  acousticProfile?: string;
+  tags?: string[];
+  customAttributes?: Record<string, unknown>;
+}
 
 export interface SectionGeometry {
   shapeType: SectionGeometryType;
@@ -67,6 +77,7 @@ export interface DesignerSection {
   geometry: SectionGeometry;
   labelPosition: SectionLabelPosition;
   notes?: string;
+  metadata?: SectionMetadata;
   rows: HallRow[];        // Hierarchical DDD containment: Section -> Rows -> Seats
   createdAt: string;
   updatedAt: string;
@@ -112,6 +123,14 @@ export interface RowConfiguration {
   suffix?: string;
 }
 
+export interface RowMetadata {
+  notes?: string;
+  sightlineScore?: number;
+  legroomRating?: string;
+  soundDelayMs?: number;
+  customAttributes?: Record<string, unknown>;
+}
+
 export interface HallRow {
   id: string;
   sectionId: string;
@@ -127,6 +146,7 @@ export interface HallRow {
   geometry: RowGeometry;
   configuration: RowConfiguration;
   categoryOverride?: SeatType; // optional row-level category override (e.g. Wheelchair row in Standard section)
+  metadata?: RowMetadata;
   seats: SeatDefinition[];     // Contained seats
   createdAt: string;
   updatedAt: string;

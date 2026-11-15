@@ -41,6 +41,9 @@ export * from "./theatre-reports-analytics.types";
 export * from "./enterprise-extension-framework.types";
 export * from "./hall-designer.types";
 export type {
+  SectionCategory,
+  SectionMetadata,
+  RowMetadata,
   SectionGeometryType,
   SectionLabelPosition,
   SectionVisibility,
