@@ -111,11 +111,12 @@ export function EnterpriseExtensionsClient({
       const res = await toggleExtensionModuleAction({ moduleId, enable: targetState });
       if (res.success) {
         setExtensions((prev) =>
-          prev.map((item) =>
-            item.module.manifest.moduleId === moduleId
+          prev.map((item) => {
+            const mId = item.manifest?.moduleId || item.module?.manifest?.moduleId;
+            return mId === moduleId
               ? { ...item, state: targetState ? "ENABLED" : "DISABLED" }
-              : item
-          )
+              : item;
+          })
         );
         setStatusMessage({
           text: `Module '${moduleId}' successfully ${targetState ? "enabled" : "disabled"}.`,
@@ -533,8 +534,9 @@ export function EnterpriseExtensionsClient({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {extensions.map((item) => {
-              const mod = item.module.manifest;
+              const mod = item.manifest || item.module?.manifest;
               const isEnabled = item.state === "ENABLED";
+              if (!mod) return null;
 
               return (
                 <Card key={mod.moduleId} className="bg-zinc-900/60 border-zinc-800 p-5 space-y-4">

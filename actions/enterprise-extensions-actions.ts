@@ -84,10 +84,14 @@ export const listEnterpriseModulesAction = createProtectedAction<
     auditAction: "LIST_MODULES",
   },
   async (input, context) => {
-    return enterpriseExtensionsService.listExtensions(
+    const list = await enterpriseExtensionsService.listExtensions(
       context.actor,
       input.platformKey as any
     );
+    return list.map((item) => ({
+      manifest: item.module.manifest,
+      state: item.state,
+    }));
   }
 );
 

@@ -24,14 +24,23 @@ export default async function EnterpriseExtensionsPage() {
   const events = enterpriseExtensionsService.getEventBusHistory(systemActor, { limit: 25 });
   const hierarchy = await enterpriseExtensionsService.getOrganizationHierarchy(systemActor);
 
+  // Strip non-serializable function handles (lifecycle hooks) before passing to Client Component
+  const serializableExtensions = extensions.map((item) => ({
+    manifest: item.module.manifest,
+    state: item.state,
+  }));
+
+  const serializableEvents = JSON.parse(JSON.stringify(events));
+  const serializableHierarchy = JSON.parse(JSON.stringify(hierarchy));
+
   return (
     <EnterpriseExtensionsClient
       initialOverview={overview}
-      initialExtensions={extensions}
+      initialExtensions={serializableExtensions}
       initialFlags={flags}
       initialDevices={devices}
-      initialEvents={events}
-      initialHierarchy={hierarchy}
+      initialEvents={serializableEvents}
+      initialHierarchy={serializableHierarchy}
     />
   );
 }
