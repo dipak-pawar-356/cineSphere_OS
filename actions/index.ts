@@ -23,4 +23,6 @@ export * from "./enterprise-extensions-actions";
 export * from "./hall-designer-actions";
 export * from "./section-row-actions";
 export * from "./seat-generator-actions";
+export * from "./structural-object-actions";
+export * from "./geometry-layout-actions";
 

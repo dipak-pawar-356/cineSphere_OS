@@ -12,4 +12,9 @@ export * from "./theatre-configuration.repository";
 export * from "./booking.repository";
 export * from "./show.repository";
 export * from "./audit.repository";
+export * from "./hall-designer.repository";
+export * from "./section-row.repository";
+export * from "./seat-generator.repository";
+export * from "./structural-object.repository";
+export * from "./geometry-layout.repository";
 

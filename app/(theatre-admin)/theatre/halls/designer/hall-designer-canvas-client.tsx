@@ -51,11 +51,35 @@ import {
   Sparkles,
   Tag,
   ShieldCheck,
+  Building2,
+  DoorOpen,
+  Footprints,
+  Lock,
+  Unlock,
+  Tv,
+  Flame,
+  ShieldAlert,
+  FlipHorizontal,
+  FlipVertical,
+  Compass,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  StructuralObject,
+  StructuralObjectType,
+} from "@/types/structural-objects.types";
+import {
+  GeometrySettings,
+  LayoutPublishPreflightResult,
+  SymmetryAxis,
+  AlignType,
+  DistributeType,
+} from "@/types/geometry-layout.types";
+import { useStructuralObjects } from "@/lib/hooks/use-structural-objects";
+import { useGeometryEngine } from "@/lib/hooks/use-geometry-engine";
 import {
   LayoutDefinition,
   LayoutVersion,
@@ -196,7 +220,7 @@ export function HallDesignerCanvasClient({
   const [isPanning, setIsPanning] = useState(false);
   const [startPan, setStartPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<"layout" | "sections" | "seats" | "canvas">("layout");
+  const [activeTab, setActiveTab] = useState<"layout" | "sections" | "seats" | "structures" | "geometry" | "canvas">("layout");
 
   // Status & Feedback
   const [isLoading, setIsLoading] = useState(false);
@@ -282,6 +306,53 @@ export function HallDesignerCanvasClient({
     geometryType: "STRAIGHT",
     accessibility: "STANDARD",
   });
+
+  // Structural Objects (Phase 4 – Part 7)
+  const {
+    objects: structuralObjects,
+    selectedObjectId: selectedStructuralObjectId,
+    setSelectedObjectId: setSelectedStructuralObjectId,
+    selectedObject: selectedStructuralObject,
+    createObject: createStructuralObject,
+    updateObject: updateStructuralObject,
+    deleteObject: deleteStructuralObject,
+    duplicateObject: duplicateStructuralObject,
+    toggleLock: toggleStructuralLock,
+    toggleVisibility: toggleStructuralVisibility,
+    screens,
+    emergencyExits,
+    hasScreen,
+    hasEmergencyExit,
+  } = useStructuralObjects({
+    theatreId,
+    layoutVersionId: currentVersion?.id || "",
+    autoLoad: !!currentVersion?.id,
+  });
+
+  // Geometry Engine & Preflight Validation (Phase 4 – Part 8)
+  const {
+    settings: geometrySettings,
+    preflightResult,
+    isPreflightValidating,
+    runPreflightCheck,
+    mirrorLayout,
+    saveSettings: saveGeometrySettings,
+  } = useGeometryEngine({
+    theatreId,
+    layoutVersionId: currentVersion?.id || "",
+    autoLoad: !!theatreId,
+  });
+
+  // Structural Object form state
+  const [newStructType, setNewStructType] = useState<StructuralObjectType>("SCREEN");
+  const [newStructName, setNewStructName] = useState<string>("");
+  const [newStructDisplayName, setNewStructDisplayName] = useState<string>("");
+  const [newStructCode, setNewStructCode] = useState<string>("");
+  const [newStructWidth, setNewStructWidth] = useState<number>(240);
+  const [newStructHeight, setNewStructHeight] = useState<number>(40);
+  const [newStructColor, setNewStructColor] = useState<string>("#38BDF8");
+  const [newStructIsObstacle, setNewStructIsObstacle] = useState<boolean>(false);
+  const [isAddingStructuralObject, setIsAddingStructuralObject] = useState<boolean>(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -763,6 +834,64 @@ export function HallDesignerCanvasClient({
     } catch (err: any) {
       setStatusMessage({ type: "error", text: err.message || "Failed to duplicate category." });
     }
+  };
+
+  // Structural Objects Handlers (Phase 4 – Part 7)
+  const handleCreateStructuralObject = async () => {
+    if (!currentVersion || currentVersion.status !== "DRAFT") {
+      setStatusMessage({ type: "error", text: "Can only add structural objects to DRAFT layouts." });
+      return;
+    }
+    const name = newStructName.trim() || `${newStructType.charAt(0) + newStructType.slice(1).toLowerCase()} Object`;
+    const displayName = newStructDisplayName.trim() || name;
+    const code = newStructCode.trim() || `STR-${newStructType.slice(0, 3)}-${Date.now().toString().slice(-4)}`;
+
+    const res = await createStructuralObject({
+      layoutVersionId: currentVersion.id,
+      theatreId,
+      objectName: name,
+      displayName,
+      objectType: newStructType,
+      internalCode: code,
+      position: { x: 400, y: 150, z: 0 },
+      width: newStructWidth,
+      height: newStructHeight,
+      rotation: 0,
+      layer: 1,
+      zIndex: 10,
+      visibility: "VISIBLE",
+      color: newStructColor,
+      isLocked: false,
+      metadata: {
+        isStatic: true,
+        isCollisionObstacle: newStructIsObstacle,
+        isReservedArea: false,
+      },
+      geometry: {
+        shape: "RECTANGLE",
+      },
+    });
+
+    if (res) {
+      setStatusMessage({ type: "success", text: `Structural object '${displayName}' created.` });
+      setIsAddingStructuralObject(false);
+      setNewStructName("");
+      setNewStructDisplayName("");
+      setNewStructCode("");
+    }
+  };
+
+  // Geometry Engine Handlers (Phase 4 – Part 8)
+  const handleMirror = async (axis: SymmetryAxis) => {
+    if (!currentVersion || currentVersion.status !== "DRAFT") {
+      setStatusMessage({ type: "error", text: "Can only mirror DRAFT layouts." });
+      return;
+    }
+    const count = await mirrorLayout(axis);
+    setStatusMessage({
+      type: "success",
+      text: `Layout mirrored ${axis.toLowerCase()}ly (${count} objects updated).`,
+    });
   };
 
   useEffect(() => {
@@ -1599,13 +1728,68 @@ export function HallDesignerCanvasClient({
               height: `${preferences.canvasHeight}px`,
             }}
           >
-            {/* Cinema Screen Banner */}
-            <div className="w-[850px] mx-auto mt-6 mb-12">
-              <div className="h-3 rounded-full bg-gradient-to-r from-cyan-500 via-sky-300 to-cyan-500 shadow-lg shadow-cyan-500/30" />
-              <div className="text-center mt-2 text-xs font-bold tracking-[0.3em] uppercase text-slate-400">
-                CURVED CINEMA SCREEN / DISPLAY AREA
+            {/* Interactive Structural Objects Layer (Phase 4 – Part 7) */}
+            {structuralObjects.length > 0 ? (
+              structuralObjects.map((obj) => {
+                if (obj.visibility !== "VISIBLE") return null;
+                const isSelected = selectedStructuralObjectId === obj.id;
+                return (
+                  <div
+                    key={obj.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedStructuralObjectId(obj.id);
+                      setActiveTab("structures");
+                    }}
+                    style={{
+                      left: `${obj.position.x}px`,
+                      top: `${obj.position.y}px`,
+                      width: `${obj.width}px`,
+                      height: `${obj.height}px`,
+                      transform: `rotate(${obj.rotation}deg)`,
+                      zIndex: obj.zIndex,
+                      backgroundColor: obj.color,
+                    }}
+                    className={`absolute rounded flex items-center justify-center cursor-pointer transition select-none ${
+                      isSelected
+                        ? "ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-cyan-500/50"
+                        : "opacity-90 hover:opacity-100"
+                    } ${
+                      obj.objectType === "SCREEN"
+                        ? "shadow-md shadow-sky-500/40 text-sky-100 font-bold border-b-2 border-cyan-300"
+                        : ""
+                    } ${
+                      obj.objectType === "EMERGENCY_EXIT"
+                        ? "border border-emerald-400 text-emerald-100 font-bold"
+                        : ""
+                    } ${
+                      obj.objectType === "ACCESSIBLE_PATH"
+                        ? "border-2 border-dashed border-indigo-400 bg-indigo-950/60"
+                        : ""
+                    }`}
+                    title={`${obj.displayName} (${obj.objectType})`}
+                  >
+                    <span className="text-[10px] tracking-wider font-semibold uppercase truncate px-1 text-white drop-shadow">
+                      {obj.objectType === "SCREEN"
+                        ? `🎥 ${obj.displayName}`
+                        : obj.objectType === "EMERGENCY_EXIT"
+                        ? `🚪 ${obj.displayName}`
+                        : obj.objectType === "ACCESSIBLE_PATH"
+                        ? `♿ ${obj.displayName}`
+                        : obj.displayName}
+                    </span>
+                  </div>
+                );
+              })
+            ) : (
+              /* Fallback Cinema Screen Banner */
+              <div className="w-[850px] mx-auto mt-6 mb-12">
+                <div className="h-3 rounded-full bg-gradient-to-r from-cyan-500 via-sky-300 to-cyan-500 shadow-lg shadow-cyan-500/30" />
+                <div className="text-center mt-2 text-xs font-bold tracking-[0.3em] uppercase text-slate-400">
+                  CURVED CINEMA SCREEN / DISPLAY AREA
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Emergency Exits Markers */}
             {currentVersion?.emergencyExits?.map((exit) => (
@@ -1736,46 +1920,66 @@ export function HallDesignerCanvasClient({
         {/* -------------------------------------------------------------------- */}
         <aside className="w-80 bg-slate-900 border-l border-slate-800 flex flex-col z-20">
           {/* Tab Navigation */}
-          <div className="flex border-b border-slate-800">
+          <div className="flex border-b border-slate-800 overflow-x-auto scrollbar-none">
             <button
               onClick={() => setActiveTab("layout")}
-              className={`flex-1 py-2.5 text-xs font-semibold border-b-2 transition ${
+              className={`px-2.5 py-2 text-[11px] font-semibold border-b-2 whitespace-nowrap transition ${
                 activeTab === "layout"
                   ? "border-cyan-500 text-cyan-400 bg-slate-800/50"
                   : "border-transparent text-slate-400 hover:text-slate-200"
               }`}
             >
-              <Layers className="w-3.5 h-3.5 inline mr-1.5" /> Layout
+              <Layers className="w-3 h-3 inline mr-1" /> Layout
             </button>
             <button
               onClick={() => setActiveTab("sections")}
-              className={`flex-1 py-2.5 text-xs font-semibold border-b-2 transition ${
+              className={`px-2.5 py-2 text-[11px] font-semibold border-b-2 whitespace-nowrap transition ${
                 activeTab === "sections"
                   ? "border-cyan-500 text-cyan-400 bg-slate-800/50"
                   : "border-transparent text-slate-400 hover:text-slate-200"
               }`}
             >
-              <Armchair className="w-3.5 h-3.5 inline mr-1" /> Sections
+              <Armchair className="w-3 h-3 inline mr-1" /> Sections
             </button>
             <button
               onClick={() => setActiveTab("seats")}
-              className={`flex-1 py-2.5 text-xs font-semibold border-b-2 transition ${
+              className={`px-2.5 py-2 text-[11px] font-semibold border-b-2 whitespace-nowrap transition ${
                 activeTab === "seats"
                   ? "border-cyan-500 text-cyan-400 bg-slate-800/50"
                   : "border-transparent text-slate-400 hover:text-slate-200"
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 inline mr-1" /> Seats
+              <Sparkles className="w-3 h-3 inline mr-1" /> Seats
+            </button>
+            <button
+              onClick={() => setActiveTab("structures")}
+              className={`px-2.5 py-2 text-[11px] font-semibold border-b-2 whitespace-nowrap transition ${
+                activeTab === "structures"
+                  ? "border-cyan-500 text-cyan-400 bg-slate-800/50"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Building2 className="w-3 h-3 inline mr-1" /> Objects
+            </button>
+            <button
+              onClick={() => setActiveTab("geometry")}
+              className={`px-2.5 py-2 text-[11px] font-semibold border-b-2 whitespace-nowrap transition ${
+                activeTab === "geometry"
+                  ? "border-cyan-500 text-cyan-400 bg-slate-800/50"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Compass className="w-3 h-3 inline mr-1" /> Geometry
             </button>
             <button
               onClick={() => setActiveTab("canvas")}
-              className={`flex-1 py-2.5 text-xs font-semibold border-b-2 transition ${
+              className={`px-2.5 py-2 text-[11px] font-semibold border-b-2 whitespace-nowrap transition ${
                 activeTab === "canvas"
                   ? "border-cyan-500 text-cyan-400 bg-slate-800/50"
                   : "border-transparent text-slate-400 hover:text-slate-200"
               }`}
             >
-              <Settings className="w-3.5 h-3.5 inline mr-1" /> Preferences
+              <Settings className="w-3 h-3 inline mr-1" /> Canvas
             </button>
           </div>
 
@@ -2807,7 +3011,576 @@ export function HallDesignerCanvasClient({
               </div>
             )}
 
-            {/* TAB 4: THEATRE CANVAS PREFERENCES (Part 2) */}
+            {/* TAB 4: STRUCTURAL OBJECTS (Phase 4 – Part 7) */}
+            {activeTab === "structures" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div>
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-cyan-400" /> Structural Objects
+                    </h3>
+                    <p className="text-[10px] text-slate-400">
+                      Physical auditorium infrastructure & obstacles
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] border-slate-700 text-cyan-400 font-mono">
+                    {structuralObjects.length} Objects
+                  </Badge>
+                </div>
+
+                {/* Regulatory Summary Bar */}
+                <div className="grid grid-cols-2 gap-2 p-2 bg-slate-950 rounded border border-slate-800 text-[10px]">
+                  <div className="flex items-center gap-1.5">
+                    {hasScreen ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                    )}
+                    <span className={hasScreen ? "text-slate-300" : "text-rose-400 font-bold"}>
+                      {hasScreen ? "Screen Active" : "Screen Missing"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {hasEmergencyExit ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    )}
+                    <span className={hasEmergencyExit ? "text-slate-300" : "text-amber-400"}>
+                      {emergencyExits.length} Emergency Exit(s)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Add Structural Object Button */}
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    onClick={() => setIsAddingStructuralObject(!isAddingStructuralObject)}
+                    disabled={currentVersion?.status !== "DRAFT"}
+                    className="h-7 text-xs bg-cyan-600 hover:bg-cyan-500 text-white gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Object
+                  </Button>
+                </div>
+
+                {/* Add Structural Object Form */}
+                {isAddingStructuralObject && (
+                  <Card className="p-3 bg-slate-950 border-cyan-800/60 space-y-2.5">
+                    <div className="font-semibold text-xs text-cyan-300">New Structural Element</div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">Object Type</label>
+                      <select
+                        value={newStructType}
+                        onChange={(e) => {
+                          const t = e.target.value as StructuralObjectType;
+                          setNewStructType(t);
+                          if (t === "SCREEN") {
+                            setNewStructColor("#0284C7");
+                            setNewStructWidth(800);
+                            setNewStructHeight(30);
+                            setNewStructIsObstacle(false);
+                          } else if (t === "STAGE") {
+                            setNewStructColor("#78350F");
+                            setNewStructWidth(840);
+                            setNewStructHeight(50);
+                            setNewStructIsObstacle(true);
+                          } else if (t === "EMERGENCY_EXIT") {
+                            setNewStructColor("#16A34A");
+                            setNewStructWidth(60);
+                            setNewStructHeight(30);
+                            setNewStructIsObstacle(false);
+                          } else if (t === "ENTRANCE") {
+                            setNewStructColor("#2563EB");
+                            setNewStructWidth(100);
+                            setNewStructHeight(35);
+                            setNewStructIsObstacle(false);
+                          } else if (t === "ACCESSIBLE_PATH") {
+                            setNewStructColor("#6366F1");
+                            setNewStructWidth(80);
+                            setNewStructHeight(400);
+                            setNewStructIsObstacle(false);
+                          } else if (t === "PILLAR") {
+                            setNewStructColor("#94A3B8");
+                            setNewStructWidth(32);
+                            setNewStructHeight(32);
+                            setNewStructIsObstacle(true);
+                          } else {
+                            setNewStructColor("#64748B");
+                            setNewStructWidth(120);
+                            setNewStructHeight(30);
+                          }
+                        }}
+                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"
+                      >
+                        <option value="SCREEN">Screen (Cinema Screen)</option>
+                        <option value="STAGE">Stage (Presentation Platform)</option>
+                        <option value="EMERGENCY_EXIT">Emergency Exit</option>
+                        <option value="ENTRANCE">Entrance / Foyer Door</option>
+                        <option value="EXIT">General Exit</option>
+                        <option value="ACCESSIBLE_PATH">Accessible Path (ADA Ramp)</option>
+                        <option value="WALL">Architectural Wall</option>
+                        <option value="DIVIDER">Partition / Divider</option>
+                        <option value="BALCONY">Balcony / Mezzanine</option>
+                        <option value="STAIRS">Stairway / Steps</option>
+                        <option value="AISLE">Walkway Aisle</option>
+                        <option value="PILLAR">Pillar (Collision Obstacle)</option>
+                        <option value="CONTROL_ROOM">Control Room / AV Booth</option>
+                        <option value="CUSTOM">Custom Infrastructure</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Name</label>
+                        <Input
+                          placeholder="e.g. Laser Screen"
+                          value={newStructName}
+                          onChange={(e) => setNewStructName(e.target.value)}
+                          className="h-7 text-xs bg-slate-900 border-slate-700 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Code</label>
+                        <Input
+                          placeholder="STR-SCR-01"
+                          value={newStructCode}
+                          onChange={(e) => setNewStructCode(e.target.value)}
+                          className="h-7 text-xs bg-slate-900 border-slate-700 text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Width (px)</label>
+                        <Input
+                          type="number"
+                          value={newStructWidth}
+                          onChange={(e) => setNewStructWidth(parseInt(e.target.value, 10) || 100)}
+                          className="h-7 text-xs bg-slate-900 border-slate-700 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Height (px)</label>
+                        <Input
+                          type="number"
+                          value={newStructHeight}
+                          onChange={(e) => setNewStructHeight(parseInt(e.target.value, 10) || 40)}
+                          className="h-7 text-xs bg-slate-900 border-slate-700 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Color</label>
+                        <input
+                          type="color"
+                          value={newStructColor}
+                          onChange={(e) => setNewStructColor(e.target.value)}
+                          className="w-full h-7 rounded bg-slate-900 border border-slate-700 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-1">
+                      <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newStructIsObstacle}
+                          onChange={(e) => setNewStructIsObstacle(e.target.checked)}
+                          className="rounded border-slate-700 bg-slate-900 text-cyan-500"
+                        />
+                        <span>Collision Obstacle (Forbids seats)</span>
+                      </label>
+                    </div>
+
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        onClick={handleCreateStructuralObject}
+                        className="flex-1 h-7 text-xs bg-cyan-600 hover:bg-cyan-500 text-white font-medium"
+                      >
+                        Create Object
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setIsAddingStructuralObject(false)}
+                        className="h-7 text-xs text-slate-400 hover:text-white"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Selected Object Editor */}
+                {selectedStructuralObject && (
+                  <Card className="p-3 bg-slate-950 border-cyan-500/50 space-y-2">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                      <div className="font-bold text-xs text-cyan-300 truncate">
+                        {selectedStructuralObject.displayName}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => toggleStructuralLock(selectedStructuralObject.id)}
+                          className="p-1 text-slate-400 hover:text-cyan-400"
+                          title={selectedStructuralObject.isLocked ? "Unlock Object" : "Lock Object"}
+                        >
+                          {selectedStructuralObject.isLocked ? (
+                            <Lock className="w-3.5 h-3.5 text-amber-400" />
+                          ) : (
+                            <Unlock className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => toggleStructuralVisibility(selectedStructuralObject.id)}
+                          className="p-1 text-slate-400 hover:text-cyan-400"
+                          title="Toggle Visibility"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => duplicateStructuralObject(selectedStructuralObject.id)}
+                          className="p-1 text-slate-400 hover:text-cyan-400"
+                          title="Duplicate Object"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => deleteStructuralObject(selectedStructuralObject.id)}
+                          className="p-1 text-slate-400 hover:text-rose-400"
+                          title="Delete Object"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[10px]">
+                      <div>
+                        <span className="text-slate-500">Type:</span>{" "}
+                        <Badge variant="outline" className="text-[9px] py-0 px-1 border-slate-700 text-slate-300">
+                          {selectedStructuralObject.objectType}
+                        </Badge>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Code:</span>{" "}
+                        <span className="font-mono text-cyan-400">{selectedStructuralObject.internalCode}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[9px] text-slate-500 block">Pos X</label>
+                        <Input
+                          type="number"
+                          value={selectedStructuralObject.position.x}
+                          disabled={selectedStructuralObject.isLocked}
+                          onChange={(e) =>
+                            updateStructuralObject(selectedStructuralObject.id, {
+                              id: selectedStructuralObject.id,
+                              theatreId,
+                              position: {
+                                ...selectedStructuralObject.position,
+                                x: parseInt(e.target.value, 10) || 0,
+                              },
+                            })
+                          }
+                          className="h-6 text-[11px] bg-slate-900 border-slate-800 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-slate-500 block">Pos Y</label>
+                        <Input
+                          type="number"
+                          value={selectedStructuralObject.position.y}
+                          disabled={selectedStructuralObject.isLocked}
+                          onChange={(e) =>
+                            updateStructuralObject(selectedStructuralObject.id, {
+                              id: selectedStructuralObject.id,
+                              theatreId,
+                              position: {
+                                ...selectedStructuralObject.position,
+                                y: parseInt(e.target.value, 10) || 0,
+                              },
+                            })
+                          }
+                          className="h-6 text-[11px] bg-slate-900 border-slate-800 text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[9px] text-slate-500 block">Width</label>
+                        <Input
+                          type="number"
+                          value={selectedStructuralObject.width}
+                          disabled={selectedStructuralObject.isLocked}
+                          onChange={(e) =>
+                            updateStructuralObject(selectedStructuralObject.id, {
+                              id: selectedStructuralObject.id,
+                              theatreId,
+                              width: parseInt(e.target.value, 10) || 20,
+                            })
+                          }
+                          className="h-6 text-[11px] bg-slate-900 border-slate-800 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-slate-500 block">Height</label>
+                        <Input
+                          type="number"
+                          value={selectedStructuralObject.height}
+                          disabled={selectedStructuralObject.isLocked}
+                          onChange={(e) =>
+                            updateStructuralObject(selectedStructuralObject.id, {
+                              id: selectedStructuralObject.id,
+                              theatreId,
+                              height: parseInt(e.target.value, 10) || 20,
+                            })
+                          }
+                          className="h-6 text-[11px] bg-slate-900 border-slate-800 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-slate-500 block">Rotation</label>
+                        <Input
+                          type="number"
+                          value={selectedStructuralObject.rotation}
+                          disabled={selectedStructuralObject.isLocked}
+                          onChange={(e) =>
+                            updateStructuralObject(selectedStructuralObject.id, {
+                              id: selectedStructuralObject.id,
+                              theatreId,
+                              rotation: parseInt(e.target.value, 10) || 0,
+                            })
+                          }
+                          className="h-6 text-[11px] bg-slate-900 border-slate-800 text-white"
+                        />
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {/* List of Structural Objects */}
+                <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                  {structuralObjects.map((obj) => (
+                    <div
+                      key={obj.id}
+                      onClick={() => setSelectedStructuralObjectId(obj.id)}
+                      className={`p-2 rounded border flex items-center justify-between text-xs cursor-pointer transition ${
+                        selectedStructuralObjectId === obj.id
+                          ? "bg-slate-800/80 border-cyan-500"
+                          : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded shrink-0 border border-white/20"
+                          style={{ backgroundColor: obj.color }}
+                        />
+                        <div>
+                          <div className="font-medium text-slate-200 text-[11px]">
+                            {obj.displayName}
+                          </div>
+                          <div className="text-[9px] text-slate-500 font-mono">
+                            {obj.objectType} • ({obj.position.x}, {obj.position.y})
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {obj.isLocked && <Lock className="w-3 h-3 text-amber-400" />}
+                        {obj.metadata.isCollisionObstacle && (
+                          <Badge variant="outline" className="text-[8px] py-0 px-1 border-rose-800 text-rose-300">
+                            Obstacle
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 5: GEOMETRY & ADVANCED LAYOUT (Phase 4 – Part 8) */}
+            {activeTab === "geometry" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div>
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <Compass className="w-3.5 h-3.5 text-cyan-400" /> Geometry Engine
+                    </h3>
+                    <p className="text-[10px] text-slate-400">
+                      Symmetry, curvature transforms & preflight validation
+                    </p>
+                  </div>
+                </div>
+
+                {/* Symmetry & Mirroring Tools */}
+                <Card className="p-3 bg-slate-950 border-slate-800 space-y-2">
+                  <div className="font-semibold text-xs text-slate-200">Layout Symmetry & Mirroring</div>
+                  <p className="text-[10px] text-slate-400">
+                    Reflect structural objects and design objects across auditorium axes.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleMirror("HORIZONTAL")}
+                      disabled={currentVersion?.status !== "DRAFT"}
+                      className="h-7 text-xs border-slate-700 text-slate-200 hover:bg-slate-800 gap-1"
+                    >
+                      <FlipHorizontal className="w-3.5 h-3.5 text-cyan-400" /> Mirror Horiz.
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleMirror("VERTICAL")}
+                      disabled={currentVersion?.status !== "DRAFT"}
+                      className="h-7 text-xs border-slate-700 text-slate-200 hover:bg-slate-800 gap-1"
+                    >
+                      <FlipVertical className="w-3.5 h-3.5 text-cyan-400" /> Mirror Vert.
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* Theatre Geometry Preferences */}
+                <Card className="p-3 bg-slate-950 border-slate-800 space-y-2">
+                  <div className="font-semibold text-xs text-slate-200">Theatre Geometry Policies</div>
+                  <div className="space-y-1.5 text-xs text-slate-300">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span>Curved VIP Layouts</span>
+                      <Badge variant="outline" className="text-[9px] border-emerald-800 text-emerald-400">
+                        {geometrySettings?.allowCurvedVIP ? "Allowed" : "Disabled"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span>Arc Seating Rows</span>
+                      <Badge variant="outline" className="text-[9px] border-emerald-800 text-emerald-400">
+                        {geometrySettings?.allowArcRows ? "Allowed" : "Disabled"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span>Polygon Sections</span>
+                      <Badge variant="outline" className="text-[9px] border-emerald-800 text-emerald-400">
+                        {geometrySettings?.allowPolygonSections ? "Allowed" : "Disabled"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span>Default Curvature Radius</span>
+                      <span className="font-mono text-cyan-400">{geometrySettings?.defaultCurveRadius || 700}px</span>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Preflight Layout Validation Gate (Invariant 3) */}
+                <Card className="p-3 bg-slate-950 border-cyan-800/80 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold text-xs text-cyan-300">Publication Preflight Gate</div>
+                    <Button
+                      size="sm"
+                      onClick={runPreflightCheck}
+                      disabled={isPreflightValidating || !currentVersion}
+                      className="h-6 text-[10px] bg-cyan-600 hover:bg-cyan-500 text-white font-medium gap-1"
+                    >
+                      <ShieldCheck className="w-3 h-3" />
+                      {isPreflightValidating ? "Auditing..." : "Audit Layout"}
+                    </Button>
+                  </div>
+
+                  {preflightResult ? (
+                    <div className="space-y-2 pt-1">
+                      <div
+                        className={`p-2 rounded text-xs font-semibold flex items-center gap-1.5 ${
+                          preflightResult.canPublish
+                            ? "bg-emerald-950/80 border border-emerald-500/60 text-emerald-300"
+                            : "bg-rose-950/80 border border-rose-500/60 text-rose-300"
+                        }`}
+                      >
+                        {preflightResult.canPublish ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                            <span>READY TO PUBLISH (All Invariants Passed)</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                            <span>PUBLICATION BLOCKED (Violations Detected)</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Checklist */}
+                      <div className="space-y-1 text-[10px] text-slate-300">
+                        <div className="flex items-center justify-between">
+                          <span>Screen Presence:</span>
+                          <span className={preflightResult.checklist.hasScreen ? "text-emerald-400" : "text-rose-400"}>
+                            {preflightResult.checklist.hasScreen ? "✓ Screen Present" : "✕ Screen Missing"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Emergency Exits:</span>
+                          <span className={preflightResult.checklist.hasEmergencyExit ? "text-emerald-400" : "text-amber-400"}>
+                            {preflightResult.checklist.hasEmergencyExit ? "✓ Exits Defined" : "⚠ No Exits"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Entrances / Foyer:</span>
+                          <span className={preflightResult.checklist.hasEntrance ? "text-emerald-400" : "text-amber-400"}>
+                            {preflightResult.checklist.hasEntrance ? "✓ Entrance Defined" : "⚠ Missing Entrance"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Accessible Route:</span>
+                          <span className={preflightResult.checklist.hasAccessiblePath ? "text-emerald-400" : "text-amber-400"}>
+                            {preflightResult.checklist.hasAccessiblePath ? "✓ Compliant" : "⚠ No Route Tagged"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Obstacle Collisions:</span>
+                          <span className={preflightResult.checklist.hasNoStructuralCollisions ? "text-emerald-400" : "text-rose-400"}>
+                            {preflightResult.checklist.hasNoStructuralCollisions ? "✓ Zero Collisions" : "✕ Collisions Detected"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Canvas Bounds:</span>
+                          <span className={preflightResult.checklist.hasNoOutOfBounds ? "text-emerald-400" : "text-rose-400"}>
+                            {preflightResult.checklist.hasNoOutOfBounds ? "✓ All In Bounds" : "✕ Out-of-bounds"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Blocking Errors */}
+                      {preflightResult.blockingErrors.length > 0 && (
+                        <div className="p-2 bg-rose-950/60 border border-rose-800 rounded text-[10px] text-rose-300 space-y-1">
+                          <div className="font-bold text-rose-200">Critical Errors:</div>
+                          {preflightResult.blockingErrors.map((err, i) => (
+                            <div key={i}>• {err}</div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Warnings */}
+                      {preflightResult.complianceWarnings.length > 0 && (
+                        <div className="p-2 bg-amber-950/40 border border-amber-800 rounded text-[10px] text-amber-300 space-y-1">
+                          <div className="font-bold text-amber-200">Compliance Warnings:</div>
+                          {preflightResult.complianceWarnings.map((warn, i) => (
+                            <div key={i}>• {warn}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-slate-400">
+                      Audit checks screen presence, emergency egress paths, ADA accessibility, obstacle collisions, and geometry integrity before layout publication.
+                    </p>
+                  )}
+                </Card>
+              </div>
+            )}
+
+            {/* TAB 6: THEATRE CANVAS PREFERENCES (Part 2) */}
             {activeTab === "canvas" && (
               <div className="space-y-4">
                 <div>

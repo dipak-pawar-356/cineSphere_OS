@@ -17,4 +17,6 @@ export * from "./enterprise-extensions.service";
 export * from "./hall-designer.service";
 export * from "./section-row-designer.service";
 export * from "./seat-generator.service";
+export * from "./structural-object.service";
+export * from "./geometry-layout.service";
 

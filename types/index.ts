@@ -82,4 +82,10 @@ export type {
   BulkSeatGenerationResult,
 } from "./seat-generator.types";
 
+// Structural Objects & Infrastructure (Phase 4 – Part 7)
+export * from "./structural-objects.types";
+
+// Geometry & Advanced Layout Engine (Phase 4 – Part 8)
+export * from "./geometry-layout.types";
+
 

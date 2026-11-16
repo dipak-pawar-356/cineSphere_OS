@@ -25,8 +25,12 @@ Phase 4: Hall Designer & Spatial Auditorium Engine ──► [ IN PROGRESS ]
   ├─ Part 2: Canvas & Grid System Engine ────────────► [ COMPLETED ]
   ├─ Part 3: Section Designer Studio ────────────────► [ COMPLETED ]
   ├─ Part 4: Row Designer Engine ────────────────────► [ COMPLETED ]
-  ├─ Part 5: Seat Inventory & Show Seat Generator ───► [ PLANNED ]
-  └─ Part 6: F&B Concessions & Butler In-Seat Dining ► [ PLANNED ]
+  ├─ Part 5: Automatic Seat Generator ───────────────► [ COMPLETED ]
+  ├─ Part 6: Seat Categories Registry ───────────────► [ COMPLETED ]
+  ├─ Part 7: Structural Objects & Infrastructure ────► [ COMPLETED ]
+  ├─ Part 8: Geometry & Advanced Layout Engine ──────► [ COMPLETED ]
+  ├─ Part 9: Seat Inventory & Show Seat Generator ───► [ PLANNED ]
+  └─ Part 10: F&B Concessions & Butler Dining ───────► [ PLANNED ]
 Phase 5: 3D WebGL Hall Designer (Three.js) ─────────► [ PLANNED ]
 Phase 6: Distributor KDM Key Ingestion & DCI ───────► [ PLANNED ]
 Phase 7: Mobile Kiosk Native PWA & Turnstile ───────► [ PLANNED ]
@@ -97,8 +101,10 @@ Phase 7: Mobile Kiosk Native PWA & Turnstile ───────► [ PLANNED 
 - [x] **Part 4: Row Designer Engine (Sequencing & Accessibility):** Dynamic row generation scoped strictly to sections; auto-numbering strategies (`ALPHABETICAL` A-Z/AA-AZ, `NUMERIC` 1-20, `ROMAN` I-X, `CUSTOM`); reverse sequencing, prefix, and suffix formatting; physical coordinate calculations for Straight, Curved (arc sagitta math), Arc, and Angled geometries; positive row spacing constraints; accessibility classifications (`STANDARD`, `WHEELCHAIR` ♿, `COMPANION`, `RESERVED`, `EMERGENCY_CLEARANCE`); row duplication, cascading reordering; and validation engine.
 - [x] **Part 5: Automatic Seat Generator & Physical Coordinates:** Decouples editable Seat Templates from physical runtime Seat Inventory; assigns permanent immutable internal UUIDs for every seat template; precision mathematical coordinate engines for Straight, Curved arc sagitta ($y_c = y_0 + R(1 - \cos \theta_c)$), and Angled topologies; auto-numbering with prefixes, suffixes, start numbers, reverse ordering, and gap skips; accessibility tiers (Wheelchair bays, companion pairings, accessible route tags); spatial coordinate collision and duplicate code detection; and draft-only immutability enforcement.
 - [x] **Part 6: Dynamic Seat Category Registry & Decoupled Pricing:** Database-driven registry replacing hardcoded enums, allowing circuits to define unlimited custom categories (*Kids*, *Luxury*, *Executive*, *Private Box*, *Accessible Premium*); strict Decoupled Pricing architecture ensuring categories define classification and spatial layout only while ticket pricing is resolved dynamically per show; category lifecycle management (Create, Update, Duplicate, Archive, Restore); independent per-theatre categories (Pune, Mumbai, Dubai); and caching performance hook `useSeatGenerator` with optimistic UI updates.
-- [ ] **Part 7: Seat Inventory & Show Seat Generator:** High-performance seat inventory generator instantiating per-show ShowSeat entities from published layouts with Redis cache synchronization.
-- [ ] **Part 8: F&B Concessions & In-Seat Butler Dispatch:** In-seat dining menu with real-time pantry inventory deduction, Butler kitchen display system (KDS), and automated dispatch notifications.
+- [x] **Part 7: Structural Objects & Physical Architecture:** Models physical infrastructure (Stage, Screen, Entrance, Exit, Emergency Exit, Walls, Divider, Balcony, Stairs, Aisles, Accessible Path, Pillars, Control Room) as first-class, polymorphic layout objects independent from sections, rows, and seats; dynamic positioning `(x, y, z)`, dimensions, rotation, layer, zIndex, visibility, color, and metadata; behavior flags (`isStatic`, `isCollisionObstacle`, `isReservedArea`); spatial math engine with rotated 2D bounding boxes and Separating Axis Theorem (SAT) collision detection; independent per-theatre infrastructure presets (Pune, Mumbai, Dubai); and caching hook `useStructuralObjects` with optimistic updates.
+- [x] **Part 8: Geometry & Advanced Layout Engine:** Computational geometry engine powering 2D affine transformation pipeline (Translate, Rotate, Scale, Reflection/Mirror, Matrix); circular arc sagitta depth ($s = R(1 - \cos(\Delta\theta / 2))$) and chord radius math; spatial alignment and equal distribution tools; reversible transformation command history (`GeometryTransformCommand`) with full Undo/Redo stack and audit logging; integrated Preflight Publication Validation Gate (`validateLayoutBeforePublish`) enforcing mandatory screens, emergency exits, ADA routes, and collision avoidance; independent per-theatre geometry policies; and caching hook `useGeometryEngine`.
+- [ ] **Part 9: Seat Inventory & Show Seat Generator:** High-performance runtime seat inventory generator instantiating per-show `ShowSeat` entities from published layout blueprints with Redis cache synchronization.
+- [ ] **Part 10: F&B Concessions & In-Seat Butler Dispatch:** In-seat dining menu with real-time pantry inventory deduction, Butler kitchen display system (KDS), and automated dispatch notifications.
 
 ---
 

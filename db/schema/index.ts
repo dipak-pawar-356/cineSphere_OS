@@ -65,6 +65,12 @@ export * from "./section-row-designer";
 // Automatic Seat Generator & Category Registry (Phase 4 - Parts 5 & 6)
 export * from "./seat-generator";
 
+// Structural Objects & Physical Architecture (Phase 4 - Part 7)
+export * from "./structural-objects";
+
+// Geometry Engine & Advanced Layout Transformations (Phase 4 - Part 8)
+export * from "./geometry-layout";
+
 
 
 // Tenant Payment Configurations & Ledger

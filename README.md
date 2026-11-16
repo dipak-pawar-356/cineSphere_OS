@@ -1010,6 +1010,28 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Caching performance hook [`useSeatGenerator`](./lib/hooks/use-seat-generator.ts) with in-memory cache refs and optimistic UI updates.
 - 📚 **Seat Generator & Category Architecture Guide:** Detailed technical documentation in [`docs/SEAT_GENERATOR_AND_CATEGORIES_ARCHITECTURE.md`](./docs/SEAT_GENERATOR_AND_CATEGORIES_ARCHITECTURE.md).
 
+### 2.40 Phase 4 - Part 7: Structural Objects & Physical Architecture (Completed)
+- 🏛️ **Unified Layout Object Model (`types/structural-objects.types.ts`, `db/schema/structural-objects.ts`):**
+  - Models structural infrastructure as polymorphic, first-class layout objects independent from sections, rows, and seats:
+    $$\text{Layout Definition} \longrightarrow \text{Layout Objects} \longrightarrow \text{Structural Objects} \longrightarrow \text{Validation Engine} \longrightarrow \text{Published Layout}$$
+  - Full support for 13 architectural structural objects: `STAGE`, `SCREEN`, `ENTRANCE`, `EXIT`, `EMERGENCY_EXIT`, `WALL`, `DIVIDER`, `BALCONY`, `STAIRS`, `AISLE`, `ACCESSIBLE_PATH`, `PILLAR`, and `CONTROL_ROOM`.
+  - Object configuration: `objectName`, `displayName`, `internalCode`, `position (x, y, z)`, `width`, `height`, `rotation`, `layer`, `zIndex`, `visibility`, `color`, and `metadata`.
+  - Behavior & Safety Flags: `isStatic`, `isCollisionObstacle`, `isReservedArea`, fire ratings, egress capacity, and ADA wheelchair turning clearance.
+  - Spatial math engine ([`lib/engine/structural-object-engine.ts`](./lib/engine/structural-object-engine.ts)): Rotated 2D bounding boxes and Separating Axis Theorem (SAT) collision detection between structural obstacles and seat templates.
+  - Caching performance hook [`useStructuralObjects`](./lib/hooks/use-structural-objects.ts) with in-memory cache refs, memoized selectors, and optimistic UI updates.
+
+### 2.41 Phase 4 - Part 8: Geometry & Advanced Layout Engine (Completed)
+- 📐 **Computational Geometry Engine (`lib/engine/geometry-engine.ts`, `db/schema/geometry-layout.ts`):**
+  - 2D Affine transformation pipeline: Translation, Rotation, Scaling, Reflection/Mirroring, and Affine Matrix transforms.
+  - Curvature & Sagitta Arc Mathematics: Sagitta depth $s = R(1 - \cos(\Delta\theta / 2))$, inverse radius $R = \frac{s}{2} + \frac{W^2}{8s}$, and arc row seat coordinate generation.
+  - Spatial Alignment & Equal Distribution: Align Left, Top, Right, Bottom, Center X, Center Y; Distribute Horizontally and Vertically.
+  - Reversible command history stack (`GeometryTransformCommand`) with full Undo/Redo pipeline and structured audit logging.
+  - **Preflight Publication Validation Gate (`validateLayoutBeforePublish`):**
+    - Mandatory Screen check, Emergency Exit presence, Entrance/Foyer check, Wheelchair Accessible Path clearance, zero structural obstacle collisions, bounds compliance, and section/row capacity parity.
+  - Theatre-specific geometry configurations: Pune (Curved VIP & Arc Rows allowed), Mumbai (Straight layout & Symmetrical mirroring enabled), Dubai (Curved Balcony & Custom shapes enabled).
+  - Caching hook [`useGeometryEngine`](./lib/hooks/use-geometry-engine.ts) for transform pipelines and preflight audits.
+- 📚 **Structural Objects & Geometry Architecture Guide:** Detailed technical documentation in [`docs/STRUCTURAL_OBJECTS_AND_GEOMETRY_ARCHITECTURE.md`](./docs/STRUCTURAL_OBJECTS_AND_GEOMETRY_ARCHITECTURE.md).
+
 
 ---
 
