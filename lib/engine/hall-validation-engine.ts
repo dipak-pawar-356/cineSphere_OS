@@ -388,12 +388,9 @@ export class HallValidationEngine {
           (o) => o.metadata.isCollisionObstacle && o.visibility !== "HIDDEN"
         );
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rawCollisions = StructuralObjectEngine.detectObstacleSeatCollisions(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          collisionObstacles as any,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ctx.seats as any
+          collisionObstacles as unknown as Parameters<typeof StructuralObjectEngine.detectObstacleSeatCollisions>[0],
+          ctx.seats as unknown as Parameters<typeof StructuralObjectEngine.detectObstacleSeatCollisions>[1]
         );
 
         const passed = rawCollisions.length === 0;
@@ -470,8 +467,7 @@ export class HallValidationEngine {
         const unassigned = ctx.seats.filter(
           (s) =>
             (!s.categoryCode || s.categoryCode.trim() === "") &&
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            !(s as any).seatType
+            !(s as unknown as { seatType?: string }).seatType
         );
         const passed = unassigned.length === 0;
 
