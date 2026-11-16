@@ -1749,7 +1749,16 @@ export function HallDesignerCanvasClient({
           onMouseUp={handleMouseUp}
           className="canvas-board flex-1 relative overflow-hidden cursor-crosshair bg-slate-950"
           style={{
-            backgroundColor: preferences.backgroundColor || "#0B0F19",
+            backgroundColor:
+              activeTab === "preview"
+                ? previewThemeName === "LIGHT"
+                  ? "#F8FAFC"
+                  : previewThemeName === "HIGH_CONTRAST"
+                  ? "#000000"
+                  : previewThemeName === "OLED"
+                  ? "#020617"
+                  : "#0B0F19"
+                : preferences.backgroundColor || "#0B0F19",
           }}
         >
           {/* Dynamic Grid Pattern */}
@@ -1795,6 +1804,20 @@ export function HallDesignerCanvasClient({
             {structuralObjects.length > 0 ? (
               structuralObjects.map((obj) => {
                 if (obj.visibility !== "VISIBLE") return null;
+
+                // Mode-specific structural filtering in Preview mode
+                if (
+                  activeTab === "preview" &&
+                  (previewMode === "CUSTOMER" || previewMode === "BOOKING_SIMULATION") &&
+                  obj.objectType !== "SCREEN" &&
+                  obj.objectType !== "EMERGENCY_EXIT" &&
+                  obj.objectType !== "ENTRANCE" &&
+                  obj.objectType !== "EXIT" &&
+                  obj.objectType !== "ACCESSIBLE_PATH"
+                ) {
+                  return null;
+                }
+
                 const isSelected = selectedStructuralObjectId === obj.id;
                 return (
                   <div
@@ -1891,25 +1914,120 @@ export function HallDesignerCanvasClient({
                 const section = currentVersion.sections.find((s) => s.id === seat.sectionId);
                 const color = section?.displayColor || "#38BDF8";
 
+                // Check preview mode decoration
+                const isPreview = activeTab === "preview";
+                const isSimMode = isPreview && previewMode === "BOOKING_SIMULATION";
+                const isSimSelected = isSimMode && simulationState.selectedSeatIds.includes(seat.id);
+                const isWheelchair =
+                  seat.seatType === "Wheelchair" ||
+                  (seat.seatType as any) === "WHEELCHAIR" ||
+                  (seat as any).accessibility?.isWheelchairAccessible ||
+                  (seat as any).accessibility?.accessibilityType === "WHEELCHAIR";
+                const isCompanion =
+                  (seat as any).accessibility?.hasCompanionSeat ||
+                  (seat as any).accessibility?.accessibilityType === "COMPANION";
+                const isDeEmphasized = isPreview && previewMode === "ACCESSIBILITY" && !isWheelchair && !isCompanion;
+
+                let seatBg = "bg-slate-900";
+                let seatBorderColor = color;
+                let badge = "";
+
+                if (isPreview) {
+                  if (previewMode === "ACCESSIBILITY") {
+                    if (isWheelchair) {
+                      seatBorderColor = "#06B6D4";
+                      seatBg = "bg-cyan-950 text-cyan-200";
+                      badge = "♿";
+                    } else if (isCompanion) {
+                      seatBorderColor = "#F59E0B";
+                      seatBg = "bg-amber-950 text-amber-200";
+                      badge = "⭐";
+                    }
+                  } else if (isSimMode && isSimSelected) {
+                    seatBorderColor = "#10B981";
+                    seatBg = "bg-emerald-950 text-emerald-200";
+                  }
+                }
+
                 return (
                   <div
                     key={seat.id}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleToggleSeat(seat.id, e.shiftKey || e.ctrlKey || e.metaKey);
+                      if (isSimMode) {
+                        const targetTemplate = previewBundle?.seats.find((s) => s.id === seat.id) || {
+                          id: seat.id,
+                          theatreId,
+                          layoutVersionId: currentVersion.id,
+                          sectionId: seat.sectionId,
+                          rowId: `row-${seat.row}`,
+                          seatNumber: seat.seatNumber,
+                          columnNumber: seat.column,
+                          categoryCode: seat.seatType?.toUpperCase() || "STANDARD",
+                          categoryName: seat.seatType || "Standard",
+                          categoryColor: color,
+                          coordinates: {
+                            id: `coord-${seat.id}`,
+                            seatTemplateId: seat.id,
+                            x: seat.coordinates.x,
+                            y: seat.coordinates.y,
+                            rotation: 0,
+                            width: 36,
+                            height: 36,
+                            spacing: 10,
+                          },
+                          metadata: {
+                            id: `meta-${seat.id}`,
+                            seatTemplateId: seat.id,
+                            seatName: seat.seatNumber,
+                            displayName: `Seat ${seat.seatNumber}`,
+                            seatCode: seat.seatNumber,
+                            rowId: `row-${seat.row}`,
+                            rowName: seat.row,
+                            sectionId: seat.sectionId,
+                            sectionName: section?.name || "Standard",
+                            categoryCode: seat.seatType?.toUpperCase() || "STANDARD",
+                            status: "ACTIVE",
+                          },
+                          accessibility: {
+                            id: `acc-${seat.id}`,
+                            seatTemplateId: seat.id,
+                            accessibilityType: isWheelchair ? "WHEELCHAIR" : isCompanion ? "COMPANION" : "STANDARD",
+                            isWheelchairAccessible: isWheelchair,
+                            hasCompanionSeat: isCompanion,
+                            hasAccessibleRoute: true,
+                          },
+                          status: "ACTIVE" as const,
+                          createdAt: new Date().toISOString(),
+                          updatedAt: new Date().toISOString(),
+                        };
+                        toggleSeatSimulation(targetTemplate as any);
+                      } else {
+                        handleToggleSeat(seat.id, e.shiftKey || e.ctrlKey || e.metaKey);
+                      }
                     }}
                     style={{
                       left: `${seat.coordinates.x}px`,
                       top: `${seat.coordinates.y}px`,
-                      borderColor: isSelected ? "#38BDF8" : color,
+                      borderColor: isSimSelected ? "#10B981" : isSelected ? "#38BDF8" : seatBorderColor,
                     }}
                     className={`absolute w-7 h-7 -ml-3.5 -mt-3.5 rounded-md flex items-center justify-center text-[10px] font-mono font-bold cursor-pointer transition-transform duration-100 ${
-                      isSelected
+                      isSimSelected
+                        ? "ring-2 ring-emerald-400 scale-125 z-20 shadow-lg shadow-emerald-500/50 bg-emerald-950 text-emerald-200"
+                        : isSelected
                         ? "ring-2 ring-cyan-400 scale-125 z-20 shadow-lg shadow-cyan-500/50 bg-cyan-950"
-                        : "hover:scale-110 z-10 bg-slate-900 border"
+                        : isDeEmphasized
+                        ? "opacity-25 z-0 bg-slate-950/80 border border-slate-800"
+                        : `hover:scale-110 z-10 border ${seatBg}`
                     }`}
                   >
-                    <span style={{ color }}>{seat.seatNumber}</span>
+                    {badge ? (
+                      <span className="text-xs">{badge}</span>
+                    ) : previewShowLabels || !isPreview ? (
+                      <span style={{ color: isSimSelected ? "#34D399" : color }}>{seat.seatNumber}</span>
+                    ) : (
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                    )}
                   </div>
                 );
               })}
@@ -1935,7 +2053,13 @@ export function HallDesignerCanvasClient({
             <div>
               <span className="text-slate-500">Mode:</span>{" "}
               <span className="font-mono text-emerald-400">
-                {currentVersion?.status === "DRAFT" ? "Interactive Draft" : "Immutable Live"}
+                {activeTab === "preview"
+                  ? `Preview (${previewMode})`
+                  : activeTab === "validation"
+                  ? "Validation Audit"
+                  : currentVersion?.status === "DRAFT"
+                  ? "Interactive Draft"
+                  : "Immutable Live"}
               </span>
             </div>
           </div>
