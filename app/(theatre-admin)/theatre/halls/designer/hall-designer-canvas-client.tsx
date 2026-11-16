@@ -80,6 +80,10 @@ import {
 } from "@/types/geometry-layout.types";
 import { useStructuralObjects } from "@/lib/hooks/use-structural-objects";
 import { useGeometryEngine } from "@/lib/hooks/use-geometry-engine";
+import { useHallPreview } from "@/lib/hooks/use-hall-preview";
+import { useHallValidation } from "@/lib/hooks/use-hall-validation";
+import { PreviewMode, PreviewViewport } from "@/types/hall-preview.types";
+import { ValidationSeverity } from "@/types/hall-validation.types";
 import {
   LayoutDefinition,
   LayoutVersion,
@@ -220,7 +224,9 @@ export function HallDesignerCanvasClient({
   const [isPanning, setIsPanning] = useState(false);
   const [startPan, setStartPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<"layout" | "sections" | "seats" | "structures" | "geometry" | "canvas">("layout");
+  const [activeTab, setActiveTab] = useState<
+    "layout" | "sections" | "seats" | "structures" | "geometry" | "preview" | "validation" | "canvas"
+  >("layout");
 
   // Status & Feedback
   const [isLoading, setIsLoading] = useState(false);
@@ -341,6 +347,51 @@ export function HallDesignerCanvasClient({
     theatreId,
     layoutVersionId: currentVersion?.id || "",
     autoLoad: !!theatreId,
+  });
+
+  // Hall Preview Engine (Phase 4 – Part 9)
+  const {
+    bundle: previewBundle,
+    mode: previewMode,
+    setMode: setPreviewMode,
+    viewport: previewViewport,
+    setViewport: setPreviewViewport,
+    showLabels: previewShowLabels,
+    setShowLabels: setPreviewShowLabels,
+    showGrid: previewShowGrid,
+    setShowGrid: setPreviewShowGrid,
+    themeName: previewThemeName,
+    setThemeName: setPreviewThemeName,
+    simulationState,
+    toggleSeatSimulation,
+    clearSimulationSelection,
+    decoratedSeats,
+    filteredStructuralObjects,
+    statistics: previewStatistics,
+    preferences: previewPreferences,
+    loadPreview,
+    refreshPreview,
+  } = useHallPreview({
+    theatreId,
+    layoutVersionId: currentVersion?.id || "",
+    autoLoad: !!currentVersion?.id,
+  });
+
+  // Hall Validation Engine (Phase 4 – Part 10)
+  const {
+    report: validationReport,
+    rules: validationRules,
+    isValidating: isRunningValidation,
+    filterSeverity,
+    setFilterSeverity,
+    filteredResults: validationResultsList,
+    canPublish: validationCanPublish,
+    runValidation,
+    validateBeforePublish,
+  } = useHallValidation({
+    theatreId,
+    layoutVersionId: currentVersion?.id || "",
+    autoValidate: !!currentVersion?.id,
   });
 
   // Structural Object form state
@@ -1224,6 +1275,18 @@ export function HallDesignerCanvasClient({
 
     setIsSaving(true);
     try {
+      // Phase 4 – Part 10: Validation Engine Preflight Audit Gate
+      const preValidation = await validateBeforePublish();
+      if (!preValidation.canPublish) {
+        setIsSaving(false);
+        setStatusMessage({
+          type: "error",
+          text: `Publication blocked by Validation Engine: ${preValidation.error || "Resolve critical errors before publishing."}`,
+        });
+        setActiveTab("validation");
+        return;
+      }
+
       const res = await publishLayoutVersionAction({
         theatreId,
         layoutDefinitionId: currentDef.id,
@@ -1970,6 +2033,31 @@ export function HallDesignerCanvasClient({
               }`}
             >
               <Compass className="w-3 h-3 inline mr-1" /> Geometry
+            </button>
+            <button
+              onClick={() => setActiveTab("preview")}
+              className={`px-2.5 py-2 text-[11px] font-semibold border-b-2 whitespace-nowrap transition ${
+                activeTab === "preview"
+                  ? "border-cyan-500 text-cyan-400 bg-slate-800/50"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Eye className="w-3 h-3 inline mr-1" /> Preview
+            </button>
+            <button
+              onClick={() => setActiveTab("validation")}
+              className={`px-2.5 py-2 text-[11px] font-semibold border-b-2 whitespace-nowrap transition ${
+                activeTab === "validation"
+                  ? "border-cyan-500 text-cyan-400 bg-slate-800/50"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <ShieldCheck className="w-3 h-3 inline mr-1" /> Validation
+              {validationReport && validationReport.summary.errorsCount > 0 && (
+                <span className="ml-1 px-1 py-0.2 text-[9px] bg-rose-500 text-white rounded-full font-mono">
+                  {validationReport.summary.errorsCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab("canvas")}
@@ -3580,7 +3668,331 @@ export function HallDesignerCanvasClient({
               </div>
             )}
 
-            {/* TAB 6: THEATRE CANVAS PREFERENCES (Part 2) */}
+            {/* TAB 6: HALL PREVIEW STUDIO (Part 9) */}
+            {activeTab === "preview" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div>
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <Eye className="w-3.5 h-3.5 text-cyan-400" /> Preview Studio
+                    </h4>
+                    <p className="text-[10px] text-slate-400">Production-accurate live rendering & simulation</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => refreshPreview()}
+                    className="h-7 px-2 text-xs text-slate-400 hover:text-white"
+                  >
+                    <RefreshCw className="w-3 h-3 mr-1" /> Refresh
+                  </Button>
+                </div>
+
+                {/* Preview Mode Selector */}
+                <Card className="p-3 bg-slate-950/60 border-slate-800 space-y-2">
+                  <label className="text-[11px] font-semibold text-slate-300 block">Preview Mode</label>
+                  <div className="grid grid-cols-1 gap-1">
+                    {[
+                      { id: "CUSTOMER" as PreviewMode, label: "Customer Experience", desc: "Patron booking seat map" },
+                      { id: "THEATRE" as PreviewMode, label: "Theatre Operations", desc: "Staff view with row labels & landmarks" },
+                      { id: "ADMIN" as PreviewMode, label: "Admin & Diagnostics", desc: "Detailed metadata & seat statistics" },
+                      { id: "ACCESSIBILITY" as PreviewMode, label: "Accessibility (ADA)", desc: "Highlight ramps, wheelchair & companion bays" },
+                      { id: "BOOKING_SIMULATION" as PreviewMode, label: "Booking Simulation", desc: "Interactive seat hold & price preview" },
+                    ].map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => setPreviewMode(m.id)}
+                        className={`text-left p-2 rounded text-xs transition border ${
+                          previewMode === m.id
+                            ? "bg-cyan-950/60 border-cyan-500 text-cyan-300 shadow-sm"
+                            : "bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                        }`}
+                      >
+                        <div className="font-semibold text-[11px]">{m.label}</div>
+                        <div className="text-[10px] text-slate-400">{m.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Viewport Device Breakpoint */}
+                <Card className="p-3 bg-slate-950/60 border-slate-800 space-y-2">
+                  <label className="text-[11px] font-semibold text-slate-300 block">Device Viewport</label>
+                  <div className="grid grid-cols-4 gap-1">
+                    {[
+                      { id: "DESKTOP" as PreviewViewport, label: "Desktop", spec: "1600" },
+                      { id: "LAPTOP" as PreviewViewport, label: "Laptop", spec: "1280" },
+                      { id: "TABLET" as PreviewViewport, label: "Tablet", spec: "1024" },
+                      { id: "MOBILE" as PreviewViewport, label: "Mobile", spec: "390" },
+                    ].map((vp) => (
+                      <Button
+                        key={vp.id}
+                        size="sm"
+                        variant={previewViewport === vp.id ? "primary" : "outline"}
+                        onClick={() => setPreviewViewport(vp.id)}
+                        className={`h-8 text-[10px] px-1 ${
+                          previewViewport === vp.id
+                            ? "bg-cyan-600 text-white"
+                            : "border-slate-800 text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        {vp.label}
+                      </Button>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Visual Options */}
+                <Card className="p-3 bg-slate-950/60 border-slate-800 space-y-2.5">
+                  <label className="text-[11px] font-semibold text-slate-300 block">Display Options</label>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Show Seat Labels:</span>
+                    <input
+                      type="checkbox"
+                      checked={previewShowLabels}
+                      onChange={(e) => setPreviewShowLabels(e.target.checked)}
+                      className="rounded border-slate-700 text-cyan-500 focus:ring-0 cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Canvas Grid:</span>
+                    <input
+                      type="checkbox"
+                      checked={previewShowGrid}
+                      onChange={(e) => setPreviewShowGrid(e.target.checked)}
+                      className="rounded border-slate-700 text-cyan-500 focus:ring-0 cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Theme:</span>
+                    <select
+                      value={previewThemeName}
+                      onChange={(e) => setPreviewThemeName(e.target.value as any)}
+                      className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-white"
+                    >
+                      <option value="DARK">OLED Dark Void</option>
+                      <option value="LIGHT">Architectural Slate</option>
+                      <option value="HIGH_CONTRAST">High Contrast Gold</option>
+                      <option value="OLED">OLED Midnight</option>
+                    </select>
+                  </div>
+                </Card>
+
+                {/* Booking Simulation Cart (Visible when in simulation mode) */}
+                {previewMode === "BOOKING_SIMULATION" && (
+                  <Card className="p-3 bg-rose-950/30 border-rose-800/60 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-rose-300 uppercase tracking-wide">
+                        Booking Cart Simulation
+                      </span>
+                      {simulationState.selectedSeats.length > 0 && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={clearSimulationSelection}
+                          className="h-5 px-1.5 text-[10px] text-rose-400 hover:text-white"
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-300">
+                      Seats Selected: <span className="font-bold text-white">{simulationState.selectedSeats.length}</span> / {simulationState.maxSeatsAllowed}
+                    </div>
+                    {simulationState.selectedSeats.length > 0 ? (
+                      <div className="space-y-1.5 pt-1">
+                        <div className="flex flex-wrap gap-1">
+                          {simulationState.selectedSeats.map((s) => (
+                            <span
+                              key={s.id}
+                              className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-900/60 text-rose-200 border border-rose-700"
+                            >
+                              {s.seatNumber} (₹{s.pricePlaceholder})
+                            </span>
+                          ))}
+                        </div>
+                        <div className="flex items-center justify-between pt-1 border-t border-rose-900/50 text-xs font-semibold">
+                          <span className="text-slate-300">Total Price:</span>
+                          <span className="font-mono text-emerald-400 text-sm">₹{simulationState.totalPrice}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-slate-400 italic">
+                        Click on any seat on the canvas to simulate customer selection and hold pricing.
+                      </p>
+                    )}
+                  </Card>
+                )}
+
+                {/* Real-Time Preview Statistics */}
+                {previewStatistics && (
+                  <Card className="p-3 bg-slate-950/60 border-slate-800 space-y-1.5 text-[11px]">
+                    <div className="font-semibold text-slate-300 border-b border-slate-800 pb-1">
+                      Auditorium Statistics
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Total Seats:</span>
+                      <span className="font-mono text-white font-bold">{previewStatistics.totalSeats}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Wheelchair Bays (ADA):</span>
+                      <span className="font-mono text-cyan-400 font-bold">{previewStatistics.wheelchairSeatsCount}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Companion Bays:</span>
+                      <span className="font-mono text-amber-400">{previewStatistics.companionSeatsCount}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Screens / Exits:</span>
+                      <span className="font-mono text-white">
+                        {previewStatistics.screenCount} Screen / {previewStatistics.emergencyExitCount} Exits
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-slate-400 pt-1 border-t border-slate-800">
+                      <span>Est. Full Gross:</span>
+                      <span className="font-mono text-emerald-400 font-bold">₹{previewStatistics.estimatedFullGross.toLocaleString()}</span>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* TAB 7: HALL VALIDATION CENTER (Part 10) */}
+            {activeTab === "validation" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div>
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" /> Validation Center
+                    </h4>
+                    <p className="text-[10px] text-slate-400">Pluggable rule evaluation & publish decision</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={isRunningValidation}
+                    onClick={() => runValidation()}
+                    className="h-7 px-2.5 text-xs border-cyan-500/50 text-cyan-400 hover:bg-cyan-950/40"
+                  >
+                    {isRunningValidation ? (
+                      <RefreshCw className="w-3 h-3 animate-spin mr-1" />
+                    ) : (
+                      <ShieldCheck className="w-3 h-3 mr-1" />
+                    )}
+                    Run Audit
+                  </Button>
+                </div>
+
+                {/* Publication Readiness Banner */}
+                {validationReport && (
+                  <Card
+                    className={`p-3 border ${
+                      validationReport.canPublish
+                        ? "bg-emerald-950/40 border-emerald-500/60 text-emerald-300"
+                        : "bg-rose-950/40 border-rose-500/60 text-rose-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs">
+                      {validationReport.canPublish ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <span>READY TO PUBLISH (All Invariants Passed)</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                          <span>PUBLICATION BLOCKED ({validationReport.summary.errorsCount} Critical Errors)</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="mt-1 text-[10px] text-slate-300">
+                      Policy Applied: <span className="font-semibold text-white">{validationReport.policyApplied.name}</span> ({validationReport.policyApplied.level})
+                    </div>
+                  </Card>
+                )}
+
+                {/* Severity Filter Tabs */}
+                {validationReport && (
+                  <div className="flex gap-1 overflow-x-auto pb-1 text-[10px]">
+                    {[
+                      { id: "ALL" as const, label: `All (${validationReport.results.length})` },
+                      { id: "ERROR" as const, label: `Errors (${validationReport.summary.errorsCount})`, color: "text-rose-400" },
+                      { id: "WARNING" as const, label: `Warnings (${validationReport.summary.warningsCount})`, color: "text-amber-400" },
+                      { id: "INFO" as const, label: `Info (${validationReport.summary.infoCount})`, color: "text-cyan-400" },
+                      { id: "SUGGESTION" as const, label: `Tips (${validationReport.summary.suggestionsCount})`, color: "text-purple-400" },
+                    ].map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => setFilterSeverity(f.id)}
+                        className={`px-2 py-1 rounded transition whitespace-nowrap ${
+                          filterSeverity === f.id
+                            ? "bg-slate-800 text-white font-bold border border-slate-700"
+                            : "bg-slate-950 text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Validation Results List */}
+                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                  {validationResultsList.length > 0 ? (
+                    validationResultsList.map((res, i) => (
+                      <div
+                        key={i}
+                        className={`p-2.5 rounded-lg border text-xs space-y-1 ${
+                          res.passed
+                            ? "bg-slate-950/60 border-slate-800"
+                            : res.severity === "ERROR"
+                            ? "bg-rose-950/20 border-rose-800/60"
+                            : res.severity === "WARNING"
+                            ? "bg-amber-950/20 border-amber-800/60"
+                            : "bg-slate-900/40 border-slate-800"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-[11px] text-white flex items-center gap-1">
+                            {res.passed ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            ) : res.severity === "ERROR" ? (
+                              <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                            ) : (
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            )}
+                            {res.ruleName}
+                          </span>
+                          <span
+                            className={`text-[9px] font-mono px-1.5 py-0.5 rounded uppercase font-bold ${
+                              res.severity === "ERROR"
+                                ? "bg-rose-900/60 text-rose-300"
+                                : res.severity === "WARNING"
+                                ? "bg-amber-900/60 text-amber-300"
+                                : "bg-cyan-900/60 text-cyan-300"
+                            }`}
+                          >
+                            {res.severity}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-300">{res.message}</p>
+                        {!res.passed && res.remediationGuidance && (
+                          <div className="p-1.5 rounded bg-slate-900/80 border border-slate-800 text-[10px] text-cyan-300">
+                            <span className="font-bold text-cyan-200">Remediation:</span> {res.remediationGuidance}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-400 italic text-center py-4">
+                      No validation rules match current severity filter.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 8: THEATRE CANVAS PREFERENCES (Part 2) */}
             {activeTab === "canvas" && (
               <div className="space-y-4">
                 <div>

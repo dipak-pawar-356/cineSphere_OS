@@ -17,4 +17,6 @@ export * from "./section-row.repository";
 export * from "./seat-generator.repository";
 export * from "./structural-object.repository";
 export * from "./geometry-layout.repository";
+export * from "./hall-preview.repository";
+export * from "./hall-validation.repository";
 

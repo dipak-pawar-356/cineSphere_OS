@@ -19,4 +19,6 @@ export * from "./section-row-designer.service";
 export * from "./seat-generator.service";
 export * from "./structural-object.service";
 export * from "./geometry-layout.service";
+export * from "./hall-preview.service";
+export * from "./hall-validation.service";
 

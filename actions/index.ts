@@ -25,4 +25,6 @@ export * from "./section-row-actions";
 export * from "./seat-generator-actions";
 export * from "./structural-object-actions";
 export * from "./geometry-layout-actions";
+export * from "./hall-preview-actions";
+export * from "./hall-validation-actions";
 

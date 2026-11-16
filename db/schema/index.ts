@@ -71,6 +71,12 @@ export * from "./structural-objects";
 // Geometry Engine & Advanced Layout Transformations (Phase 4 - Part 8)
 export * from "./geometry-layout";
 
+// Hall Preview Engine (Phase 4 - Part 9)
+export * from "./hall-preview";
+
+// Hall Validation Framework (Phase 4 - Part 10)
+export * from "./hall-validation";
+
 
 
 // Tenant Payment Configurations & Ledger

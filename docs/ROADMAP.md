@@ -29,11 +29,12 @@ Phase 4: Hall Designer & Spatial Auditorium Engine ──► [ IN PROGRESS ]
   ├─ Part 6: Seat Categories Registry ───────────────► [ COMPLETED ]
   ├─ Part 7: Structural Objects & Infrastructure ────► [ COMPLETED ]
   ├─ Part 8: Geometry & Advanced Layout Engine ──────► [ COMPLETED ]
-  ├─ Part 9: Seat Inventory & Show Seat Generator ───► [ PLANNED ]
-  └─ Part 10: F&B Concessions & Butler Dining ───────► [ PLANNED ]
-Phase 5: 3D WebGL Hall Designer (Three.js) ─────────► [ PLANNED ]
-Phase 6: Distributor KDM Key Ingestion & DCI ───────► [ PLANNED ]
-Phase 7: Mobile Kiosk Native PWA & Turnstile ───────► [ PLANNED ]
+  ├─ Part 9: Hall Preview Engine (Multi-Mode Studio) ──► [ COMPLETED ]
+  └─ Part 10: Validation Engine & Publish Gate ────────► [ COMPLETED ]
+Phase 5: Seat Inventory & Show Seat Generator ─────────► [ PLANNED ]
+Phase 6: 3D WebGL Hall Designer (Three.js) ─────────► [ PLANNED ]
+Phase 7: Distributor KDM Key Ingestion & DCI ───────► [ PLANNED ]
+Phase 8: Mobile Kiosk Native PWA & Turnstile ───────► [ PLANNED ]
 ```
 
 ---
@@ -103,8 +104,8 @@ Phase 7: Mobile Kiosk Native PWA & Turnstile ───────► [ PLANNED 
 - [x] **Part 6: Dynamic Seat Category Registry & Decoupled Pricing:** Database-driven registry replacing hardcoded enums, allowing circuits to define unlimited custom categories (*Kids*, *Luxury*, *Executive*, *Private Box*, *Accessible Premium*); strict Decoupled Pricing architecture ensuring categories define classification and spatial layout only while ticket pricing is resolved dynamically per show; category lifecycle management (Create, Update, Duplicate, Archive, Restore); independent per-theatre categories (Pune, Mumbai, Dubai); and caching performance hook `useSeatGenerator` with optimistic UI updates.
 - [x] **Part 7: Structural Objects & Physical Architecture:** Models physical infrastructure (Stage, Screen, Entrance, Exit, Emergency Exit, Walls, Divider, Balcony, Stairs, Aisles, Accessible Path, Pillars, Control Room) as first-class, polymorphic layout objects independent from sections, rows, and seats; dynamic positioning `(x, y, z)`, dimensions, rotation, layer, zIndex, visibility, color, and metadata; behavior flags (`isStatic`, `isCollisionObstacle`, `isReservedArea`); spatial math engine with rotated 2D bounding boxes and Separating Axis Theorem (SAT) collision detection; independent per-theatre infrastructure presets (Pune, Mumbai, Dubai); and caching hook `useStructuralObjects` with optimistic updates.
 - [x] **Part 8: Geometry & Advanced Layout Engine:** Computational geometry engine powering 2D affine transformation pipeline (Translate, Rotate, Scale, Reflection/Mirror, Matrix); circular arc sagitta depth ($s = R(1 - \cos(\Delta\theta / 2))$) and chord radius math; spatial alignment and equal distribution tools; reversible transformation command history (`GeometryTransformCommand`) with full Undo/Redo stack and audit logging; integrated Preflight Publication Validation Gate (`validateLayoutBeforePublish`) enforcing mandatory screens, emergency exits, ADA routes, and collision avoidance; independent per-theatre geometry policies; and caching hook `useGeometryEngine`.
-- [ ] **Part 9: Seat Inventory & Show Seat Generator:** High-performance runtime seat inventory generator instantiating per-show `ShowSeat` entities from published layout blueprints with Redis cache synchronization.
-- [ ] **Part 10: F&B Concessions & In-Seat Butler Dispatch:** In-seat dining menu with real-time pantry inventory deduction, Butler kitchen display system (KDS), and automated dispatch notifications.
+- [x] **Part 9: Multi-Mode Hall Preview Engine & Simulation Studio:** Pure spatial math and rendering engine supporting 5 dedicated operational modes (`CUSTOMER`, `THEATRE`, `ADMIN`, `ACCESSIBILITY`, `BOOKING_SIMULATION`) across responsive device viewports (`DESKTOP`, `LAPTOP`, `TABLET`, `MOBILE`) with automatic fitZoom and centering offsets; customizable visual themes (`DARK` OLED Void, `LIGHT` Architectural, `HIGH_CONTRAST` Gold, `MIDNIGHT` Slate); real-time interactive booking simulation cart with 10-minute hold expiration timer, price accumulation, and category breakdown; live auditorium statistics calculation (total seats, wheelchair bays, companion seats, screens, emergency exits, potential gross revenue); multi-tenant preferences repository (Pune, Mumbai, Dubai); protected server actions and React hook `useHallPreview`.
+- [x] **Part 10: Pluggable Rule-Based Preflight Validation Engine & Publish Gate:** Central `ValidationRuleRegistry` singleton evaluating 10 built-in core rules (`RULE_SCREEN_EXISTS`, `RULE_EMERGENCY_EXIT_EXISTS`, `RULE_ENTRANCE_EXIT_EXISTS`, `RULE_ACCESSIBLE_PATH_CONNECTIVITY`, `RULE_SEAT_DUPLICATE_CODES`, `RULE_SEAT_COORDINATES_BOUNDS`, `RULE_STRUCTURAL_OBSTACLE_COLLISION`, `RULE_SECTION_CAPACITY_PARITY`, `RULE_SEAT_CATEGORY_ASSIGNMENT`, `RULE_ROW_SPACING_INTEGRITY`); per-theatre regulatory policies (Pune Strict, Mumbai Standard, Dubai Premium) with rule severity overrides (`ERROR`, `WARNING`, `INFO`, `SUGGESTION`); pre-publish enforcement blocking gate (`validateBeforePublish`); detailed machine-readable and UI-friendly audit reports with affected objects and actionable remediation guidance; and protected server actions and React hook `useHallValidation`.
 
 ---
 

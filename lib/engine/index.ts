@@ -23,3 +23,5 @@ export * from "./section-row-validator";
 export * from "./seat-generator-engine";
 export * from "./structural-object-engine";
 export * from "./geometry-engine";
+export * from "./hall-preview-engine";
+export * from "./hall-validation-engine";

@@ -88,4 +88,10 @@ export * from "./structural-objects.types";
 // Geometry & Advanced Layout Engine (Phase 4 – Part 8)
 export * from "./geometry-layout.types";
 
+// Hall Preview Engine (Phase 4 – Part 9)
+export * from "./hall-preview.types";
+
+// Hall Validation Framework (Phase 4 – Part 10)
+export * from "./hall-validation.types";
+
 

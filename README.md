@@ -1032,6 +1032,38 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Caching hook [`useGeometryEngine`](./lib/hooks/use-geometry-engine.ts) for transform pipelines and preflight audits.
 - 📚 **Structural Objects & Geometry Architecture Guide:** Detailed technical documentation in [`docs/STRUCTURAL_OBJECTS_AND_GEOMETRY_ARCHITECTURE.md`](./docs/STRUCTURAL_OBJECTS_AND_GEOMETRY_ARCHITECTURE.md).
 
+### 2.42 Phase 4 - Part 9: Multi-Mode Hall Preview Engine & Simulation Studio (Completed)
+- 🖥️ **Multi-Mode Hall Preview Engine (`lib/engine/hall-preview-engine.ts`, `db/schema/hall-preview.ts`):**
+  - Decoupled preview engine supporting 5 dedicated operational modes:
+    - `CUSTOMER`: Patron booking portal experience; hides internal pillars, backstage doors; categorizes seats with prices and colors.
+    - `THEATRE`: Usher and on-site staff operations; renders all doors, aisles, stairs; colors seats by section.
+    - `ADMIN`: Engineering and technical inspection; displays 100% of physical objects, bounding boxes, and maintenance statuses.
+    - `ACCESSIBILITY`: Regulatory ADA inspection; de-emphasizes standard seats; highlights wheelchair bays (cyan + ♿) and companion seats (gold + ⭐).
+    - `BOOKING_SIMULATION`: Interactive booking simulation cart; allows clicking seats, calculates pricing sub-totals, and tracks 10-minute hold expiration timer.
+  - Responsive Viewport Scaling: `DESKTOP`, `LAPTOP`, `TABLET`, `MOBILE` with mathematical `fitZoom` and pan centering calculations.
+  - Visual Theme Customization: OLED Cinema Void (`DARK`), Architectural Blueprint (`LIGHT`), High-Contrast Gold (`HIGH_CONTRAST`), and Deep Sapphire (`MIDNIGHT`).
+  - Real-time Auditorium Statistics: Total seats, wheelchair bays, companion seats, screens, emergency exits, and estimated maximum auditorium gross revenue.
+  - Multi-tenant preview preferences (`th-pun-001`, `th-mum-002`, `th-dxb-003`) and caching React hook [`useHallPreview`](./lib/hooks/use-hall-preview.ts).
+
+### 2.43 Phase 4 - Part 10: Pluggable Rule-Based Preflight Validation Engine & Publish Gate (Completed)
+- 🛡️ **Pluggable Rule-Based Validation Engine (`lib/engine/hall-validation-engine.ts`, `db/schema/hall-validation.ts`):**
+  - Central `ValidationRuleRegistry` singleton evaluating 10 built-in core rules:
+    - `RULE_SCREEN_EXISTS` (ERROR): Enforces presence of at least 1 visible screen.
+    - `RULE_EMERGENCY_EXIT_EXISTS` (WARNING): Enforces fire egress exits.
+    - `RULE_ENTRANCE_EXIT_EXISTS` (WARNING): Validates foyer entrances and exits for customer wayfinding.
+    - `RULE_ACCESSIBLE_PATH_CONNECTIVITY` (WARNING): Ensures wheelchair seats have designated accessible ramp paths.
+    - `RULE_SEAT_DUPLICATE_CODES` (ERROR): Enforces strictly unique seat numbering.
+    - `RULE_SEAT_COORDINATES_BOUNDS` (ERROR): Enforces canvas boundary containment.
+    - `RULE_STRUCTURAL_OBSTACLE_COLLISION` (ERROR): Uses Separating Axis Theorem (SAT) to detect physical collisions between obstacles and seating.
+    - `RULE_SECTION_CAPACITY_PARITY` (WARNING): Validates section capacity vs constituent row seats.
+    - `RULE_SEAT_CATEGORY_ASSIGNMENT` (ERROR): Ensures all seats have assigned pricing categories.
+    - `RULE_ROW_SPACING_INTEGRITY` (ERROR): Enforces positive legroom spacing ($\ge 20$px).
+  - Multi-tenant regulatory policies: Pune Strict Municipal Code (`STRICT`), Mumbai Standard Cinema Code (`STANDARD`), Dubai Civil Defense & Luxury Code (`PREMIUM`).
+  - Strict Pre-Publish Enforcement Gate (`validateBeforePublish`): Rejects publication with `ValidationError` if any `ERROR` severity rule fails.
+  - Structured machine-readable and UI-friendly audit reports with affected objects and actionable remediation guidance.
+  - Caching React hook [`useHallValidation`](./lib/hooks/use-hall-validation.ts) with real-time audit score cards and severity filters.
+- 📚 **Hall Preview & Validation Architecture Guide:** Detailed technical documentation in [`docs/HALL_PREVIEW_AND_VALIDATION_ARCHITECTURE.md`](./docs/HALL_PREVIEW_AND_VALIDATION_ARCHITECTURE.md).
+
 
 ---
 
@@ -1052,6 +1084,9 @@ For zero-configuration deployment to Vercel:
 ## 📚 10. Developer Documentation Suite
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
+
+- 🖥️ [`docs/HALL_PREVIEW_AND_VALIDATION_ARCHITECTURE.md`](./docs/HALL_PREVIEW_AND_VALIDATION_ARCHITECTURE.md) — Multi-Mode Hall Preview & Pluggable Preflight Validation Architecture (5 Operational Modes, Responsive Viewport Transformations, Visual Themes, Live Booking Simulation Cart, Central Rule Registry, 10 Core Validation Rules, Per-Theatre Policies, and Pre-Publish Gate) (Phase 4 - Parts 9 & 10).
+- 📐 [`docs/STRUCTURAL_OBJECTS_AND_GEOMETRY_ARCHITECTURE.md`](./docs/STRUCTURAL_OBJECTS_AND_GEOMETRY_ARCHITECTURE.md) — Structural Objects & Advanced Geometry Architecture (First-Class Physical Infrastructure, Rotated SAT Collision Math, 2D Affine Transforms, Curvature & Sagitta Arc Mathematics, and Reversible Command History Pipeline) (Phase 4 - Parts 7 & 8).
 
 - 🪑 [`docs/SEAT_GENERATOR_AND_CATEGORIES_ARCHITECTURE.md`](./docs/SEAT_GENERATOR_AND_CATEGORIES_ARCHITECTURE.md) — Automatic Seat Generator & Dynamic Category Registry Architecture (Immutable Seat UUID Identity, Straight/Curved/Angled Spatial Coordinates, Dynamic Category Registry, and Strict Decoupled Pricing Architecture) (Phase 4 - Parts 5 & 6).
 - 🪑 [`docs/SECTION_AND_ROW_DESIGNER_ARCHITECTURE.md`](./docs/SECTION_AND_ROW_DESIGNER_ARCHITECTURE.md) — Section & Row Designer Architecture (Hierarchical DDD Section Layer, Row Sequencing & Auto-Numbering Engine, Straight/Curved/Arc/Angled Geometries, Accessibility Tiers, and Independent Venue Conventions) (Phase 4 - Parts 3 & 4).
