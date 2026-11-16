@@ -362,6 +362,8 @@ export function HallDesignerCanvasClient({
     setShowGrid: setPreviewShowGrid,
     themeName: previewThemeName,
     setThemeName: setPreviewThemeName,
+    isFullscreen: previewIsFullscreen,
+    setIsFullscreen: setPreviewIsFullscreen,
     simulationState,
     toggleSeatSimulation,
     clearSimulationSelection,
@@ -1747,7 +1749,9 @@ export function HallDesignerCanvasClient({
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          className="canvas-board flex-1 relative overflow-hidden cursor-crosshair bg-slate-950"
+          className={`canvas-board flex-1 relative overflow-hidden cursor-crosshair bg-slate-950 ${
+            previewIsFullscreen ? "fixed inset-0 z-50 w-screen h-screen" : ""
+          }`}
           style={{
             backgroundColor:
               activeTab === "preview"
@@ -1761,6 +1765,22 @@ export function HallDesignerCanvasClient({
                 : preferences.backgroundColor || "#0B0F19",
           }}
         >
+          {/* Floating Exit Button for Fullscreen Preview */}
+          {previewIsFullscreen && (
+            <div className="absolute top-4 right-4 z-50 flex items-center gap-2 bg-slate-900/90 border border-slate-700 px-3 py-1.5 rounded-lg shadow-2xl backdrop-blur">
+              <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">
+                Fullscreen Preview ({previewMode})
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setPreviewIsFullscreen(false)}
+                className="h-6 px-2 text-xs text-slate-300 hover:text-white hover:bg-slate-800"
+              >
+                ✕ Exit Fullscreen
+              </Button>
+            </div>
+          )}
           {/* Dynamic Grid Pattern */}
           {preferences.gridVisible && (
             <svg
@@ -3802,14 +3822,27 @@ export function HallDesignerCanvasClient({
                     </h4>
                     <p className="text-[10px] text-slate-400">Production-accurate live rendering & simulation</p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => refreshPreview()}
-                    className="h-7 px-2 text-xs text-slate-400 hover:text-white"
-                  >
-                    <RefreshCw className="w-3 h-3 mr-1" /> Refresh
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setPreviewIsFullscreen(!previewIsFullscreen)}
+                      className="h-7 px-2 text-xs text-cyan-400 hover:text-white hover:bg-cyan-950/40"
+                      title="Fullscreen Preview"
+                    >
+                      <Maximize className="w-3 h-3 mr-1" />
+                      {previewIsFullscreen ? "Exit" : "Full"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => refreshPreview()}
+                      className="h-7 px-2 text-xs text-slate-400 hover:text-white"
+                      title="Refresh Preview"
+                    >
+                      <RefreshCw className="w-3 h-3 mr-1" /> Refresh
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Preview Mode Selector */}
