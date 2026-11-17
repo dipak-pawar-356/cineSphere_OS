@@ -22,6 +22,12 @@ import {
   generateLayoutFromTemplateAction,
   loadTemplateConfigAction,
   saveTemplateConfigAction,
+  restoreTemplateAction,
+  previewTemplateAction,
+  exportTemplateAction,
+  importTemplateAction,
+  syncInheritedTemplateAction,
+  loadTemplateRegistryAction,
 } from "../actions/hall-templates-actions";
 
 let totalAssertions = 0;
@@ -235,6 +241,65 @@ async function runHallTemplatesVerification() {
   );
   assert(actSaveConfig.success === true, "saveTemplateConfigAction executed cleanly");
   assert(actSaveConfig.data?.maxCustomTemplates === 45, "Updated max custom templates to 45");
+
+  // ----------------------------------------------------------------------------
+  // Section 8: Restore, Preview, Export/Import, Inheritance Sync & Registry
+  // ----------------------------------------------------------------------------
+  console.log("\n--- Section 8: Restore, Preview, Export/Import, Inheritance Sync & Registry ---");
+  const actRestore = await restoreTemplateAction(
+    { theatreId: "th-pun-001", templateId: dupTemplate.id },
+    { role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+  );
+  assert(actRestore.success === true, "restoreTemplateAction executed cleanly");
+  assert(actRestore.data?.status === "ACTIVE", "Archived template restored back to ACTIVE status");
+
+  const actPreview = await previewTemplateAction(
+    { theatreId: "th-pun-001", templateId: imaxTpl!.id },
+    { role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+  );
+  assert(actPreview.success === true, "previewTemplateAction executed cleanly");
+  assert(actPreview.data?.totalSeats === 180, "Template preview reports exact IMAX seat capacity (180)");
+  assert(actPreview.data?.totalSections === imaxTpl!.sections.length, `Template preview reports exact section count (${imaxTpl!.sections.length})`);
+
+  const actExport = await exportTemplateAction(
+    { theatreId: "th-pun-001", templateId: customInherited.id },
+    { role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+  );
+  assert(actExport.success === true, "exportTemplateAction executed cleanly");
+  assert(actExport.data?.schemaVersion === "1.0", "Export envelope uses canonical schema v1.0");
+
+  const actImport = await importTemplateAction(
+    {
+      theatreId: "th-pun-001",
+      envelope: actExport.data!,
+      overrideName: "Pune Imported Multiplex Clone",
+      overrideCode: "PUN_IMP_CLONE",
+    },
+    { role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+  );
+  assert(actImport.success === true, "importTemplateAction executed cleanly");
+  assert(actImport.data?.theatreId === "th-pun-001", "Imported template isolated to Pune tenant");
+  assert(actImport.data?.seats.length === 120, "Imported template preserved all 120 seats");
+
+  const actSyncInherit = await syncInheritedTemplateAction(
+    {
+      theatreId: "th-pun-001",
+      templateId: "tpl-th-pun-001-premium-multiplex",
+      preserveCanvasOverrides: true,
+      preserveSectionColors: true,
+    },
+    { role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+  );
+  assert(actSyncInherit.success === true, "syncInheritedTemplateAction executed cleanly");
+  assert(actSyncInherit.data?.preservedOverrides.includes("sectionColors") === true, "Inheritance sync preserved custom Pune section colors");
+  assert(actSyncInherit.data?.newVersionNumber === 2, "Inheritance sync incremented custom template version to v2");
+
+  const actRegistry = await loadTemplateRegistryAction(
+    { theatreId: "th-pun-001", includeArchived: true },
+    { role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+  );
+  assert(actRegistry.success === true, "loadTemplateRegistryAction executed cleanly");
+  assert((actRegistry.data?.length ?? 0) >= 11, "Template registry lists 8 built-ins + Pune seeded & custom templates");
 
   console.log("\n==================================================================");
   console.log("HALL TEMPLATES VERIFICATION COMPLETED");

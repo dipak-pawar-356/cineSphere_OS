@@ -13,11 +13,21 @@ import {
   generateLayoutFromTemplateSchema,
   loadTemplateConfigSchema,
   saveTemplateConfigSchema,
+  restoreTemplateSchema,
+  previewTemplateSchema,
+  exportTemplateSchema,
+  importTemplateSchema,
+  syncInheritedTemplateSchema,
+  loadTemplateRegistrySchema,
 } from "@/lib/validation/hall-templates.validation";
 import {
   HallTemplateDefinition,
   GenerateLayoutFromTemplateResult,
   TemplateConfiguration,
+  TemplatePreviewResult,
+  TemplateExportEnvelope,
+  SyncInheritedTemplateResult,
+  TemplateRegistryItem,
 } from "@/types/hall-templates.types";
 
 /**
@@ -207,6 +217,124 @@ export const saveTemplateConfigAction = createProtectedAction<
       context.actor,
       input.theatreId,
       input
+    );
+  }
+);
+
+export const restoreTemplateAction = createProtectedAction<
+  z.input<typeof restoreTemplateSchema>,
+  HallTemplateDefinition
+>(
+  {
+    actionName: "restoreTemplateAction",
+    schema: restoreTemplateSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "HALL_TEMPLATES",
+    auditAction: "RESTORE_TEMPLATE",
+  },
+  async (input, context) => {
+    return hallTemplatesService.restoreTemplate(context.actor, input.templateId, input.theatreId);
+  }
+);
+
+export const previewTemplateAction = createProtectedAction<
+  z.input<typeof previewTemplateSchema>,
+  TemplatePreviewResult
+>(
+  {
+    actionName: "previewTemplateAction",
+    schema: previewTemplateSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN", "HALL_MANAGER"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "HALL_TEMPLATES",
+    auditAction: "PREVIEW_TEMPLATE",
+  },
+  async (input, context) => {
+    return hallTemplatesService.previewTemplate(context.actor, input.templateId, input.theatreId);
+  }
+);
+
+export const exportTemplateAction = createProtectedAction<
+  z.input<typeof exportTemplateSchema>,
+  TemplateExportEnvelope
+>(
+  {
+    actionName: "exportTemplateAction",
+    schema: exportTemplateSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN", "HALL_MANAGER"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "HALL_TEMPLATES",
+    auditAction: "EXPORT_TEMPLATE",
+  },
+  async (input, context) => {
+    return hallTemplatesService.exportTemplate(context.actor, input.templateId, input.theatreId);
+  }
+);
+
+export const importTemplateAction = createProtectedAction<
+  z.input<typeof importTemplateSchema>,
+  HallTemplateDefinition
+>(
+  {
+    actionName: "importTemplateAction",
+    schema: importTemplateSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "HALL_TEMPLATES",
+    auditAction: "IMPORT_TEMPLATE",
+  },
+  async (input, context) => {
+    return hallTemplatesService.importTemplate(context.actor, input);
+  }
+);
+
+export const syncInheritedTemplateAction = createProtectedAction<
+  z.input<typeof syncInheritedTemplateSchema>,
+  SyncInheritedTemplateResult
+>(
+  {
+    actionName: "syncInheritedTemplateAction",
+    schema: syncInheritedTemplateSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "HALL_TEMPLATES",
+    auditAction: "SYNC_INHERITED_TEMPLATE",
+  },
+  async (input, context) => {
+    return hallTemplatesService.syncInheritedTemplate(context.actor, input);
+  }
+);
+
+export const loadTemplateRegistryAction = createProtectedAction<
+  z.input<typeof loadTemplateRegistrySchema>,
+  TemplateRegistryItem[]
+>(
+  {
+    actionName: "loadTemplateRegistryAction",
+    schema: loadTemplateRegistrySchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN", "HALL_MANAGER"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "HALL_TEMPLATES",
+    auditAction: "LOAD_TEMPLATE_REGISTRY",
+  },
+  async (input, context) => {
+    return hallTemplatesService.getTemplateRegistry(
+      context.actor,
+      input.theatreId,
+      input.includeArchived ?? false
     );
   }
 );

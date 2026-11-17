@@ -14,8 +14,9 @@ import {
   InventorySnapshotRecord,
   InventoryConfiguration,
   InventoryItemStatus,
+  TicketSeatInventoryReference,
 } from "@/types/seat-inventory-integration.types";
-import { TenantAccessError, NotFoundError } from "@/lib/errors/app-error";
+import { TenantAccessError, NotFoundError, ConflictError } from "@/lib/errors/app-error";
 
 export class SeatInventoryIntegrationRepository {
   private static instance: SeatInventoryIntegrationRepository | null = null;
@@ -130,8 +131,112 @@ export class SeatInventoryIntegrationRepository {
     return item;
   }
 
+  /**
+   * Atomic transactional batch seat status update.
+   * Pre-validates all target seat IDs before applying any mutations.
+   */
+  public batchUpdateSeatStatuses(params: {
+    inventoryId: string;
+    theatreId: string;
+    updates: Array<{
+      internalSeatId: string;
+      status: InventoryItemStatus;
+      lockedBy?: string;
+      lockedUntil?: string;
+      bookingId?: string;
+      ticketId?: string;
+    }>;
+  }): SeatInventoryItem[] {
+    const { inventoryId, theatreId, updates } = params;
+    const itemsList = this.getInventoryItems(inventoryId, theatreId);
+    const byId = new Map(itemsList.map((i) => [i.internalSeatId, i]));
+
+    // Phase 1: Validate all targets before any mutation (transactional atomicity)
+    for (const u of updates) {
+      const target = byId.get(u.internalSeatId);
+      if (!target) {
+        throw new NotFoundError(`Seat '${u.internalSeatId}' not found in inventory '${inventoryId}'.`);
+      }
+      if (target.status === "BOOKED" && u.status !== "BOOKED") {
+        throw new ConflictError(
+          `Cannot transition booked seat '${target.displaySeatNumber}' to '${u.status}' without an explicit ticket cancellation.`
+        );
+      }
+    }
+
+    // Phase 2: Apply updates atomically
+    const now = new Date().toISOString();
+    const updatedItems: SeatInventoryItem[] = [];
+    for (const u of updates) {
+      const target = byId.get(u.internalSeatId)!;
+      target.status = u.status;
+      if (u.lockedBy !== undefined) target.lockedBy = u.lockedBy;
+      if (u.lockedUntil !== undefined) target.lockedUntil = u.lockedUntil;
+      if (u.bookingId !== undefined) target.bookingId = u.bookingId;
+      if (u.ticketId !== undefined) target.ticketId = u.ticketId;
+      target.updatedAt = now;
+      updatedItems.push(target);
+    }
+
+    // Phase 3: Recompute header aggregate counters once
+    const header = this.inventories.get(inventoryId);
+    if (header) {
+      header.availableSeats = itemsList.filter((i) => i.status === "AVAILABLE").length;
+      header.bookedSeats = itemsList.filter((i) => i.status === "BOOKED").length;
+      header.blockedSeats = itemsList.filter((i) => i.status === "BLOCKED" || i.status === "RESERVED").length;
+      header.maintenanceSeats = itemsList.filter((i) => i.status === "MAINTENANCE").length;
+      header.updatedAt = now;
+    }
+
+    return updatedItems;
+  }
+
+  public getMappingByShow(showId: string, theatreId: string): InventoryMappingRecord | undefined {
+    const mapping = this.mappings.get(showId);
+    if (!mapping) return undefined;
+    if (mapping.theatreId !== theatreId) {
+      throw new TenantAccessError(`Inventory mapping for show '${showId}' does not belong to theatre '${theatreId}'.`);
+    }
+    return mapping;
+  }
+
+  public getTicketSeatReference(
+    showId: string,
+    internalSeatId: string,
+    theatreId: string
+  ): TicketSeatInventoryReference {
+    const header = this.getInventoryByShow(showId, theatreId);
+    if (!header) {
+      throw new NotFoundError(`No seat inventory found for show '${showId}'.`);
+    }
+    const itemsList = this.getInventoryItems(header.id, theatreId);
+    const item = itemsList.find((i) => i.internalSeatId === internalSeatId);
+    if (!item) {
+      throw new NotFoundError(`Seat '${internalSeatId}' not found in show '${showId}'.`);
+    }
+    if (!item.ticketId || !item.bookingId) {
+      throw new NotFoundError(
+        `Seat '${item.displaySeatNumber}' does not have an issued ticket or confirmed booking reference.`
+      );
+    }
+
+    return {
+      ticketId: item.ticketId,
+      showId: header.showId,
+      theatreId: header.theatreId,
+      inventoryId: header.id,
+      seatInventoryItemId: item.id,
+      internalSeatId: item.internalSeatId,
+      seatDisplayName: item.displaySeatNumber,
+      layoutVersionId: header.layoutVersionId,
+      layoutVersionNumber: header.layoutVersionNumber,
+      bookingId: item.bookingId,
+      issuedAt: item.updatedAt,
+    };
+  }
+
   // ----------------------------------------------------------------------------
-  // 2. Snapshots
+  // 2. Snapshots Registry
   // ----------------------------------------------------------------------------
 
   public recordSnapshot(snapshot: InventorySnapshotRecord): void {
@@ -143,6 +248,18 @@ export class SeatInventoryIntegrationRepository {
   public getSnapshots(showId: string, theatreId: string): InventorySnapshotRecord[] {
     const list = this.snapshots.get(showId) || [];
     return list.filter((s) => s.theatreId === theatreId);
+  }
+
+  public listSnapshotsByTheatre(theatreId: string): InventorySnapshotRecord[] {
+    const all: InventorySnapshotRecord[] = [];
+    for (const list of this.snapshots.values()) {
+      for (const snap of list) {
+        if (snap.theatreId === theatreId) {
+          all.push(snap);
+        }
+      }
+    }
+    return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
   // ----------------------------------------------------------------------------

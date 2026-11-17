@@ -118,9 +118,41 @@ export class HallTemplatesRepository {
     return template;
   }
 
+  public restoreTemplate(templateId: string, theatreId: string, actorId: string): HallTemplateDefinition {
+    const template = this.getTemplateById(templateId, theatreId);
+    if (!template) {
+      throw new NotFoundError(`Template '${templateId}' not found.`);
+    }
+    if (template.isBuiltIn) {
+      throw new TenantAccessError(`Platform built-in templates cannot be modified via restore.`);
+    }
+
+    template.status = "ACTIVE";
+    template.updatedAt = new Date().toISOString();
+
+    const reg = this.registryItems.get(templateId);
+    if (reg) {
+      reg.status = "ACTIVE";
+      reg.updatedBy = actorId;
+      reg.updatedAt = template.updatedAt;
+    }
+
+    return template;
+  }
+
   // ----------------------------------------------------------------------------
   // 2. Registry & Metadata
   // ----------------------------------------------------------------------------
+
+  public listRegistry(theatreId: string, includeArchived = false): TemplateRegistryItem[] {
+    return Array.from(this.registryItems.values())
+      .filter((r) => {
+        const isVisible = r.templateType === "BUILT_IN" || r.theatreId === theatreId;
+        const statusOk = includeArchived ? true : r.status === "ACTIVE";
+        return isVisible && statusOk;
+      })
+      .sort((a, b) => (b.templateType === "BUILT_IN" ? 1 : 0) - (a.templateType === "BUILT_IN" ? 1 : 0));
+  }
 
   public getRegistryItem(templateId: string): TemplateRegistryItem | undefined {
     return this.registryItems.get(templateId);
@@ -249,6 +281,73 @@ export class HallTemplatesRepository {
       restrictedCategories: [],
       updatedAt: now,
     });
+
+    // Seed Theatre-Specific Custom Templates (isolated per tenant)
+    const baseMultiplex = builtIns.find((b) => b.category === "MULTIPLEX");
+    if (baseMultiplex) {
+      const puneCustom: HallTemplateDefinition = {
+        ...baseMultiplex,
+        id: "tpl-th-pun-001-premium-multiplex",
+        theatreId: "th-pun-001",
+        name: "Pune Premium Multiplex VIP",
+        code: "PUN_PREM_MULTI",
+        description: "Pune flagship multiplex with Crimson/Gold VIP configuration and custom section colors",
+        isBuiltIn: false,
+        parentTemplateId: baseMultiplex.id,
+        versionNumber: 1,
+        sections: baseMultiplex.sections.map((s, idx) => ({
+          ...s,
+          displayColor: idx === 2 ? "#DC2626" : idx === 1 ? "#D97706" : s.displayColor,
+        })),
+        status: "ACTIVE",
+        visibility: "THEATRE",
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.saveTemplate(puneCustom, "usr-pune-admin");
+    }
+
+    const baseOpenAir = builtIns.find((b) => b.category === "OPEN_AIR");
+    if (baseOpenAir) {
+      const mumbaiCustom: HallTemplateDefinition = {
+        ...baseOpenAir,
+        id: "tpl-th-mum-002-festival-open-air",
+        theatreId: "th-mum-002",
+        name: "Mumbai Festival Open-Air",
+        code: "MUM_FEST_OPEN",
+        description: "Mumbai outdoor festival layout with wide spacing and lawn terraces",
+        isBuiltIn: false,
+        parentTemplateId: baseOpenAir.id,
+        versionNumber: 1,
+        gridConfig: { ...baseOpenAir.gridConfig, seatSpacingX: 16, rowSpacing: 24 },
+        status: "ACTIVE",
+        visibility: "THEATRE",
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.saveTemplate(mumbaiCustom, "usr-mum-admin");
+    }
+
+    const baseAuditorium = builtIns.find((b) => b.category === "AUDITORIUM");
+    if (baseAuditorium) {
+      const dubaiCustom: HallTemplateDefinition = {
+        ...baseAuditorium,
+        id: "tpl-th-dxb-003-luxury-private-box",
+        theatreId: "th-dxb-003",
+        name: "Dubai Luxury Auditorium Private Box",
+        code: "DXB_LUX_PRIVBOX",
+        description: "Dubai luxury flagship auditorium with Private Box VIP suites and custom curved geometry",
+        isBuiltIn: false,
+        parentTemplateId: baseAuditorium.id,
+        versionNumber: 1,
+        canvasSettings: { ...baseAuditorium.canvasSettings, theme: "dark" },
+        status: "ACTIVE",
+        visibility: "THEATRE",
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.saveTemplate(dubaiCustom, "usr-dxb-admin");
+    }
   }
 }
 

@@ -255,28 +255,40 @@ const customInherited = await hallTemplatesService.createTemplate(actor, {
 
 | Action Name | Description | Security Guards |
 |---|---|---|
-| `generateInventoryAction` | Generates show inventory from published layout | `theatre:manage`, `show:manage` |
-| `regenerateInventoryAction` | Recreates inventory (blocked if active bookings) | `theatre:manage`, `show:manage`, Zero Bookings Guard |
-| `syncInventoryAction` | Synchronizes inventory with latest active layout | `theatre:manage`, `show:manage` |
-| `loadInventoryAction` | Fetches show inventory and all item statuses | `theatre:view` |
-| `validateInventoryAction` | Audits inventory integrity against layout | `theatre:view` |
-| `updateSeatStatusAction` | Toggles maintenance/blocked seat flags | `theatre:manage`, Admin Role |
-| `loadInventoryConfigAction` | Retrieves theatre inventory governance policy | `theatre:view` |
-| `saveInventoryConfigAction` | Updates theatre inventory governance policy | `theatre:manage`, Admin Role |
+| `generateInventoryAction` | Generates show inventory from published layout | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `generateBulkInventoryAction` | Transactional bulk generation for multiple scheduled shows (skips existing shows) | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `regenerateInventoryAction` | Recreates inventory (blocked if active bookings) | `SUPER_ADMIN`, `THEATRE_ADMIN`, Zero Bookings Guard |
+| `syncInventoryAction` | Synchronizes inventory for newly created shows | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `loadInventoryAction` | Fetches show inventory and all item statuses | All authenticated theatre/patron roles |
+| `validateInventoryAction` | Audits inventory integrity against layout | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `mapInventoryToShowAction` | Explicitly binds a published layout version inventory to a show | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `updateSeatInventoryStatusAction` | Toggles reservation, booking, maintenance, or blocked flags | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER`, `STAFF` |
+| `batchUpdateSeatStatusesAction` | Atomic multi-seat status updates (e.g., maintenance rows, VIP blocks) | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER`, `STAFF` |
+| `getTicketSeatMappingAction` | Resolves canonical Ticket → Show / Seat Inventory / Display Name / Layout Version / Booking link | All authenticated theatre/patron roles |
+| `listInventorySnapshotsAction` | Queries centralized immutable Inventory Snapshot Registry | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `planInventoryMigrationAction` | Future Migration Placeholder evaluating safe layout delta without mutating live shows | `SUPER_ADMIN`, `THEATRE_ADMIN` |
+| `loadInventoryConfigAction` | Retrieves theatre inventory governance policy | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `saveInventoryConfigAction` | Updates theatre inventory governance policy | `SUPER_ADMIN`, `THEATRE_ADMIN` |
 
 ### 4.2 Part 14 Server Actions (`actions/hall-templates-actions.ts`)
 
 | Action Name | Description | Security Guards |
 |---|---|---|
-| `loadTemplatesAction` | Fetches platform built-ins + theatre custom templates | `theatre:view` |
-| `getTemplateDetailsAction`| Loads detailed sections, seats, and objects | `theatre:view` |
-| `createTemplateAction` | Creates custom template (direct or inherited) | `template:manage`, Quota Check |
-| `updateTemplateAction` | Updates custom template (rejects built-ins) | `template:manage`, Non-BuiltIn Guard |
-| `duplicateTemplateAction` | Clones template into fresh custom blueprint | `template:manage` |
-| `archiveTemplateAction` | Soft-archives custom template | `template:manage` |
-| `generateLayoutFromTemplateAction` | Instantiates LayoutDefinition & LayoutVersion | `hall:manage`, `theatre:manage` |
-| `loadTemplateConfigAction`| Retrieves theatre template policy | `theatre:view` |
-| `saveTemplateConfigAction`| Updates theatre template policy | `template:manage`, Admin Role |
+| `loadTemplatesAction` | Fetches platform built-ins + theatre custom templates | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `loadTemplateRegistryAction` | Queries centralized Template Registry with versions, metadata & archived filter | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `getTemplateDetailsAction` | Loads detailed sections, seats, and structural objects | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `previewTemplateAction` | Pure blueprint preview summarizing capacity, seat breakdown & accessibility | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `createTemplateAction` | Creates custom template (direct or inherited via `parentTemplateId`) | `SUPER_ADMIN`, `THEATRE_ADMIN`, Quota Check |
+| `updateTemplateAction` | Updates custom template (strictly rejects built-ins) | `SUPER_ADMIN`, `THEATRE_ADMIN`, Non-BuiltIn Guard |
+| `duplicateTemplateAction` | Clones template into fresh custom blueprint | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `archiveTemplateAction` | Soft-archives custom template | `SUPER_ADMIN`, `THEATRE_ADMIN` |
+| `restoreTemplateAction` | Restores archived custom template back to `ACTIVE` | `SUPER_ADMIN`, `THEATRE_ADMIN` |
+| `exportTemplateAction` | Exports portable JSON blueprint envelope (v1.0 placeholder) | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `importTemplateAction` | Imports portable JSON blueprint envelope into isolated tenant library | `SUPER_ADMIN`, `THEATRE_ADMIN` |
+| `syncInheritedTemplateAction` | Explicitly pulls base platform template improvements while preserving theatre overrides | `SUPER_ADMIN`, `THEATRE_ADMIN` |
+| `generateLayoutFromTemplateAction` | Instantiates independent `LayoutDefinition` & `LayoutVersion` (v1) | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `loadTemplateConfigAction` | Retrieves theatre template policy | `SUPER_ADMIN`, `THEATRE_ADMIN`, `HALL_MANAGER` |
+| `saveTemplateConfigAction` | Updates theatre template policy | `SUPER_ADMIN`, `THEATRE_ADMIN` |
 
 ---
 
@@ -285,28 +297,30 @@ const customInherited = await hallTemplatesService.createTemplate(actor, {
 Both modules feature comprehensive, production-grade automated test runners verifying all architectural invariants:
 
 ### Part 13 Verification (`scripts/verify-seat-inventory-integration.ts`)
-- **Suite Coverage:** 33 assertions covering:
+- **Suite Coverage:** 49 assertions covering:
   - Blueprint snapshot generation from published layout version.
   - Deterministic SHA-256 internal seat ID generation.
   - Dynamic non-hardcoded pricing resolution.
   - Invariant protection: strict regeneration guard on booked shows.
   - Maintenance seat marking and exclusion.
   - Multi-tenant policy enforcement (Pune vs Mumbai vs Dubai).
+  - Ticket-to-seat inventory mapping (`Show`, `Seat Inventory Record`, `Display Name`, `Layout Version`, `Booking`).
+  - Bulk show inventory generation, atomic batch seat updates, Snapshot Registry queries, and Future Migration Placeholder evaluation.
   - Protected React Server Actions execution and audit trail logging.
-- **Result:** `Passed: 33 | Failed: 0` (100% Pass).
+- **Result:** `Passed: 49 | Failed: 0` (100% Pass).
 
 ### Part 14 Verification (`scripts/verify-hall-templates.ts`)
-- **Suite Coverage:** 42 assertions covering:
-  - Catalog verification for all 8 built-in platform templates.
+- **Suite Coverage:** 57 assertions covering:
+  - Catalog verification for all 8 built-in platform templates + seeded venue-specific custom templates (Pune, Mumbai, Dubai).
   - Seat count and section parity across all 8 templates.
-  - Template inheritance and parent tracking.
+  - Template inheritance, parent tracking, and explicit inheritance sync preserving custom overrides.
   - Platform template immutability (rejection of mutation attempts).
   - Blueprint layout generation (`LayoutDefinition` and `LayoutVersion` v1).
   - Source template immutability (layout edits do not mutate template).
-  - Template duplication and archiving.
+  - Template duplication, archiving, restoration, preview, export/import envelopes, and centralized Template Registry queries.
   - Multi-tenant library isolation between venues.
   - Protected React Server Actions execution.
-- **Result:** `Passed: 42 | Failed: 0` (100% Pass).
+- **Result:** `Passed: 57 | Failed: 0` (100% Pass).
 
 ---
 

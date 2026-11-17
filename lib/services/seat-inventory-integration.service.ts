@@ -9,6 +9,12 @@ import {
   InventoryConfiguration,
   InventoryItemStatus,
   InventorySnapshotRecord,
+  TicketSeatInventoryReference,
+  BulkGenerateInventoryPayload,
+  BulkGenerateInventoryResult,
+  BatchUpdateSeatStatusPayload,
+  BatchUpdateSeatStatusResult,
+  InventoryMigrationPlanPlaceholder,
 } from "@/types/seat-inventory-integration.types";
 import { SeatInventoryIntegrationRepository } from "@/lib/repositories/seat-inventory-integration.repository";
 import { HallDesignerRepository } from "@/lib/repositories/hall-designer.repository";
@@ -344,6 +350,207 @@ export class SeatInventoryIntegrationService {
       bookingId,
       ticketId,
     });
+  }
+
+  /**
+   * Transactional batch seat status updates (e.g., maintenance rows, VIP holds,
+   * or multi-seat booking confirmation).
+   */
+  public async batchUpdateSeatStatuses(
+    actor: SecurityActorContext,
+    payload: BatchUpdateSeatStatusPayload
+  ): Promise<BatchUpdateSeatStatusResult> {
+    const { theatreId, showId, updates } = payload;
+    this.assertTenantAccess(actor, theatreId);
+
+    const header = this.inventoryRepo.getInventoryByShow(showId, theatreId);
+    if (!header) {
+      throw new NotFoundError(`No inventory found for show '${showId}'.`);
+    }
+
+    const config = this.inventoryRepo.getConfiguration(theatreId);
+    if (updates.some((u) => u.status === "MAINTENANCE") && !config.maintenanceSeatsEnabled) {
+      throw new ValidationError(`Maintenance seat blocking is disabled by theatre policy for '${theatreId}'.`);
+    }
+
+    const updatedItems = this.inventoryRepo.batchUpdateSeatStatuses({
+      inventoryId: header.id,
+      theatreId,
+      updates,
+    });
+
+    await this.auditService.recordAudit({
+      actor,
+      module: "SEAT_INVENTORY",
+      action: "BATCH_UPDATE_SEAT_STATUS",
+      description: `Batch updated ${updatedItems.length} seat status(es) for show '${showId}'`,
+      metadata: { showId, inventoryId: header.id, updatedCount: updatedItems.length },
+    });
+
+    return {
+      showId,
+      inventoryId: header.id,
+      updatedCount: updatedItems.length,
+      items: updatedItems,
+    };
+  }
+
+  /**
+   * Bulk transactional seat inventory generation for a batch of scheduled shows.
+   * Existing shows are skipped to preserve immutability.
+   */
+  public async generateBulkInventory(
+    actor: SecurityActorContext,
+    payload: BulkGenerateInventoryPayload
+  ): Promise<BulkGenerateInventoryResult> {
+    const { theatreId, shows } = payload;
+    this.assertTenantAccess(actor, theatreId);
+    this.assertAdminRole(actor);
+
+    const generated: Array<{ showId: string; inventoryId: string; totalSeats: number }> = [];
+    const skipped: Array<{ showId: string; reason: string }> = [];
+    const failed: Array<{ showId: string; error: string }> = [];
+
+    for (const s of shows) {
+      const existing = this.inventoryRepo.getInventoryByShow(s.showId, theatreId);
+      if (existing) {
+        skipped.push({
+          showId: s.showId,
+          reason: `Inventory snapshot '${existing.id}' already exists (immutable).`,
+        });
+        continue;
+      }
+
+      try {
+        const res = await this.generateInventory(actor, {
+          theatreId,
+          showId: s.showId,
+          hallId: s.hallId,
+          layoutVersionId: s.layoutVersionId,
+        });
+        generated.push({
+          showId: s.showId,
+          inventoryId: res.header.id,
+          totalSeats: res.items.length,
+        });
+      } catch (err: unknown) {
+        failed.push({
+          showId: s.showId,
+          error: err instanceof Error ? err.message : "Unknown generation error",
+        });
+      }
+    }
+
+    return { theatreId, generated, skipped, failed };
+  }
+
+  /**
+   * Ticket Integration: resolves canonical ticket-to-seat inventory reference
+   * linking Show, Seat Inventory Record, Seat Display Name, Layout Version, and Booking.
+   */
+  public async getTicketSeatMapping(
+    actor: SecurityActorContext,
+    showId: string,
+    internalSeatId: string,
+    theatreId: string
+  ): Promise<TicketSeatInventoryReference> {
+    this.assertTenantAccess(actor, theatreId);
+    return this.inventoryRepo.getTicketSeatReference(showId, internalSeatId, theatreId);
+  }
+
+  /**
+   * Centralized Inventory Snapshot Registry query with tenant isolation.
+   */
+  public async getSnapshotRegistry(
+    actor: SecurityActorContext,
+    theatreId: string,
+    showId?: string
+  ): Promise<InventorySnapshotRecord[]> {
+    this.assertTenantAccess(actor, theatreId);
+    if (showId) {
+      return this.inventoryRepo.getSnapshots(showId, theatreId);
+    }
+    return this.inventoryRepo.listSnapshotsByTheatre(theatreId);
+  }
+
+  /**
+   * Future Migration Placeholder: analyzes feasibility of migrating a show's
+   * inventory snapshot to a newer layout version without mutating any records.
+   */
+  public async planInventoryMigrationPlaceholder(
+    actor: SecurityActorContext,
+    showId: string,
+    theatreId: string,
+    targetLayoutVersionId: string
+  ): Promise<InventoryMigrationPlanPlaceholder> {
+    this.assertTenantAccess(actor, theatreId);
+    this.assertAdminRole(actor);
+
+    const currentHeader = this.inventoryRepo.getInventoryByShow(showId, theatreId);
+    if (!currentHeader) {
+      throw new NotFoundError(`No existing inventory found for show '${showId}'.`);
+    }
+
+    const currentItems = this.inventoryRepo.getInventoryItems(currentHeader.id, theatreId);
+    const targetVersion = this.designerRepo.getLayoutVersionById(targetLayoutVersionId, theatreId);
+    if (!targetVersion) {
+      throw new NotFoundError(`Target layout version '${targetLayoutVersionId}' not found.`);
+    }
+
+    const blockingReasons: string[] = [];
+    if (currentHeader.bookedSeats > 0) {
+      blockingReasons.push(
+        `Show has ${currentHeader.bookedSeats} active booking(s); automated migration is prohibited.`
+      );
+    }
+
+    const currentIds = new Set(currentItems.map((i) => i.internalSeatId));
+    const targetIds = new Set(
+      targetVersion.seats.map((s) =>
+        SeatInventoryEngine.generateInternalSeatId(
+          theatreId,
+          showId,
+          s.sectionId,
+          s.row,
+          s.column
+        )
+      )
+    );
+
+    let matchedSeatIds = 0;
+    let addedSeatIds = 0;
+    let removedSeatIds = 0;
+
+    for (const id of targetIds) {
+      if (currentIds.has(id)) matchedSeatIds++;
+      else addedSeatIds++;
+    }
+    for (const id of currentIds) {
+      if (!targetIds.has(id)) removedSeatIds++;
+    }
+
+    const sameVersion = currentHeader.layoutVersionId === targetLayoutVersionId;
+    const status =
+      blockingReasons.length > 0
+        ? "BLOCKED_BY_BOOKINGS"
+        : sameVersion
+        ? "NO_CHANGES_REQUIRED"
+        : "PLACEHOLDER_READY";
+
+    return {
+      showId,
+      theatreId,
+      currentInventoryId: currentHeader.id,
+      currentLayoutVersionId: currentHeader.layoutVersionId,
+      targetLayoutVersionId,
+      canMigrate: blockingReasons.length === 0 && !sameVersion,
+      blockingReasons,
+      matchedSeatIds,
+      addedSeatIds,
+      removedSeatIds,
+      status,
+      evaluatedAt: new Date().toISOString(),
+    };
   }
 
   // ----------------------------------------------------------------------------

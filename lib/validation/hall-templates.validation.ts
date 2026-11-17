@@ -107,3 +107,73 @@ export const saveTemplateConfigSchema = z.object({
   autoInheritPlatformUpdates: z.boolean().optional(),
   restrictedCategories: z.array(templateCategorySchema).optional(),
 });
+
+export const restoreTemplateSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  templateId: z.string().min(1, "Template ID is required"),
+});
+
+export const previewTemplateSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  templateId: z.string().min(1, "Template ID is required"),
+});
+
+export const exportTemplateSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  templateId: z.string().min(1, "Template ID is required"),
+});
+
+export const importTemplateSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  overrideName: z.string().min(2).optional(),
+  overrideCode: z.string().min(2).optional(),
+  envelope: z.object({
+    schemaVersion: z.literal("1.0"),
+    exportedAt: z.string(),
+    exportedBy: z.string(),
+    template: z.object({
+      name: z.string().min(2),
+      code: z.string().min(2),
+      category: templateCategorySchema,
+      description: z.string().min(5),
+      versionNumber: z.number().int().min(1),
+      canvasSettings: z.object({
+        width: z.number().int().min(400),
+        height: z.number().int().min(400),
+        gridSize: z.number().int().min(10),
+        snapToGrid: z.boolean(),
+        showGrid: z.boolean(),
+        showLabels: z.boolean(),
+        theme: z.enum(["dark", "light"]),
+      }),
+      gridConfig: z.object({
+        rows: z.number().int().min(1),
+        columns: z.number().int().min(1),
+        seatWidth: z.number().min(10),
+        seatHeight: z.number().min(10),
+        seatSpacingX: z.number().min(0),
+        seatSpacingY: z.number().min(0),
+        rowSpacing: z.number().min(0),
+        totalCapacity: z.number().int().min(1),
+      }),
+      sections: z.array(z.any()),
+      seats: z.array(z.any()),
+      structuralObjects: z.array(z.any()),
+      validationRules: z.record(z.string(), z.unknown()).optional(),
+      defaultConfiguration: z.record(z.string(), z.unknown()).optional(),
+    }),
+    metadata: z.any().optional(),
+  }),
+});
+
+export const syncInheritedTemplateSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  templateId: z.string().min(1, "Template ID is required"),
+  preserveCanvasOverrides: z.boolean().optional(),
+  preserveSectionColors: z.boolean().optional(),
+});
+
+export const loadTemplateRegistrySchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  includeArchived: z.boolean().optional(),
+});

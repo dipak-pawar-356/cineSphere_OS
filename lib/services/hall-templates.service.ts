@@ -8,6 +8,12 @@ import {
   GenerateLayoutFromTemplateResult,
   TemplateConfiguration,
   HallTemplateCategory,
+  TemplatePreviewResult,
+  TemplateExportEnvelope,
+  ImportTemplatePayload,
+  SyncInheritedTemplatePayload,
+  SyncInheritedTemplateResult,
+  TemplateRegistryItem,
 } from "@/types/hall-templates.types";
 import { HallTemplatesRepository } from "@/lib/repositories/hall-templates.repository";
 import { HallDesignerRepository } from "@/lib/repositories/hall-designer.repository";
@@ -264,6 +270,203 @@ export class HallTemplatesService {
     return archived;
   }
 
+  public async restoreTemplate(
+    actor: SecurityActorContext,
+    templateId: string,
+    theatreId: string
+  ): Promise<HallTemplateDefinition> {
+    this.assertTenantAccess(actor, theatreId);
+    this.assertAdminRole(actor);
+
+    const restored = this.templateRepo.restoreTemplate(templateId, theatreId, actor.userId);
+
+    await this.auditService.recordAudit({
+      actor,
+      module: "HALL_TEMPLATES",
+      action: "RESTORE_TEMPLATE",
+      description: `Restored archived custom template '${restored.name}'`,
+      metadata: { templateId },
+    });
+
+    return restored;
+  }
+
+  public async previewTemplate(
+    actor: SecurityActorContext,
+    templateId: string,
+    theatreId: string
+  ): Promise<TemplatePreviewResult> {
+    this.assertTenantAccess(actor, theatreId);
+    const template = this.templateRepo.getTemplateById(templateId, theatreId);
+    if (!template) {
+      throw new NotFoundError(`Template '${templateId}' not found.`);
+    }
+    return HallTemplateEngine.generateTemplatePreview(template);
+  }
+
+  public async exportTemplate(
+    actor: SecurityActorContext,
+    templateId: string,
+    theatreId: string
+  ): Promise<TemplateExportEnvelope> {
+    this.assertTenantAccess(actor, theatreId);
+    const template = this.templateRepo.getTemplateById(templateId, theatreId);
+    if (!template) {
+      throw new NotFoundError(`Template '${templateId}' not found.`);
+    }
+    const metadata = this.templateRepo.getMetadata(templateId);
+
+    return {
+      schemaVersion: "1.0",
+      exportedAt: new Date().toISOString(),
+      exportedBy: actor.userId,
+      template: {
+        name: template.name,
+        code: template.code,
+        category: template.category,
+        description: template.description,
+        versionNumber: template.versionNumber,
+        canvasSettings: { ...template.canvasSettings },
+        gridConfig: { ...template.gridConfig },
+        sections: template.sections.map((s) => ({ ...s })),
+        seats: template.seats.map((s) => ({ ...s })),
+        structuralObjects: template.structuralObjects.map((o) => ({ ...o })),
+        validationRules: template.validationRules,
+        defaultConfiguration: template.defaultConfiguration,
+      },
+      metadata: metadata
+        ? {
+            tags: metadata.tags,
+            recommendedAuditoriumTypes: metadata.recommendedAuditoriumTypes,
+            aspectRatio: metadata.aspectRatio,
+            screenCurvatureSupported: metadata.screenCurvatureSupported,
+            accessibilityTier: metadata.accessibilityTier,
+            acousticRating: metadata.acousticRating,
+            authorNotes: metadata.authorNotes,
+          }
+        : undefined,
+    };
+  }
+
+  public async importTemplate(
+    actor: SecurityActorContext,
+    payload: ImportTemplatePayload
+  ): Promise<HallTemplateDefinition> {
+    const { theatreId, envelope, overrideName, overrideCode } = payload;
+    this.assertTenantAccess(actor, theatreId);
+    this.assertAdminRole(actor);
+
+    const tpl = envelope.template;
+    const imported = await this.createTemplate(actor, {
+      theatreId,
+      name: overrideName || `${tpl.name} (Imported)`,
+      code: overrideCode || `${tpl.code}_IMP_${Date.now().toString(36).toUpperCase().slice(-4)}`,
+      category: tpl.category,
+      description: tpl.description,
+      canvasSettings: tpl.canvasSettings,
+      gridConfig: tpl.gridConfig,
+      sections: tpl.sections,
+      seats: tpl.seats,
+      structuralObjects: tpl.structuralObjects,
+    });
+
+    if (envelope.metadata) {
+      const now = new Date().toISOString();
+      this.templateRepo.saveMetadata({
+        id: `meta-${imported.id}`,
+        templateId: imported.id,
+        theatreId,
+        tags: envelope.metadata.tags || [imported.category, "IMPORTED"],
+        recommendedAuditoriumTypes: envelope.metadata.recommendedAuditoriumTypes || [imported.category],
+        aspectRatio: envelope.metadata.aspectRatio || "2.39:1",
+        screenCurvatureSupported: envelope.metadata.screenCurvatureSupported ?? false,
+        accessibilityTier: envelope.metadata.accessibilityTier || "ENHANCED",
+        acousticRating: envelope.metadata.acousticRating || "DOLBY_ATMOS_TUNED",
+        authorNotes: envelope.metadata.authorNotes || "Imported from portable blueprint envelope",
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    await this.auditService.recordAudit({
+      actor,
+      module: "HALL_TEMPLATES",
+      action: "IMPORT_TEMPLATE",
+      description: `Imported template '${imported.name}' into theatre '${theatreId}'`,
+      metadata: { templateId: imported.id, theatreId, schemaVersion: envelope.schemaVersion },
+    });
+
+    return imported;
+  }
+
+  /**
+   * Explicit Template Inheritance Sync:
+   * Pulls structural/seat/geometry improvements from parent platform template
+   * while preserving custom theatre overrides (canvas theme, section colors).
+   */
+  public async syncInheritedTemplate(
+    actor: SecurityActorContext,
+    payload: SyncInheritedTemplatePayload
+  ): Promise<SyncInheritedTemplateResult> {
+    const { templateId, theatreId, preserveCanvasOverrides, preserveSectionColors } = payload;
+    this.assertTenantAccess(actor, theatreId);
+    this.assertAdminRole(actor);
+
+    const child = this.templateRepo.getTemplateById(templateId, theatreId);
+    if (!child) {
+      throw new NotFoundError(`Template '${templateId}' not found.`);
+    }
+    if (child.isBuiltIn) {
+      throw new TenantAccessError(`Built-in platform template '${child.name}' cannot be synced as a child.`);
+    }
+    if (!child.parentTemplateId) {
+      throw new ValidationError(`Template '${child.name}' does not inherit from a parent template.`);
+    }
+
+    const parent = this.templateRepo.getTemplateById(child.parentTemplateId, theatreId);
+    if (!parent) {
+      throw new NotFoundError(`Parent template '${child.parentTemplateId}' not found.`);
+    }
+
+    const { merged, preservedOverrides } = HallTemplateEngine.mergeParentImprovements(parent, child, {
+      preserveCanvasOverrides,
+      preserveSectionColors,
+    });
+
+    const saved = this.templateRepo.saveTemplate(merged, actor.userId);
+
+    await this.auditService.recordAudit({
+      actor,
+      module: "HALL_TEMPLATES",
+      action: "SYNC_INHERITED_TEMPLATE",
+      description: `Synced inherited template '${saved.name}' with parent '${parent.name}' (v${parent.versionNumber})`,
+      metadata: {
+        templateId: saved.id,
+        parentTemplateId: parent.id,
+        newVersionNumber: saved.versionNumber,
+        preservedOverrides,
+      },
+    });
+
+    return {
+      template: saved,
+      parentTemplateId: parent.id,
+      parentVersionNumber: parent.versionNumber,
+      newVersionNumber: saved.versionNumber,
+      preservedOverrides,
+      syncedAt: saved.updatedAt,
+    };
+  }
+
+  public async getTemplateRegistry(
+    actor: SecurityActorContext,
+    theatreId: string,
+    includeArchived = false
+  ): Promise<TemplateRegistryItem[]> {
+    this.assertTenantAccess(actor, theatreId);
+    return this.templateRepo.listRegistry(theatreId, includeArchived);
+  }
+
   // ----------------------------------------------------------------------------
   // 3. Blueprint Layout Generation (Instantiate Layout Definition)
   // ----------------------------------------------------------------------------
@@ -338,7 +541,7 @@ export class HallTemplatesService {
         rotation: obj.rotation || 0,
         layer: obj.layer || 1,
         zIndex: obj.zIndex || 10,
-        visibility: obj.visibility || "ALL",
+        visibility: obj.visibility || "VISIBLE",
         color: obj.color || "#38BDF8",
         isLocked: false,
         metadata: obj.metadata || {

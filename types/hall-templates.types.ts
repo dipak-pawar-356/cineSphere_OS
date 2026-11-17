@@ -200,3 +200,75 @@ export interface GenerateLayoutFromTemplateResult {
   sourceTemplateId: string;
   message: string;
 }
+
+// ------------------------------------------------------------------------------
+// 6. Preview, Import/Export & Explicit Inheritance Sync Contracts
+// ------------------------------------------------------------------------------
+
+export interface TemplatePreviewResult {
+  templateId: string;
+  name: string;
+  code: string;
+  category: HallTemplateCategory;
+  isBuiltIn: boolean;
+  parentTemplateId?: string;
+  versionNumber: number;
+  canvasDimensions: { width: number; height: number; gridSize: number };
+  totalSeats: number;
+  totalSections: number;
+  totalStructuralObjects: number;
+  accessibleSeatsCount: number;
+  seatBreakdownByType: Record<string, number>;
+  sectionSummaries: Array<{
+    id: string;
+    name: string;
+    seatType: string;
+    seatCount: number;
+    displayColor: string;
+  }>;
+  structuralObjectTypes: Record<string, number>;
+}
+
+export interface TemplateExportEnvelope {
+  schemaVersion: "1.0";
+  exportedAt: string;
+  exportedBy: string;
+  template: {
+    name: string;
+    code: string;
+    category: HallTemplateCategory;
+    description: string;
+    versionNumber: number;
+    canvasSettings: TemplateCanvasSettings;
+    gridConfig: TemplateGridConfig;
+    sections: HallSectionDefinition[];
+    seats: SeatDefinition[];
+    structuralObjects: StructuralObject[];
+    validationRules?: Record<string, unknown>;
+    defaultConfiguration?: Record<string, unknown>;
+  };
+  metadata?: Partial<TemplateMetadataItem>;
+}
+
+export interface ImportTemplatePayload {
+  theatreId: string;
+  envelope: TemplateExportEnvelope;
+  overrideName?: string;
+  overrideCode?: string;
+}
+
+export interface SyncInheritedTemplatePayload {
+  templateId: string;
+  theatreId: string;
+  preserveCanvasOverrides?: boolean;
+  preserveSectionColors?: boolean;
+}
+
+export interface SyncInheritedTemplateResult {
+  template: HallTemplateDefinition;
+  parentTemplateId: string;
+  parentVersionNumber: number;
+  newVersionNumber: number;
+  preservedOverrides: string[];
+  syncedAt: string;
+}

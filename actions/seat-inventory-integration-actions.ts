@@ -13,12 +13,22 @@ import {
   updateSeatStatusSchema,
   loadInventoryConfigSchema,
   saveInventoryConfigSchema,
+  generateBulkInventorySchema,
+  batchUpdateSeatStatusSchema,
+  getTicketSeatMappingSchema,
+  listInventorySnapshotsSchema,
+  planInventoryMigrationSchema,
 } from "@/lib/validation/seat-inventory-integration.validation";
 import {
   SeatInventoryHeader,
   SeatInventoryItem,
   ValidateInventoryResult,
   InventoryConfiguration,
+  BulkGenerateInventoryResult,
+  BatchUpdateSeatStatusResult,
+  TicketSeatInventoryReference,
+  InventorySnapshotRecord,
+  InventoryMigrationPlanPlaceholder,
 } from "@/types/seat-inventory-integration.types";
 
 /**
@@ -214,6 +224,115 @@ export const saveInventoryConfigAction = createProtectedAction<
       context.actor,
       input.theatreId,
       input
+    );
+  }
+);
+
+export const generateBulkInventoryAction = createProtectedAction<
+  z.input<typeof generateBulkInventorySchema>,
+  BulkGenerateInventoryResult
+>(
+  {
+    actionName: "generateBulkInventoryAction",
+    schema: generateBulkInventorySchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN", "HALL_MANAGER"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "SEAT_INVENTORY",
+    auditAction: "BULK_GENERATE_INVENTORY",
+  },
+  async (input, context) => {
+    return seatInventoryIntegrationService.generateBulkInventory(context.actor, input);
+  }
+);
+
+export const batchUpdateSeatStatusesAction = createProtectedAction<
+  z.input<typeof batchUpdateSeatStatusSchema>,
+  BatchUpdateSeatStatusResult
+>(
+  {
+    actionName: "batchUpdateSeatStatusesAction",
+    schema: batchUpdateSeatStatusSchema,
+    rateLimitCategory: "BOOKING_REQUEST",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN", "HALL_MANAGER", "STAFF"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "SEAT_INVENTORY",
+    auditAction: "BATCH_UPDATE_SEAT_STATUS",
+  },
+  async (input, context) => {
+    return seatInventoryIntegrationService.batchUpdateSeatStatuses(context.actor, input);
+  }
+);
+
+export const getTicketSeatMappingAction = createProtectedAction<
+  z.input<typeof getTicketSeatMappingSchema>,
+  TicketSeatInventoryReference
+>(
+  {
+    actionName: "getTicketSeatMappingAction",
+    schema: getTicketSeatMappingSchema,
+    rateLimitCategory: "BOOKING_REQUEST",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN", "HALL_MANAGER", "STAFF", "CUSTOMER"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "SEAT_INVENTORY",
+    auditAction: "GET_TICKET_MAPPING",
+  },
+  async (input, context) => {
+    return seatInventoryIntegrationService.getTicketSeatMapping(
+      context.actor,
+      input.showId,
+      input.internalSeatId,
+      input.theatreId
+    );
+  }
+);
+
+export const listInventorySnapshotsAction = createProtectedAction<
+  z.input<typeof listInventorySnapshotsSchema>,
+  InventorySnapshotRecord[]
+>(
+  {
+    actionName: "listInventorySnapshotsAction",
+    schema: listInventorySnapshotsSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN", "HALL_MANAGER"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "SEAT_INVENTORY",
+    auditAction: "LIST_SNAPSHOTS",
+  },
+  async (input, context) => {
+    return seatInventoryIntegrationService.getSnapshotRegistry(
+      context.actor,
+      input.theatreId,
+      input.showId
+    );
+  }
+);
+
+export const planInventoryMigrationAction = createProtectedAction<
+  z.input<typeof planInventoryMigrationSchema>,
+  InventoryMigrationPlanPlaceholder
+>(
+  {
+    actionName: "planInventoryMigrationAction",
+    schema: planInventoryMigrationSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "SEAT_INVENTORY",
+    auditAction: "PLAN_MIGRATION",
+  },
+  async (input, context) => {
+    return seatInventoryIntegrationService.planInventoryMigrationPlaceholder(
+      context.actor,
+      input.showId,
+      input.theatreId,
+      input.targetLayoutVersionId
     );
   }
 );

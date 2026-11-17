@@ -74,3 +74,57 @@ export const saveInventoryConfigSchema = z.object({
   defaultLockDurationSeconds: z.number().int().min(60).max(3600).optional(),
   allowRegenerationWithZeroBookings: z.boolean().optional(),
 });
+
+export const generateBulkInventorySchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  shows: z
+    .array(
+      z.object({
+        showId: z.string().min(1),
+        hallId: z.string().min(1),
+        layoutVersionId: z.string().optional(),
+      })
+    )
+    .min(1, "At least one show is required"),
+});
+
+export const batchUpdateSeatStatusSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  showId: z.string().min(1, "Show ID is required"),
+  updates: z
+    .array(
+      z.object({
+        internalSeatId: z.string().min(1),
+        status: z.enum([
+          "AVAILABLE",
+          "RESERVED",
+          "BOOKED",
+          "BLOCKED",
+          "MAINTENANCE",
+          "DISABLED",
+        ]),
+        lockedBy: z.string().optional(),
+        lockedUntil: z.string().optional(),
+        bookingId: z.string().optional(),
+        ticketId: z.string().optional(),
+      })
+    )
+    .min(1, "At least one seat update is required"),
+});
+
+export const getTicketSeatMappingSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  showId: z.string().min(1, "Show ID is required"),
+  internalSeatId: z.string().min(1, "Internal Seat ID is required"),
+});
+
+export const listInventorySnapshotsSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  showId: z.string().optional(),
+});
+
+export const planInventoryMigrationSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  showId: z.string().min(1, "Show ID is required"),
+  targetLayoutVersionId: z.string().min(1, "Target Layout Version ID is required"),
+});

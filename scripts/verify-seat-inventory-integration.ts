@@ -22,6 +22,11 @@ import {
   updateSeatInventoryStatusAction,
   loadInventoryConfigAction,
   saveInventoryConfigAction,
+  generateBulkInventoryAction,
+  batchUpdateSeatStatusesAction,
+  getTicketSeatMappingAction,
+  listInventorySnapshotsAction,
+  planInventoryMigrationAction,
 } from "../actions/seat-inventory-integration-actions";
 
 let totalAssertions = 0;
@@ -215,6 +220,76 @@ async function runSeatInventoryVerification() {
   );
   assert(actSaveConfig.success === true, "saveInventoryConfigAction executed cleanly");
   assert(actSaveConfig.data?.defaultLockDurationSeconds === 720, "Updated lock duration to 720s");
+
+  // ----------------------------------------------------------------------------
+  // Section 8: Ticket Mapping, Bulk Generation, Batch Updates & Snapshot Registry
+  // ----------------------------------------------------------------------------
+  console.log("\n--- Section 8: Ticket Mapping, Bulk Gen, Batch Updates & Snapshot Registry ---");
+  const bookedSeat = actLoad.data!.items.find((i) => i.status === "BOOKED");
+  assert(Boolean(bookedSeat), "Found booked seat for ticket mapping check");
+
+  const actTicketMap = await getTicketSeatMappingAction(
+    {
+      theatreId: "th-pun-001",
+      showId: testShowId,
+      internalSeatId: bookedSeat!.internalSeatId,
+    },
+    { role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+  );
+  assert(actTicketMap.success === true, "getTicketSeatMappingAction executed cleanly");
+  assert(actTicketMap.data?.showId === testShowId, "Ticket mapping references Show ID");
+  assert(actTicketMap.data?.seatDisplayName === bookedSeat!.displaySeatNumber, "Ticket mapping references Seat Display Name");
+  assert(Boolean(actTicketMap.data?.layoutVersionId), "Ticket mapping references Layout Version ID");
+  assert(Boolean(actTicketMap.data?.bookingId), "Ticket mapping references Booking ID");
+
+  const actBulk = await generateBulkInventoryAction(
+    {
+      theatreId: "th-pun-001",
+      shows: [
+        { showId: testShowId, hallId: "hall-pun-aud1" },
+        { showId: "show-pun-late-103", hallId: "hall-pun-aud1" },
+        { showId: "show-pun-midnight-104", hallId: "hall-pun-aud1" },
+      ],
+    },
+    { role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+  );
+  assert(actBulk.success === true, "generateBulkInventoryAction executed cleanly");
+  assert(actBulk.data?.generated.length === 2, "Bulk generator created inventories for 2 new shows");
+  assert(actBulk.data?.skipped.length === 1, "Bulk generator skipped 1 existing show to preserve immutability");
+
+  const availableSeatsForBatch = actLoad.data!.items.filter((i) => i.status === "AVAILABLE").slice(0, 2);
+  const actBatch = await batchUpdateSeatStatusesAction(
+    {
+      theatreId: "th-pun-001",
+      showId: testShowId,
+      updates: availableSeatsForBatch.map((s) => ({
+        internalSeatId: s.internalSeatId,
+        status: "BLOCKED" as const,
+      })),
+    },
+    { role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+  );
+  assert(actBatch.success === true, "batchUpdateSeatStatusesAction executed cleanly");
+  assert(actBatch.data?.updatedCount === 2, "Batch updated 2 seats atomically to BLOCKED");
+
+  const actSnapshots = await listInventorySnapshotsAction(
+    { theatreId: "th-pun-001" },
+    { role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+  );
+  assert(actSnapshots.success === true, "listInventorySnapshotsAction executed cleanly");
+  assert((actSnapshots.data?.length ?? 0) >= 3, "Snapshot registry tracks immutable snapshots across shows");
+
+  const actMigratePlan = await planInventoryMigrationAction(
+    {
+      theatreId: "th-pun-001",
+      showId: testShowId,
+      targetLayoutVersionId: actLoad.data!.header.layoutVersionId,
+    },
+    { role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+  );
+  assert(actMigratePlan.success === true, "planInventoryMigrationAction executed cleanly");
+  assert(actMigratePlan.data?.canMigrate === false, "Migration plan blocks booked show safely");
+  assert(actMigratePlan.data?.status === "BLOCKED_BY_BOOKINGS", "Migration status identifies active bookings block");
 
   console.log("\n==================================================================");
   console.log("SEAT INVENTORY INTEGRATION VERIFICATION COMPLETED");

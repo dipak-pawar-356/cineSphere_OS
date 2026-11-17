@@ -177,3 +177,72 @@ export interface SeatPricingContext {
   sectionId: string;
   seatCategoryId: string;
 }
+
+// ------------------------------------------------------------------------------
+// 6. Ticket Mapping, Bulk Operations & Future Migration Contracts
+// ------------------------------------------------------------------------------
+
+export interface TicketSeatInventoryReference {
+  ticketId: string;
+  showId: string;
+  theatreId: string;
+  inventoryId: string;
+  seatInventoryItemId: string;
+  internalSeatId: string;
+  seatDisplayName: string;
+  layoutVersionId: string;
+  layoutVersionNumber: number;
+  bookingId: string;
+  issuedAt: string;
+}
+
+export interface BulkGenerateInventoryPayload {
+  theatreId: string;
+  shows: Array<{
+    showId: string;
+    hallId: string;
+    layoutVersionId?: string;
+  }>;
+}
+
+export interface BulkGenerateInventoryResult {
+  theatreId: string;
+  generated: Array<{ showId: string; inventoryId: string; totalSeats: number }>;
+  skipped: Array<{ showId: string; reason: string }>;
+  failed: Array<{ showId: string; error: string }>;
+}
+
+export interface BatchUpdateSeatStatusPayload {
+  theatreId: string;
+  showId: string;
+  updates: Array<{
+    internalSeatId: string;
+    status: InventoryItemStatus;
+    lockedBy?: string;
+    lockedUntil?: string;
+    bookingId?: string;
+    ticketId?: string;
+  }>;
+}
+
+export interface BatchUpdateSeatStatusResult {
+  showId: string;
+  inventoryId: string;
+  updatedCount: number;
+  items: SeatInventoryItem[];
+}
+
+export interface InventoryMigrationPlanPlaceholder {
+  showId: string;
+  theatreId: string;
+  currentInventoryId: string;
+  currentLayoutVersionId: string;
+  targetLayoutVersionId: string;
+  canMigrate: boolean;
+  blockingReasons: string[];
+  matchedSeatIds: number;
+  addedSeatIds: number;
+  removedSeatIds: number;
+  status: "PLACEHOLDER_READY" | "BLOCKED_BY_BOOKINGS" | "NO_CHANGES_REQUIRED";
+  evaluatedAt: string;
+}

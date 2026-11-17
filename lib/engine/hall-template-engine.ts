@@ -2,6 +2,7 @@ import {
   HallTemplateDefinition,
   CreateTemplatePayload,
   GenerateLayoutFromTemplatePayload,
+  TemplatePreviewResult,
 } from "@/types/hall-templates.types";
 import {
   LayoutDefinition,
@@ -996,5 +997,112 @@ export class HallTemplateEngine {
     };
 
     return { definition, version, structuralObjects };
+  }
+
+  /**
+   * Pure preview calculator summarizing template capacity, seat categories,
+   * accessibility bays, structural objects, and inheritance metadata.
+   */
+  public static generateTemplatePreview(template: HallTemplateDefinition): TemplatePreviewResult {
+    const seatBreakdownByType: Record<string, number> = {};
+    let accessibleSeatsCount = 0;
+
+    for (const seat of template.seats) {
+      const typeKey = seat.seatType || "Standard";
+      seatBreakdownByType[typeKey] = (seatBreakdownByType[typeKey] || 0) + 1;
+      if (seat.isAccessible || seat.seatType === "Wheelchair") {
+        accessibleSeatsCount++;
+      }
+    }
+
+    const structuralObjectTypes: Record<string, number> = {};
+    for (const obj of template.structuralObjects) {
+      structuralObjectTypes[obj.objectType] = (structuralObjectTypes[obj.objectType] || 0) + 1;
+    }
+
+    const sectionSummaries = template.sections.map((sec) => ({
+      id: sec.id,
+      name: sec.name,
+      seatType: sec.seatType,
+      seatCount: sec.seatCount,
+      displayColor: sec.displayColor,
+    }));
+
+    return {
+      templateId: template.id,
+      name: template.name,
+      code: template.code,
+      category: template.category,
+      isBuiltIn: template.isBuiltIn,
+      parentTemplateId: template.parentTemplateId,
+      versionNumber: template.versionNumber,
+      canvasDimensions: {
+        width: template.canvasSettings.width,
+        height: template.canvasSettings.height,
+        gridSize: template.canvasSettings.gridSize,
+      },
+      totalSeats: template.seats.length,
+      totalSections: template.sections.length,
+      totalStructuralObjects: template.structuralObjects.length,
+      accessibleSeatsCount,
+      seatBreakdownByType,
+      sectionSummaries,
+      structuralObjectTypes,
+    };
+  }
+
+  /**
+   * Explicit Template Inheritance Sync:
+   * Pulls structural/seat/geometry improvements from a parent platform template
+   * while selectively preserving theatre-level overrides (colors, canvas theme).
+   */
+  public static mergeParentImprovements(
+    parent: HallTemplateDefinition,
+    child: HallTemplateDefinition,
+    options: {
+      preserveCanvasOverrides?: boolean;
+      preserveSectionColors?: boolean;
+    } = {}
+  ): { merged: HallTemplateDefinition; preservedOverrides: string[] } {
+    const preservedOverrides: string[] = [];
+    const preserveCanvas = options.preserveCanvasOverrides ?? true;
+    const preserveColors = options.preserveSectionColors ?? true;
+
+    const mergedCanvas = preserveCanvas
+      ? { ...parent.canvasSettings, ...child.canvasSettings }
+      : { ...parent.canvasSettings };
+    if (preserveCanvas) {
+      preservedOverrides.push("canvasSettings");
+    }
+
+    const childColorByOrder = new Map<number, string>();
+    child.sections.forEach((sec) => {
+      childColorByOrder.set(sec.displayOrder, sec.displayColor);
+    });
+
+    const mergedSections = parent.sections.map((sec) => {
+      const overrideColor = preserveColors ? childColorByOrder.get(sec.displayOrder) : undefined;
+      return {
+        ...sec,
+        displayColor: overrideColor || sec.displayColor,
+      };
+    });
+    if (preserveColors && childColorByOrder.size > 0) {
+      preservedOverrides.push("sectionColors");
+    }
+
+    const now = new Date().toISOString();
+    const merged: HallTemplateDefinition = {
+      ...child,
+      canvasSettings: mergedCanvas,
+      gridConfig: { ...parent.gridConfig },
+      sections: mergedSections,
+      seats: parent.seats.map((s) => ({ ...s })),
+      structuralObjects: parent.structuralObjects.map((o) => ({ ...o })),
+      versionNumber: child.versionNumber + 1,
+      updatedAt: now,
+    };
+
+    return { merged, preservedOverrides };
   }
 }
