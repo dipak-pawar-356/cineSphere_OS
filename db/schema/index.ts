@@ -83,6 +83,12 @@ export * from "./layout-versioning";
 // Publishing Workflow & Compatibility Layer (Phase 4 - Part 12)
 export * from "./publishing-workflow";
 
+// Seat Inventory Integration (Phase 4 - Part 13)
+export * from "./seat-inventory-integration";
+
+// Hall Templates (Phase 4 - Part 14)
+export * from "./hall-templates";
+
 
 
 // Tenant Payment Configurations & Ledger

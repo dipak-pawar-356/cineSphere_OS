@@ -29,4 +29,6 @@ export * from "./hall-preview-actions";
 export * from "./hall-validation-actions";
 export * from "./layout-versioning-actions";
 export * from "./publishing-workflow-actions";
+export * from "./seat-inventory-integration-actions";
+export * from "./hall-templates-actions";
 
