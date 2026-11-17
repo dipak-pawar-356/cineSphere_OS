@@ -1,17 +1,26 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import {
   HallTemplateDefinition,
   HallTemplateCategory,
   TemplateConfiguration,
   GenerateLayoutFromTemplateResult,
+  TemplatePreviewResult,
+  TemplateExportEnvelope,
+  TemplateRegistryItem,
 } from "@/types/hall-templates.types";
 import {
   loadTemplatesAction,
   getTemplateDetailsAction,
   duplicateTemplateAction,
   archiveTemplateAction,
+  restoreTemplateAction,
+  previewTemplateAction,
+  exportTemplateAction,
+  importTemplateAction,
+  syncInheritedTemplateAction,
+  loadTemplateRegistryAction,
   generateLayoutFromTemplateAction,
   loadTemplateConfigAction,
 } from "@/actions/hall-templates-actions";
@@ -23,12 +32,15 @@ export interface UseHallTemplatesOptions {
 
 export function useHallTemplates({ theatreId, initialCategory }: UseHallTemplatesOptions) {
   const [templates, setTemplates] = useState<HallTemplateDefinition[]>([]);
+  const [registry, setRegistry] = useState<TemplateRegistryItem[]>([]);
+  const [preview, setPreview] = useState<TemplatePreviewResult | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<HallTemplateDefinition | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<HallTemplateCategory | undefined>(initialCategory);
   const [config, setConfig] = useState<TemplateConfiguration | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const templateDetailCacheRef = useRef<Map<string, HallTemplateDefinition>>(new Map());
 
   const fetchTemplates = useCallback(
     async (category?: HallTemplateCategory) => {
@@ -180,12 +192,134 @@ export function useHallTemplates({ theatreId, initialCategory }: UseHallTemplate
     }
   }, [theatreId]);
 
+  const restoreTemplate = useCallback(
+    async (templateId: string) => {
+      if (!theatreId) return;
+      setIsLoading(true);
+      try {
+        const res = await restoreTemplateAction({ theatreId, templateId });
+        if (res.success) {
+          templateDetailCacheRef.current.delete(templateId);
+          await fetchTemplates();
+        } else {
+          setErrorMessage(res.error?.message || "Failed to restore template.");
+        }
+      } catch (err: any) {
+        setErrorMessage(err.message || "Failed to restore template.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [theatreId, fetchTemplates]
+  );
+
+  const previewTemplate = useCallback(
+    async (templateId: string): Promise<TemplatePreviewResult | null> => {
+      if (!theatreId || !templateId) return null;
+      try {
+        const res = await previewTemplateAction({ theatreId, templateId });
+        if (res.success && res.data) {
+          setPreview(res.data);
+          return res.data;
+        }
+      } catch (err: any) {
+        setErrorMessage(err.message || "Failed to preview template.");
+      }
+      return null;
+    },
+    [theatreId]
+  );
+
+  const exportTemplate = useCallback(
+    async (templateId: string): Promise<TemplateExportEnvelope | null> => {
+      if (!theatreId || !templateId) return null;
+      try {
+        const res = await exportTemplateAction({ theatreId, templateId });
+        if (res.success && res.data) {
+          return res.data;
+        }
+      } catch (err: any) {
+        setErrorMessage(err.message || "Failed to export template.");
+      }
+      return null;
+    },
+    [theatreId]
+  );
+
+  const importTemplate = useCallback(
+    async (params: { envelope: TemplateExportEnvelope; overrideName?: string; overrideCode?: string }) => {
+      if (!theatreId) throw new Error("Missing theatreId.");
+      setIsLoading(true);
+      try {
+        const res = await importTemplateAction({
+          theatreId,
+          envelope: params.envelope,
+          overrideName: params.overrideName,
+          overrideCode: params.overrideCode,
+        });
+        if (res.success && res.data) {
+          await fetchTemplates();
+          setSelectedTemplate(res.data);
+          return res.data;
+        }
+        throw new Error(res.error?.message || "Failed to import template.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [theatreId, fetchTemplates]
+  );
+
+  const syncInheritedTemplate = useCallback(
+    async (templateId: string, preserveCanvasOverrides = true, preserveSectionColors = true) => {
+      if (!theatreId) throw new Error("Missing theatreId.");
+      setIsLoading(true);
+      try {
+        const res = await syncInheritedTemplateAction({
+          theatreId,
+          templateId,
+          preserveCanvasOverrides,
+          preserveSectionColors,
+        });
+        if (res.success && res.data) {
+          templateDetailCacheRef.current.delete(templateId);
+          await fetchTemplates();
+          setSelectedTemplate(res.data.template);
+          return res.data;
+        }
+        throw new Error(res.error?.message || "Failed to sync inherited template.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [theatreId, fetchTemplates]
+  );
+
+  const fetchRegistry = useCallback(
+    async (includeArchived = false) => {
+      if (!theatreId) return [];
+      try {
+        const res = await loadTemplateRegistryAction({ theatreId, includeArchived });
+        if (res.success && res.data) {
+          setRegistry(res.data);
+          return res.data;
+        }
+      } catch (err: any) {
+        setErrorMessage(err.message || "Failed to load template registry.");
+      }
+      return [];
+    },
+    [theatreId]
+  );
+
   // Derived categories
   const builtInCount = useMemo(() => templates.filter((t) => t.isBuiltIn).length, [templates]);
   const customCount = useMemo(() => templates.filter((t) => !t.isBuiltIn).length, [templates]);
 
   return {
     templates,
+    registry,
+    preview,
     selectedTemplate,
     selectedCategory,
     config,
@@ -196,10 +330,16 @@ export function useHallTemplates({ theatreId, initialCategory }: UseHallTemplate
     customCount,
     setSelectedCategory,
     fetchTemplates,
+    fetchRegistry,
     selectTemplate,
+    previewTemplate,
     duplicateTemplate,
     generateLayout,
     archiveTemplate,
+    restoreTemplate,
+    exportTemplate,
+    importTemplate,
+    syncInheritedTemplate,
     fetchConfig,
   };
 }

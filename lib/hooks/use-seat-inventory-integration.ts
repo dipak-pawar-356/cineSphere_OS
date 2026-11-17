@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import {
   SeatInventoryHeader,
   SeatInventoryItem,
   InventoryItemStatus,
   ValidateInventoryResult,
   InventoryConfiguration,
+  InventorySnapshotRecord,
+  TicketSeatInventoryReference,
 } from "@/types/seat-inventory-integration.types";
 import {
   loadInventoryAction,
@@ -14,6 +16,9 @@ import {
   regenerateInventoryAction,
   validateInventoryAction,
   updateSeatInventoryStatusAction,
+  batchUpdateSeatStatusesAction,
+  listInventorySnapshotsAction,
+  getTicketSeatMappingAction,
   loadInventoryConfigAction,
 } from "@/actions/seat-inventory-integration-actions";
 
@@ -30,10 +35,12 @@ export function useSeatInventoryIntegration({
 }: UseSeatInventoryIntegrationOptions) {
   const [header, setHeader] = useState<SeatInventoryHeader | null>(null);
   const [items, setItems] = useState<SeatInventoryItem[]>([]);
+  const [snapshots, setSnapshots] = useState<InventorySnapshotRecord[]>([]);
   const [config, setConfig] = useState<InventoryConfiguration | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const inventoryCacheRef = useRef<Map<string, { header: SeatInventoryHeader; items: SeatInventoryItem[] }>>(new Map());
 
   const fetchInventory = useCallback(
     async (targetShowId?: string) => {
@@ -182,6 +189,76 @@ export function useSeatInventoryIntegration({
     }
   }, [theatreId]);
 
+  const batchSetSeatStatuses = useCallback(
+    async (updates: Array<{ internalSeatId: string; status: InventoryItemStatus }>) => {
+      const activeShowId = showId;
+      if (!theatreId || !activeShowId || updates.length === 0) return null;
+
+      setIsUpdating(true);
+      try {
+        const res = await batchUpdateSeatStatusesAction({
+          theatreId,
+          showId: activeShowId,
+          updates,
+        });
+        if (res.success && res.data) {
+          const updatedMap = new Map(res.data.items.map((item) => [item.internalSeatId, item]));
+          setItems((prev) => prev.map((item) => updatedMap.get(item.internalSeatId) || item));
+          inventoryCacheRef.current.delete(`${theatreId}:${activeShowId}`);
+          return res.data;
+        }
+        setErrorMessage(res.error?.message || "Failed to batch update seat statuses.");
+      } catch (err: any) {
+        setErrorMessage(err.message || "Failed to batch update seat statuses.");
+      } finally {
+        setIsUpdating(false);
+      }
+      return null;
+    },
+    [theatreId, showId]
+  );
+
+  const fetchSnapshots = useCallback(
+    async (targetShowId?: string) => {
+      if (!theatreId) return [];
+      try {
+        const res = await listInventorySnapshotsAction({
+          theatreId,
+          showId: targetShowId || showId,
+        });
+        if (res.success && res.data) {
+          setSnapshots(res.data);
+          return res.data;
+        }
+      } catch (err: any) {
+        setErrorMessage(err.message || "Failed to load inventory snapshots.");
+      }
+      return [];
+    },
+    [theatreId, showId]
+  );
+
+  const fetchTicketSeatMapping = useCallback(
+    async (internalSeatId: string, targetShowId?: string): Promise<TicketSeatInventoryReference | null> => {
+      const activeShowId = targetShowId || showId;
+      if (!theatreId || !activeShowId) return null;
+      try {
+        const res = await getTicketSeatMappingAction({
+          theatreId,
+          showId: activeShowId,
+          internalSeatId,
+        });
+        if (res.success && res.data) {
+          return res.data;
+        }
+      } catch (err: any) {
+        setErrorMessage(err.message || "Failed to resolve ticket seat mapping.");
+      }
+      return null;
+    },
+    [theatreId, showId]
+  );
+
   // Derived metrics
   const availableCount = useMemo(() => items.filter((i) => i.status === "AVAILABLE").length, [items]);
   const bookedCount = useMemo(() => items.filter((i) => i.status === "BOOKED").length, [items]);
@@ -191,6 +268,7 @@ export function useSeatInventoryIntegration({
   return {
     header,
     items,
+    snapshots,
     config,
     isLoading,
     isUpdating,
@@ -204,6 +282,9 @@ export function useSeatInventoryIntegration({
     regenerateInventory,
     validateInventory,
     setSeatStatus,
+    batchSetSeatStatuses,
+    fetchSnapshots,
+    fetchTicketSeatMapping,
     fetchConfig,
   };
 }
