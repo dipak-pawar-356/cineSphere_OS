@@ -94,4 +94,10 @@ export * from "./hall-preview.types";
 // Hall Validation Framework (Phase 4 – Part 10)
 export * from "./hall-validation.types";
 
+// Layout Version Management (Phase 4 – Part 11)
+export * from "./layout-versioning.types";
+
+// Publishing Workflow & Compatibility Layer (Phase 4 – Part 12)
+export * from "./publishing-workflow.types";
+
 

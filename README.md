@@ -1064,6 +1064,29 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Caching React hook [`useHallValidation`](./lib/hooks/use-hall-validation.ts) with real-time audit score cards and severity filters.
 - 📚 **Hall Preview & Validation Architecture Guide:** Detailed technical documentation in [`docs/HALL_PREVIEW_AND_VALIDATION_ARCHITECTURE.md`](./docs/HALL_PREVIEW_AND_VALIDATION_ARCHITECTURE.md).
 
+### 2.44 Phase 4 - Part 11: Layout Version Management (Completed)
+- 📜 **Immutable Layout Versioning & Deep Diff Engine (`types/layout-versioning.types.ts`, `lib/engine/version-comparison-engine.ts`, `db/schema/layout-versioning.ts`):**
+  - Production-grade immutable version registry: Published layout versions are permanently locked against direct editing (`isLocked: true`).
+  - Modifications branch into clean, derived draft versions (`DRAFT` → `REVIEW` → `APPROVED` → `PUBLISHED` → `ARCHIVED` → `DEPRECATED`).
+  - Pure mathematical `VersionComparisonEngine` evaluating deep section diffs, seat attribute/accessibility changes, structural infrastructure changes, grid geometries, and capacity delta with automatic breaking change detection.
+  - Safe Rollback Engine: Restores previous configurations by generating a fresh derived draft version without mutating historical records.
+  - Granular change history stream (`SEAT_CHANGED`, `SECTION_CHANGED`, `OBJECT_CHANGED`, `POLICY_CHANGED`, `ROLLBACK_EXECUTED`) with full actor attribution and security auditing.
+  - Multi-tenant version policies: Pune (50 versions, rollback enabled), Mumbai (20 versions, release notes required), Dubai (unlimited versions, approval required).
+  - Caching React hook [`useLayoutVersioning`](./lib/hooks/use-layout-versioning.ts) with version history fetching, draft branching, and visual diff analysis.
+
+### 2.45 Phase 4 - Part 12: Publishing Workflow & Show Compatibility Layer (Completed)
+- 🚀 **Atomic Publishing Pipeline & Show Compatibility Layer (`types/publishing-workflow.types.ts`, `lib/engine/publishing-pipeline-engine.ts`, `db/schema/publishing-workflow.ts`):**
+  - Atomic publishing pipeline executing 9-point preflight validation gate: draft state, validation reports (0 blocking errors), screen presence, emergency fire exits, SAT obstacle collisions, unique seat numbering, section capacity parity, tenant ownership, and approval gates.
+  - Strict Version Locking (`enforceVersionLock`) guarding published and archived layouts against direct mutation.
+  - Multi-tenant publishing governance: Pune Instant (`ANYTIME`), Mumbai Regulated (`BUSINESS_HOURS` + approval), Dubai Strict (`OFF_PEAK` + scheduled publish).
+  - Permanent publishing audit log tracking timestamps, publisher user ID, validation reports, and release notes.
+  - **The Show Compatibility Layer (`show_layout_assignments`):**
+    - **Historical Invariance:** Existing and completed shows continue serving the layout version assigned at creation time; layout modifications never alter past bookings or seat maps.
+    - **Automatic Active Binding:** Newly created shows automatically bind to the active published layout version.
+    - **Explicit Show Migration:** Supported, audited migration path for transferring existing shows to new layout versions with seat re-mapping and safety checks.
+  - Caching React hook [`usePublishingWorkflow`](./lib/hooks/use-publishing-workflow.ts) managing live layout statuses, history timelines, and publishing execution.
+- 📚 **Layout Versioning & Publishing Workflow Architecture Guide:** Detailed technical documentation in [`docs/LAYOUT_VERSIONING_AND_PUBLISHING_WORKFLOW_ARCHITECTURE.md`](./docs/LAYOUT_VERSIONING_AND_PUBLISHING_WORKFLOW_ARCHITECTURE.md).
+
 
 ---
 
@@ -1085,6 +1108,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🚀 [`docs/LAYOUT_VERSIONING_AND_PUBLISHING_WORKFLOW_ARCHITECTURE.md`](./docs/LAYOUT_VERSIONING_AND_PUBLISHING_WORKFLOW_ARCHITECTURE.md) — Layout Version Management & Publishing Workflow Architecture (Immutable Version Registry, Deep Two-Way Diff Engine, Safe Rollback Branching, 9-Point Preflight Publishing Gate, Version Locking, Multi-Tenant Policies, and Show Compatibility Layer Guarantee) (Phase 4 - Parts 11 & 12).
 - 🖥️ [`docs/HALL_PREVIEW_AND_VALIDATION_ARCHITECTURE.md`](./docs/HALL_PREVIEW_AND_VALIDATION_ARCHITECTURE.md) — Multi-Mode Hall Preview & Pluggable Preflight Validation Architecture (5 Operational Modes, Responsive Viewport Transformations, Visual Themes, Live Booking Simulation Cart, Central Rule Registry, 10 Core Validation Rules, Per-Theatre Policies, and Pre-Publish Gate) (Phase 4 - Parts 9 & 10).
 - 📐 [`docs/STRUCTURAL_OBJECTS_AND_GEOMETRY_ARCHITECTURE.md`](./docs/STRUCTURAL_OBJECTS_AND_GEOMETRY_ARCHITECTURE.md) — Structural Objects & Advanced Geometry Architecture (First-Class Physical Infrastructure, Rotated SAT Collision Math, 2D Affine Transforms, Curvature & Sagitta Arc Mathematics, and Reversible Command History Pipeline) (Phase 4 - Parts 7 & 8).
 

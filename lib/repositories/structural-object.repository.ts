@@ -776,6 +776,29 @@ export class StructuralObjectRepository {
       StructuralObjectRepository.objectsStore.delete(obj.id);
     }
   }
+
+  public async copyObjectsToVersion(
+    theatreId: string,
+    sourceVersionId: string,
+    targetVersionId: string
+  ): Promise<StructuralObject[]> {
+    StructuralObjectRepository.initializeSeeds();
+    const sourceObjs = await this.listByLayoutVersion(theatreId, sourceVersionId);
+    const copied: StructuralObject[] = [];
+    for (const obj of sourceObjs) {
+      const newId = `str-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const newObj: StructuralObject = {
+        ...obj,
+        id: newId,
+        layoutVersionId: targetVersionId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      StructuralObjectRepository.objectsStore.set(newId, newObj);
+      copied.push(newObj);
+    }
+    return copied;
+  }
 }
 
 export const structuralObjectRepository = new StructuralObjectRepository();

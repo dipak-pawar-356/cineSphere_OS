@@ -77,6 +77,12 @@ export * from "./hall-preview";
 // Hall Validation Framework (Phase 4 - Part 10)
 export * from "./hall-validation";
 
+// Layout Version Management (Phase 4 - Part 11)
+export * from "./layout-versioning";
+
+// Publishing Workflow & Compatibility Layer (Phase 4 - Part 12)
+export * from "./publishing-workflow";
+
 
 
 // Tenant Payment Configurations & Ledger

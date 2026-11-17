@@ -19,4 +19,6 @@ export * from "./structural-object.repository";
 export * from "./geometry-layout.repository";
 export * from "./hall-preview.repository";
 export * from "./hall-validation.repository";
+export * from "./layout-versioning.repository";
+export * from "./publishing-workflow.repository";
 

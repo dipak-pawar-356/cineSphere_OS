@@ -25,3 +25,5 @@ export * from "./structural-object-engine";
 export * from "./geometry-engine";
 export * from "./hall-preview-engine";
 export * from "./hall-validation-engine";
+export * from "./version-comparison-engine";
+export * from "./publishing-pipeline-engine";

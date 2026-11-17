@@ -9,4 +9,6 @@ export * from "@/lib/hooks/use-structural-objects";
 export * from "@/lib/hooks/use-geometry-engine";
 export * from "@/lib/hooks/use-hall-preview";
 export * from "@/lib/hooks/use-hall-validation";
+export * from "@/lib/hooks/use-layout-versioning";
+export * from "@/lib/hooks/use-publishing-workflow";
 

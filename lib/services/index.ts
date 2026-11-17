@@ -21,4 +21,6 @@ export * from "./structural-object.service";
 export * from "./geometry-layout.service";
 export * from "./hall-preview.service";
 export * from "./hall-validation.service";
+export * from "./layout-versioning.service";
+export * from "./publishing-workflow.service";
 

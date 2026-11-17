@@ -548,6 +548,7 @@ export class HallDesignerRepository {
 
     // 1. Pune Flagship Venue (th-pun-001), Auditorium 1 (hall-pun-aud1)
     const puneDefId = "layout-pun-aud1-main";
+    const puneV2Id = "ver-layout-pun-aud1-main-v2";
     const puneV3Id = "ver-layout-pun-aud1-main-v3";
     const puneV4Id = "ver-layout-pun-aud1-main-v4";
 
@@ -563,6 +564,62 @@ export class HallDesignerRepository {
       totalVersionsCount: 4,
       createdAt: now,
       updatedAt: "2026-11-14T00:00:00Z",
+    };
+
+    // Archived Version 2 (Legacy Production Baseline)
+    const puneV2: LayoutVersion = {
+      id: puneV2Id,
+      layoutDefinitionId: puneDefId,
+      theatreId: "th-pun-001",
+      versionNumber: 2,
+      name: "IMAX Laser Master (v2 Legacy)",
+      status: "ARCHIVED",
+      versionNotes: "Initial legacy rollout version with 100 Standard seats.",
+      sections: [
+        {
+          id: "sec-pun-std",
+          name: "Club Standard",
+          displayOrder: 1,
+          seatCount: 100,
+          seatType: "Standard",
+          displayColor: "#FBBF24",
+          rowLabels: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+          seatsPerRow: 10,
+        },
+      ],
+      seats: [
+        ...this.generateDefaultSeats(puneV2Id, "sec-pun-std", ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"], 10, "Standard"),
+      ],
+      walkways: [
+        { id: "ww-1", afterColumn: 5, widthUnits: 2, label: "Center Aisle" },
+      ],
+      vipZones: [],
+      wheelchairAreas: [],
+      emergencyExits: [
+        { id: "exit-pun-1", position: "TOP_LEFT", label: "Exit Gate 1", widthUnits: 2 },
+      ],
+      gridConfig: {
+        rows: 10,
+        columns: 10,
+        totalCapacity: 100,
+      },
+      metadata: {
+        createdBy: "usr-admin-pune",
+        updatedBy: "usr-admin-pune",
+        publishedBy: "usr-admin-pune",
+        versionNotes: "Legacy production version",
+        seatCountSummary: {
+          standard: 100,
+          vip: 0,
+          recliner: 0,
+          sofa: 0,
+          wheelchair: 0,
+          total: 100,
+        },
+      },
+      publishedAt: "2026-10-01T08:00:00Z",
+      createdAt: "2026-10-01T08:00:00Z",
+      updatedAt: "2026-10-01T08:00:00Z",
     };
 
     // Published Version 3
@@ -660,6 +717,7 @@ export class HallDesignerRepository {
     };
 
     this.definitions.set(puneDefId, puneDef);
+    this.versions.set(puneV2Id, puneV2);
     this.versions.set(puneV3Id, puneV3);
     this.versions.set(puneV4Id, puneV4);
 

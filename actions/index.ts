@@ -27,4 +27,6 @@ export * from "./structural-object-actions";
 export * from "./geometry-layout-actions";
 export * from "./hall-preview-actions";
 export * from "./hall-validation-actions";
+export * from "./layout-versioning-actions";
+export * from "./publishing-workflow-actions";
 
