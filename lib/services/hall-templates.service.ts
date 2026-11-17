@@ -20,6 +20,7 @@ import { HallDesignerRepository } from "@/lib/repositories/hall-designer.reposit
 import { structuralObjectRepository } from "@/lib/repositories/structural-object.repository";
 import { HallTemplateEngine } from "@/lib/engine/hall-template-engine";
 import { securityAuditService } from "@/lib/services/security-audit.service";
+import { hallDesignerEventBus } from "@/lib/engine/hall-designer-event-bus";
 import {
   TenantAccessError,
   NotFoundError,
@@ -147,6 +148,19 @@ export class HallTemplatesService {
       action: "CREATE_TEMPLATE",
       description: `Created custom hall template '${saved.name}' (${saved.code})`,
       metadata: { templateId: saved.id, theatreId, category: saved.category },
+    });
+
+    await hallDesignerEventBus.publish({
+      eventType: "TemplateCreated",
+      theatreId,
+      actorId: actor.userId,
+      correlationId: actor.correlationId,
+      payload: {
+        templateId: saved.id,
+        code: saved.code,
+        category: saved.category,
+        parentTemplateId: saved.parentTemplateId,
+      },
     });
 
     return saved;

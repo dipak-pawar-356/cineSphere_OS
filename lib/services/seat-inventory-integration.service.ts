@@ -22,6 +22,7 @@ import { structuralObjectRepository } from "@/lib/repositories/structural-object
 import { publishingWorkflowService } from "@/lib/services/publishing-workflow.service";
 import { SeatInventoryEngine } from "@/lib/engine/seat-inventory-engine";
 import { securityAuditService } from "@/lib/services/security-audit.service";
+import { hallDesignerEventBus } from "@/lib/engine/hall-designer-event-bus";
 import {
   TenantAccessError,
   NotFoundError,
@@ -146,6 +147,22 @@ export class SeatInventoryIntegrationService {
       action: "GENERATE_INVENTORY",
       description: `Generated immutable seat inventory snapshot (${items.length} seats) for show '${showId}' from layout v${version.versionNumber}`,
       metadata: { showId, inventoryId, versionId: version.id, totalSeats: items.length },
+    });
+
+    // 7. Emit Decoupled Phase 4 Domain Event
+    await hallDesignerEventBus.publish({
+      eventType: "SeatInventoryGenerated",
+      theatreId,
+      hallId,
+      actorId: actor.userId,
+      correlationId: actor.correlationId,
+      payload: {
+        showId,
+        inventoryId,
+        snapshotId: snapshot.id,
+        layoutVersionId: version.id,
+        totalSeats: items.length,
+      },
     });
 
     return { header, items };

@@ -31,4 +31,6 @@ export * from "./layout-versioning-actions";
 export * from "./publishing-workflow-actions";
 export * from "./seat-inventory-integration-actions";
 export * from "./hall-templates-actions";
+export * from "./hall-analytics-actions";
+export * from "./enterprise-hall-designer-actions";
 

@@ -26,6 +26,7 @@ import { LayoutVersioningRepository } from "@/lib/repositories/layout-versioning
 import { HallValidationService } from "@/lib/services/hall-validation.service";
 import { PublishingPipelineEngine } from "@/lib/engine/publishing-pipeline-engine";
 import { securityAuditService } from "@/lib/services/security-audit.service";
+import { hallDesignerEventBus } from "@/lib/engine/hall-designer-event-bus";
 import {
   TenantAccessError,
   NotFoundError,
@@ -179,6 +180,53 @@ export class PublishingWorkflowService {
       metadata: {
         layoutDefinitionId,
         publishedVersionId: versionId,
+        previousVersionId,
+      },
+    });
+
+    // 8. Emit Decoupled Phase 4 Domain Events (ValidationPassed, LayoutArchived, LayoutPublished)
+    await hallDesignerEventBus.publish({
+      eventType: "ValidationPassed",
+      theatreId,
+      hallId: layoutDef.hallId,
+      actorId: actor.userId,
+      correlationId: actor.correlationId,
+      payload: {
+        layoutDefinitionId,
+        versionId,
+        versionNumber: publishedVersion.versionNumber,
+        errorsCount: validationReport.summary.errorsCount,
+        warningsCount: validationReport.summary.warningsCount,
+      },
+    });
+
+    if (previousVersionId) {
+      await hallDesignerEventBus.publish({
+        eventType: "LayoutArchived",
+        theatreId,
+        hallId: layoutDef.hallId,
+        actorId: actor.userId,
+        correlationId: actor.correlationId,
+        payload: {
+          layoutDefinitionId,
+          archivedVersionId: previousVersionId,
+          archivedVersionNumber: previousVersionNumber,
+          supersededByVersionId: versionId,
+        },
+      });
+    }
+
+    await hallDesignerEventBus.publish({
+      eventType: "LayoutPublished",
+      theatreId,
+      hallId: layoutDef.hallId,
+      actorId: actor.userId,
+      correlationId: actor.correlationId,
+      payload: {
+        layoutDefinitionId,
+        hallId: layoutDef.hallId,
+        publishedVersionId: versionId,
+        publishedVersionNumber: publishedVersion.versionNumber,
         previousVersionId,
       },
     });

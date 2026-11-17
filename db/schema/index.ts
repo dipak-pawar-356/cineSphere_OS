@@ -89,6 +89,12 @@ export * from "./seat-inventory-integration";
 // Hall Templates (Phase 4 - Part 14)
 export * from "./hall-templates";
 
+// Hall Analytics & Projection Layer (Phase 4 - Part 15)
+export * from "./hall-analytics";
+
+// Enterprise Hall Designer Architecture & Extensions (Phase 4 - Part 16)
+export * from "./enterprise-hall-designer";
+
 
 
 // Tenant Payment Configurations & Ledger
