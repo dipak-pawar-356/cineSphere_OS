@@ -1117,6 +1117,25 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Caching React hook [`useHallTemplates`](./lib/hooks/use-hall-templates.ts) managing template catalogs, duplication, archiving, and layout generation.
 - 📚 **Seat Inventory & Hall Templates Architecture Guide:** Detailed technical documentation in [`docs/SEAT_INVENTORY_AND_HALL_TEMPLATES_ARCHITECTURE.md`](./docs/SEAT_INVENTORY_AND_HALL_TEMPLATES_ARCHITECTURE.md).
 
+### 2.48 Phase 4 - Part 15: Hall Analytics (Completed)
+- 📊 **Analytics Projection Layer & Simulation Engine (`types/hall-analytics.types.ts`, `lib/engine/hall-analytics-engine.ts`, `db/schema/hall-analytics.ts`):**
+  - Strictly consumes immutable `PUBLISHED` / `ARCHIVED` layout versions and seat inventory snapshots (rejecting editable `DRAFT` layouts with `ValidationError`):
+    $$\text{Published Layout Version} \longrightarrow \text{Seat Inventory Snapshot} \longrightarrow \text{Analytics Projection} \longrightarrow \text{Analytics Engine} \longrightarrow \text{Dashboard \& Reports}$$
+  - **Comprehensive Metrics:** Capacity analytics (total, available, reserved, booked, premium, accessible, companion, section/row capacities), section analytics, 6-zone seat distribution + heatmap placeholder, and ADA 2010 / ISO 21542 accessibility scoring.
+  - **Occupancy & Read-Only Revenue Simulations:** Simulates `25%`, `50%`, `75%`, `100%`, and `PEAK_LOAD` occupancy scenarios with NFPA emergency egress estimation plus read-only dynamic pricing revenue simulations (`isReadOnlyProjection: true`) calculating ATP and RevPAS without mutating live pricing or bookings.
+  - **Layout Design Health:** Weighted `0–100` composite score (`Seat Density`, `Accessibility`, `Geometry Quality`, `Section Balance`, `Validation Score`) with letter grade (`A+`–`D`), optimization suggestions, and historical trend placeholders.
+  - **Per-Theatre Governance:** Pune (Revenue Sim + Accessibility + VIP ON), Mumbai (Premium Metrics + Occupancy Sim ON, Revenue Sim OFF), Dubai (Custom KPI Dashboard + Advanced Capacity Analysis ON).
+  - Event-driven auto-projection reacting to `LayoutPublished` domain events and caching React hook [`useHallAnalytics`](./lib/hooks/use-hall-analytics.ts).
+
+### 2.49 Phase 4 - Part 16: Enterprise Hall Designer Architecture (Completed)
+- 🌐 **Platform-Agnostic Scene Graph, Plugin Extension Registry & Event Bus (`types/enterprise-hall-designer.types.ts`, `lib/engine/layout-scene-graph-engine.ts`, `lib/engine/hall-extension-registry.ts`, `lib/engine/hall-designer-event-bus.ts`, `db/schema/enterprise-hall-designer.ts`):**
+  - **Scene Graph Abstraction (`LayoutSceneGraph`):** Compiles any `LayoutVersion` + `StructuralObject[]` into a single canonical, meter-normalized scene graph consumed by both 2D Canvas and future WebGL/Three.js/VR/AR engines — complete with stadium rake elevations, sightline angles, 4 camera rigs (`TOP_DOWN_2D`, `ORBIT_OVERVIEW`, `SEAT_POV`, `VR_STEREO`), PBR materials, lighting, LOD, animation hooks, and multi-floor balcony/sky-box support.
+  - **Plugin-Based Extension Framework (`HallExtensionRegistry`):** Registers 12 decoupled architectural adapters (`3D_ENGINE`, `WEBGL_RENDERER`, `THREEJS_ADAPTER`, `VR_ENGINE`, `AR_ENGINE`, `AI_ENGINE`, `COLLABORATION_ENGINE`, `DIGITAL_TWIN`, `CAD_IMPORT`, `BIM_ADAPTER`, `IOT_INTEGRATION`, `ENTERPRISE_TEMPLATES`) plus `SUPER_ADMIN` dynamic plugin registration.
+  - **Event-Driven Domain Architecture (`HallDesignerEventBus`):** Emits and routes `LayoutPublished`, `SeatInventoryGenerated`, `TemplateCreated`, `ValidationPassed`, `LayoutArchived`, `AnalyticsProjectionRefreshed`, and `EnterpriseFeatureToggled` with isolated error boundaries.
+  - **Per-Theatre Enterprise Capabilities:** Pune (3D Preview ON, AI OFF), Mumbai (VR Preview + Collaborative Editing ON), Dubai (Multi-Floor + IoT Seat Sensors + Digital Twin + CAD/BIM ON).
+  - Caching React hook [`useEnterpriseHallDesigner`](./lib/hooks/use-enterprise-hall-designer.ts) managing feature toggles, extensions, Scene Graph compilation, 3D/Collaboration configs, and domain event logs.
+- 📚 **Hall Analytics & Enterprise Designer Architecture Guide:** Detailed technical documentation in [`docs/HALL_ANALYTICS_AND_ENTERPRISE_DESIGNER_ARCHITECTURE.md`](./docs/HALL_ANALYTICS_AND_ENTERPRISE_DESIGNER_ARCHITECTURE.md).
+
 
 ---
 
@@ -1138,6 +1157,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🌐 [`docs/HALL_ANALYTICS_AND_ENTERPRISE_DESIGNER_ARCHITECTURE.md`](./docs/HALL_ANALYTICS_AND_ENTERPRISE_DESIGNER_ARCHITECTURE.md) — Hall Analytics & Enterprise Hall Designer Architecture (Immutable Analytics Projection Layer, Capacity/Section/ADA/Health Metrics, Read-Only Occupancy & Revenue Simulations, Platform-Agnostic Scene Graph Abstraction, 12-Adapter Plugin Extension Registry, and Phase 4 Event-Driven Domain Bus) (Phase 4 - Parts 15 & 16).
 - 🪑 [`docs/SEAT_INVENTORY_AND_HALL_TEMPLATES_ARCHITECTURE.md`](./docs/SEAT_INVENTORY_AND_HALL_TEMPLATES_ARCHITECTURE.md) — Seat Inventory Integration & Hall Templates Architecture (Blueprint-Driven Show Seat Inventory Snapshots, Deterministic SHA-256 Internal Seat IDs, Decoupled Dynamic Pricing, Maintenance Statuses, Regeneration Guard, 8 Built-in Platform Templates Catalog, Template Inheritance, and Reusable Blueprint Layout Generation) (Phase 4 - Parts 13 & 14).
 - 🚀 [`docs/LAYOUT_VERSIONING_AND_PUBLISHING_WORKFLOW_ARCHITECTURE.md`](./docs/LAYOUT_VERSIONING_AND_PUBLISHING_WORKFLOW_ARCHITECTURE.md) — Layout Version Management & Publishing Workflow Architecture (Immutable Version Registry, Deep Two-Way Diff Engine, Safe Rollback Branching, 9-Point Preflight Publishing Gate, Version Locking, Multi-Tenant Policies, and Show Compatibility Layer Guarantee) (Phase 4 - Parts 11 & 12).
 - 🖥️ [`docs/HALL_PREVIEW_AND_VALIDATION_ARCHITECTURE.md`](./docs/HALL_PREVIEW_AND_VALIDATION_ARCHITECTURE.md) — Multi-Mode Hall Preview & Pluggable Preflight Validation Architecture (5 Operational Modes, Responsive Viewport Transformations, Visual Themes, Live Booking Simulation Cart, Central Rule Registry, 10 Core Validation Rules, Per-Theatre Policies, and Pre-Publish Gate) (Phase 4 - Parts 9 & 10).
