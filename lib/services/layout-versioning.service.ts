@@ -290,6 +290,78 @@ export class LayoutVersioningService {
     };
   }
 
+  public async duplicateVersion(
+    actor: SecurityActorContext,
+    layoutDefinitionId: string,
+    sourceVersionId: string,
+    theatreId: string,
+    notes?: string
+  ): Promise<LayoutVersion> {
+    return this.createDraftVersion(
+      actor,
+      layoutDefinitionId,
+      theatreId,
+      notes || `Duplicate of version ${sourceVersionId}`,
+      sourceVersionId
+    );
+  }
+
+  public async archiveVersion(
+    actor: SecurityActorContext,
+    layoutDefinitionId: string,
+    versionId: string,
+    theatreId: string,
+    notes?: string
+  ): Promise<VersionHistoryItem> {
+    this.assertTenantAccess(actor, theatreId);
+    const ver = this.designerRepo.getLayoutVersionById(versionId, theatreId);
+    if (!ver) {
+      throw new NotFoundError(`Version '${versionId}' not found.`);
+    }
+    const now = new Date().toISOString();
+    ver.status = "ARCHIVED";
+    ver.archivedAt = now;
+    ver.updatedAt = now;
+    if (notes) ver.versionNotes = notes;
+
+    const historyItem = this.versioningRepo.getVersionHistoryItem(versionId, theatreId);
+    if (historyItem) {
+      historyItem.status = "ARCHIVED";
+      historyItem.archivedAt = now;
+      historyItem.updatedAt = now;
+      historyItem.isLocked = true;
+      this.versioningRepo.recordVersionHistory(historyItem);
+    }
+
+    await this.auditService.recordAudit({
+      actor,
+      module: "LAYOUT_VERSIONING",
+      action: "ARCHIVE_VERSION",
+      description: `Layout version v${ver.versionNumber} archived`,
+      metadata: { layoutDefinitionId, versionId },
+    });
+
+    const refreshed = await this.getVersionHistory(actor, layoutDefinitionId, theatreId);
+    return refreshed.find((h) => h.id === versionId) || historyItem!;
+  }
+
+  public async restoreVersion(
+    actor: SecurityActorContext,
+    layoutDefinitionId: string,
+    versionId: string,
+    theatreId: string,
+    notes?: string
+  ): Promise<LayoutVersion> {
+    this.assertTenantAccess(actor, theatreId);
+    return this.createDraftVersion(
+      actor,
+      layoutDefinitionId,
+      theatreId,
+      notes || `Restored from version ${versionId}`,
+      versionId
+    );
+  }
+
   // ----------------------------------------------------------------------------
   // 5. Change History Logging
   // ----------------------------------------------------------------------------

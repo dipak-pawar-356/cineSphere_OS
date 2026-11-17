@@ -11,6 +11,9 @@ import {
   saveVersionPolicySchema,
   getVersionPolicySchema,
   getChangeEventsSchema,
+  duplicateVersionSchema,
+  archiveVersionSchema,
+  restoreVersionSchema,
 } from "@/lib/validation/layout-versioning.validation";
 import {
   VersionHistoryItem,
@@ -184,6 +187,83 @@ export const loadChangeEventsAction = createProtectedAction<
       context.actor,
       input.versionId,
       input.theatreId
+    );
+  }
+);
+
+export const createVersionAction = createLayoutDraftVersionAction;
+
+export const duplicateVersionAction = createProtectedAction<
+  z.input<typeof duplicateVersionSchema>,
+  LayoutVersion
+>(
+  {
+    actionName: "duplicateVersionAction",
+    schema: duplicateVersionSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "LAYOUT_VERSIONING",
+    auditAction: "DUPLICATE_VERSION",
+  },
+  async (input, context) => {
+    return layoutVersioningService.duplicateVersion(
+      context.actor,
+      input.layoutDefinitionId,
+      input.sourceVersionId,
+      input.theatreId,
+      input.notes
+    );
+  }
+);
+
+export const archiveVersionAction = createProtectedAction<
+  z.input<typeof archiveVersionSchema>,
+  VersionHistoryItem
+>(
+  {
+    actionName: "archiveVersionAction",
+    schema: archiveVersionSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "LAYOUT_VERSIONING",
+    auditAction: "ARCHIVE_VERSION",
+  },
+  async (input, context) => {
+    return layoutVersioningService.archiveVersion(
+      context.actor,
+      input.layoutDefinitionId,
+      input.versionId,
+      input.theatreId,
+      input.notes
+    );
+  }
+);
+
+export const restoreVersionAction = createProtectedAction<
+  z.input<typeof restoreVersionSchema>,
+  LayoutVersion
+>(
+  {
+    actionName: "restoreVersionAction",
+    schema: restoreVersionSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "LAYOUT_VERSIONING",
+    auditAction: "RESTORE_VERSION",
+  },
+  async (input, context) => {
+    return layoutVersioningService.restoreVersion(
+      context.actor,
+      input.layoutDefinitionId,
+      input.versionId,
+      input.theatreId,
+      input.notes
     );
   }
 );

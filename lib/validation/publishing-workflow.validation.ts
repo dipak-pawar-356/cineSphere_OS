@@ -64,3 +64,23 @@ export const migrateShowLayoutSchema = z.object({
   migrationReason: z.string().min(1, "Migration reason is required"),
   bookedSeatsCount: z.number().int().min(0).default(0),
 });
+
+export const saveDraftActionSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  layoutDefinitionId: z.string().min(1, "Layout Definition ID is required"),
+  notes: z.string().optional(),
+  sourceVersionId: z.string().optional(),
+});
+
+export const archivePublishVersionSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  layoutDefinitionId: z.string().min(1, "Layout Definition ID is required"),
+  notes: z.string().optional(),
+});
+
+export const restorePublishVersionSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  layoutDefinitionId: z.string().min(1, "Layout Definition ID is required"),
+  targetVersionId: z.string().min(1, "Target Version ID is required"),
+  notes: z.string().optional(),
+});

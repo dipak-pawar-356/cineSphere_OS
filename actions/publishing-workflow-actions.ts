@@ -13,6 +13,9 @@ import {
   assignLayoutToShowSchema,
   getLayoutForShowSchema,
   migrateShowLayoutSchema,
+  saveDraftActionSchema,
+  archivePublishVersionSchema,
+  restorePublishVersionSchema,
 } from "@/lib/validation/publishing-workflow.validation";
 import {
   PublishResult,
@@ -231,6 +234,82 @@ export const migrateShowLayoutAction = createProtectedAction<
         migrationReason: input.migrationReason,
       },
       input.bookedSeatsCount
+    );
+  }
+);
+
+export const publishVersionAction = publishVersionWorkflowAction;
+export const unpublishVersionAction = unpublishVersionWorkflowAction;
+
+export const saveDraftAction = createProtectedAction<
+  z.input<typeof saveDraftActionSchema>,
+  LayoutVersion
+>(
+  {
+    actionName: "saveDraftAction",
+    schema: saveDraftActionSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "PUBLISHING_WORKFLOW",
+    auditAction: "SAVE_DRAFT",
+  },
+  async (input, context) => {
+    return publishingWorkflowService.saveDraft(
+      context.actor,
+      input.layoutDefinitionId,
+      input.theatreId,
+      input.notes
+    );
+  }
+);
+
+export const archiveVersionWorkflowAction = createProtectedAction<
+  z.input<typeof archivePublishVersionSchema>,
+  PublishingStatusRecord
+>(
+  {
+    actionName: "archiveVersionWorkflowAction",
+    schema: archivePublishVersionSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "PUBLISHING_WORKFLOW",
+    auditAction: "ARCHIVE_VERSION",
+  },
+  async (input, context) => {
+    return publishingWorkflowService.archivePublishVersion(
+      context.actor,
+      input.layoutDefinitionId,
+      input.theatreId,
+      input.notes
+    );
+  }
+);
+
+export const restoreVersionWorkflowAction = createProtectedAction<
+  z.input<typeof restorePublishVersionSchema>,
+  PublishResult
+>(
+  {
+    actionName: "restoreVersionWorkflowAction",
+    schema: restorePublishVersionSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "PUBLISHING_WORKFLOW",
+    auditAction: "RESTORE_VERSION",
+  },
+  async (input, context) => {
+    return publishingWorkflowService.restorePublishVersion(
+      context.actor,
+      input.layoutDefinitionId,
+      input.targetVersionId,
+      input.theatreId,
+      input.notes
     );
   }
 );

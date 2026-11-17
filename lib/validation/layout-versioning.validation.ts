@@ -50,3 +50,24 @@ export const getChangeEventsSchema = z.object({
   theatreId: z.string().min(1, "Theatre ID is required"),
   versionId: z.string().min(1, "Version ID is required"),
 });
+
+export const duplicateVersionSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  layoutDefinitionId: z.string().min(1, "Layout Definition ID is required"),
+  sourceVersionId: z.string().min(1, "Source Version ID is required"),
+  notes: z.string().optional(),
+});
+
+export const archiveVersionSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  layoutDefinitionId: z.string().min(1, "Layout Definition ID is required"),
+  versionId: z.string().min(1, "Version ID is required"),
+  notes: z.string().optional(),
+});
+
+export const restoreVersionSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  layoutDefinitionId: z.string().min(1, "Layout Definition ID is required"),
+  versionId: z.string().min(1, "Version ID is required"),
+  notes: z.string().optional(),
+});

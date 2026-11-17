@@ -232,6 +232,50 @@ export class PublishingWorkflowService {
     return statusRecord;
   }
 
+  public async saveDraft(
+    actor: SecurityActorContext,
+    layoutDefinitionId: string,
+    theatreId: string,
+    notes?: string
+  ): Promise<LayoutVersion> {
+    this.assertTenantAccess(actor, theatreId);
+    return this.designerRepo.createDraftVersion(
+      layoutDefinitionId,
+      theatreId,
+      notes || "Draft saved",
+      actor
+    );
+  }
+
+  public async archivePublishVersion(
+    actor: SecurityActorContext,
+    layoutDefinitionId: string,
+    theatreId: string,
+    notes?: string
+  ): Promise<PublishingStatusRecord> {
+    return this.unpublishVersion(
+      actor,
+      layoutDefinitionId,
+      theatreId,
+      notes || "Archived from publishing pipeline"
+    );
+  }
+
+  public async restorePublishVersion(
+    actor: SecurityActorContext,
+    layoutDefinitionId: string,
+    targetVersionId: string,
+    theatreId: string,
+    notes?: string
+  ): Promise<PublishResult> {
+    return this.publishVersion(actor, {
+      layoutDefinitionId,
+      versionId: targetVersionId,
+      theatreId,
+      publishNotes: notes || `Restored and published version ${targetVersionId}`,
+    });
+  }
+
   // ----------------------------------------------------------------------------
   // 3. Show Compatibility Layer Operations
   // ----------------------------------------------------------------------------
