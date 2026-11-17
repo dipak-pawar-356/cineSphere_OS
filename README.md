@@ -1087,6 +1087,36 @@ Phase 2 - Part 8 implements the comprehensive **Show Management & Scheduling Sys
   - Caching React hook [`usePublishingWorkflow`](./lib/hooks/use-publishing-workflow.ts) managing live layout statuses, history timelines, and publishing execution.
 - 📚 **Layout Versioning & Publishing Workflow Architecture Guide:** Detailed technical documentation in [`docs/LAYOUT_VERSIONING_AND_PUBLISHING_WORKFLOW_ARCHITECTURE.md`](./docs/LAYOUT_VERSIONING_AND_PUBLISHING_WORKFLOW_ARCHITECTURE.md).
 
+### 2.46 Phase 4 - Part 13: Seat Inventory Integration (Completed)
+- 🪑 **Blueprint-Driven Show Seat Inventory Snapshots (`types/seat-inventory-integration.types.ts`, `lib/engine/seat-inventory-engine.ts`, `db/schema/seat-inventory-integration.ts`):**
+  - Decouples show seat inventory from CAD layouts:
+    $$\text{Layout Definition} \longrightarrow \text{Published Layout Version} \longrightarrow \text{Seat Inventory Blueprint} \longrightarrow \text{Show Seat Inventory} \longrightarrow \text{Pricing / Booking / Ticket / Availability / Maintenance}$$
+  - **Deterministic Internal Seat ID Derivation:** Computes SHA-256 hash digests (`isid-...`) from `theatreId:hallId:sectionId:rowName:seatNumber`, ensuring cross-module referential integrity.
+  - **Dynamic Pricing Integration:** Does not hardcode prices; dynamically evaluates base pricing, show-time modifiers, and section fees via the Show Dynamic Pricing Engine.
+  - **Granular Operational Statuses:** `AVAILABLE`, `RESERVED`, `BOOKED`, `BLOCKED`, `MAINTENANCE`, `DISABLED`. Maintenance seats are automatically hidden from patron booking.
+  - **Strict Regeneration Guard:** Enforces that inventory cannot be regenerated or overwritten if active bookings exist (`bookedSeatsCount > 0`).
+  - **Multi-Tenant Governance:** Pune (`th-pun-001` Automatic, Maintenance ON), Mumbai (`th-mum-002` Manual Approval, Maintenance OFF), Dubai (`th-dxb-003` Automatic, Strict).
+  - Caching React hook [`useSeatInventoryIntegration`](./lib/hooks/use-seat-inventory-integration.ts) for real-time inventory inspection and status management.
+
+### 2.47 Phase 4 - Part 14: Hall Templates (Completed)
+- 🏛️ **Reusable Blueprint Engine & Template Inheritance (`types/hall-templates.types.ts`, `lib/engine/hall-template-engine.ts`, `db/schema/hall-templates.ts`):**
+  - Generates independent `LayoutDefinition` and initial `LayoutVersion` (v1) entities from blueprint templates, mapping sections, seats, and structural objects with isolated IDs.
+  - **Source Template Immutability:** Editing a generated layout never modifies the source blueprint template.
+  - **8 Built-in Platform Templates Catalog:**
+    1. `SMALL_THEATRE` (40 seats, 2 sections, boutique art-house cinema)
+    2. `MULTIPLEX` (120 seats, 3 sections, standard commercial auditorium)
+    3. `PREMIUM` (60 seats, 2 sections, luxury motorized recliner suite)
+    4. `IMAX` (180 seats, 3 sections, curved stadium seating with massive screen)
+    5. `4DX` (80 seats, 2 sections, motion-synchronized quad pods)
+    6. `OPEN_AIR` (150 seats, 2 sections, outdoor amphitheatre / drive-in)
+    7. `MINI_THEATRE` (24 seats, 1 section, private screening lounge / VIP suite)
+    8. `AUDITORIUM` (250 seats, 4 sections, tiered flagship hall with presentation stage)
+  - **Template Inheritance & Custom Templates:** Theatres can author custom templates or inherit from platform templates (`parentTemplateId`).
+  - **Platform Read-Only Enforcement:** Platform templates are strictly immutable (`isBuiltIn: true`); mutations throw `TenantAccessError`.
+  - **Multi-Tenant Isolation:** Custom venue templates are strictly isolated between theatre circuits.
+  - Caching React hook [`useHallTemplates`](./lib/hooks/use-hall-templates.ts) managing template catalogs, duplication, archiving, and layout generation.
+- 📚 **Seat Inventory & Hall Templates Architecture Guide:** Detailed technical documentation in [`docs/SEAT_INVENTORY_AND_HALL_TEMPLATES_ARCHITECTURE.md`](./docs/SEAT_INVENTORY_AND_HALL_TEMPLATES_ARCHITECTURE.md).
+
 
 ---
 
@@ -1108,6 +1138,7 @@ For zero-configuration deployment to Vercel:
 
 Detailed architecture and engineering guides are available in the [`docs/`](./docs) directory:
 
+- 🪑 [`docs/SEAT_INVENTORY_AND_HALL_TEMPLATES_ARCHITECTURE.md`](./docs/SEAT_INVENTORY_AND_HALL_TEMPLATES_ARCHITECTURE.md) — Seat Inventory Integration & Hall Templates Architecture (Blueprint-Driven Show Seat Inventory Snapshots, Deterministic SHA-256 Internal Seat IDs, Decoupled Dynamic Pricing, Maintenance Statuses, Regeneration Guard, 8 Built-in Platform Templates Catalog, Template Inheritance, and Reusable Blueprint Layout Generation) (Phase 4 - Parts 13 & 14).
 - 🚀 [`docs/LAYOUT_VERSIONING_AND_PUBLISHING_WORKFLOW_ARCHITECTURE.md`](./docs/LAYOUT_VERSIONING_AND_PUBLISHING_WORKFLOW_ARCHITECTURE.md) — Layout Version Management & Publishing Workflow Architecture (Immutable Version Registry, Deep Two-Way Diff Engine, Safe Rollback Branching, 9-Point Preflight Publishing Gate, Version Locking, Multi-Tenant Policies, and Show Compatibility Layer Guarantee) (Phase 4 - Parts 11 & 12).
 - 🖥️ [`docs/HALL_PREVIEW_AND_VALIDATION_ARCHITECTURE.md`](./docs/HALL_PREVIEW_AND_VALIDATION_ARCHITECTURE.md) — Multi-Mode Hall Preview & Pluggable Preflight Validation Architecture (5 Operational Modes, Responsive Viewport Transformations, Visual Themes, Live Booking Simulation Cart, Central Rule Registry, 10 Core Validation Rules, Per-Theatre Policies, and Pre-Publish Gate) (Phase 4 - Parts 9 & 10).
 - 📐 [`docs/STRUCTURAL_OBJECTS_AND_GEOMETRY_ARCHITECTURE.md`](./docs/STRUCTURAL_OBJECTS_AND_GEOMETRY_ARCHITECTURE.md) — Structural Objects & Advanced Geometry Architecture (First-Class Physical Infrastructure, Rotated SAT Collision Math, 2D Affine Transforms, Curvature & Sagitta Arc Mathematics, and Reversible Command History Pipeline) (Phase 4 - Parts 7 & 8).
