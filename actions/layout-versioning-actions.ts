@@ -14,6 +14,8 @@ import {
   duplicateVersionSchema,
   archiveVersionSchema,
   restoreVersionSchema,
+  getVersionMetadataSchema,
+  updateVersionMetadataSchema,
 } from "@/lib/validation/layout-versioning.validation";
 import {
   VersionHistoryItem,
@@ -21,6 +23,7 @@ import {
   VersionPolicy,
   RollbackResult,
   VersionChangeEvent,
+  VersionMetadataItem,
 } from "@/types/layout-versioning.types";
 import { LayoutVersion } from "@/types/hall-designer.types";
 
@@ -264,6 +267,53 @@ export const restoreVersionAction = createProtectedAction<
       input.versionId,
       input.theatreId,
       input.notes
+    );
+  }
+);
+
+export const loadVersionMetadataAction = createProtectedAction<
+  z.input<typeof getVersionMetadataSchema>,
+  VersionMetadataItem | undefined
+>(
+  {
+    actionName: "loadVersionMetadataAction",
+    schema: getVersionMetadataSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN", "HALL_MANAGER"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "LAYOUT_VERSIONING",
+    auditAction: "LOAD_METADATA",
+  },
+  async (input, context) => {
+    return layoutVersioningService.getVersionMetadata(
+      context.actor,
+      input.versionId,
+      input.theatreId
+    );
+  }
+);
+
+export const updateVersionMetadataAction = createProtectedAction<
+  z.input<typeof updateVersionMetadataSchema>,
+  VersionMetadataItem
+>(
+  {
+    actionName: "updateVersionMetadataAction",
+    schema: updateVersionMetadataSchema,
+    rateLimitCategory: "ADMIN_API",
+    requiredRole: ["SUPER_ADMIN", "THEATRE_ADMIN"],
+    enforceTenantIsolation: true,
+    tenantIdExtractor: (input) => input.theatreId,
+    auditModule: "LAYOUT_VERSIONING",
+    auditAction: "UPDATE_METADATA",
+  },
+  async (input, context) => {
+    return layoutVersioningService.updateVersionMetadata(
+      context.actor,
+      input.versionId,
+      input.theatreId,
+      input
     );
   }
 );

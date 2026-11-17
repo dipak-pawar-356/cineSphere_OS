@@ -71,3 +71,21 @@ export const restoreVersionSchema = z.object({
   versionId: z.string().min(1, "Version ID is required"),
   notes: z.string().optional(),
 });
+
+export const getVersionMetadataSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  versionId: z.string().min(1, "Version ID is required"),
+});
+
+export const updateVersionMetadataSchema = z.object({
+  theatreId: z.string().min(1, "Theatre ID is required"),
+  versionId: z.string().min(1, "Version ID is required"),
+  labels: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(),
+  authorNotes: z.string().optional(),
+  approvalStatus: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
+  approvedBy: z.string().optional(),
+  approvedAt: z.string().optional(),
+  reviewRequestedAt: z.string().optional(),
+  reviewNotes: z.string().optional(),
+});

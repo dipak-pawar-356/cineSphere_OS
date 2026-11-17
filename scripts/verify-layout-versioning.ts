@@ -20,6 +20,8 @@ import {
   loadVersionPolicyAction,
   saveVersionPolicyAction,
   loadChangeEventsAction,
+  loadVersionMetadataAction,
+  updateVersionMetadataAction,
 } from "../actions/layout-versioning-actions";
 
 let totalAssertions = 0;
@@ -265,6 +267,31 @@ async function runLayoutVersioningVerification() {
   );
   assert(actEvents.success === true, "loadChangeEventsAction executed cleanly");
   assert(Array.isArray(actEvents.data), "Action returned change events array");
+
+  // Metadata Server Actions
+  const actSaveMeta = await updateVersionMetadataAction(
+    {
+      theatreId: "th-pun-001",
+      versionId: newDraft.id,
+      labels: ["EXPERIMENTAL", "DRAFT_TEST"],
+      tags: ["LaserProjection", "IMAX"],
+      authorNotes: "Updated release notes for testing",
+    },
+    { role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+  );
+  assert(actSaveMeta.success === true, "updateVersionMetadataAction executed cleanly");
+  assert(actSaveMeta.data?.labels.includes("EXPERIMENTAL") === true, "Metadata saved labels");
+  assert(actSaveMeta.data?.tags.includes("LaserProjection") === true, "Metadata saved tags");
+
+  const actLoadMeta = await loadVersionMetadataAction(
+    {
+      theatreId: "th-pun-001",
+      versionId: newDraft.id,
+    },
+    { role: "THEATRE_ADMIN", theatreId: "th-pun-001" }
+  );
+  assert(actLoadMeta.success === true, "loadVersionMetadataAction executed cleanly");
+  assert(actLoadMeta.data?.authorNotes === "Updated release notes for testing", "Metadata loaded author notes");
 
   console.log("\n==================================================================");
   console.log(`LAYOUT VERSION MANAGEMENT VERIFICATION COMPLETED`);

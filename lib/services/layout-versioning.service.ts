@@ -14,6 +14,7 @@ import {
   VersionPolicy,
   RollbackResult,
   VersionChangeEvent,
+  VersionMetadataItem,
 } from "@/types/layout-versioning.types";
 import { LayoutVersion } from "@/types/hall-designer.types";
 import { LayoutVersioningRepository } from "@/lib/repositories/layout-versioning.repository";
@@ -439,6 +440,58 @@ export class LayoutVersioningService {
     });
 
     return policy;
+  }
+
+  // ----------------------------------------------------------------------------
+  // 7. Version Metadata & Tags/Labels
+  // ----------------------------------------------------------------------------
+
+  public async getVersionMetadata(
+    actor: SecurityActorContext,
+    versionId: string,
+    theatreId: string
+  ): Promise<VersionMetadataItem | undefined> {
+    this.assertTenantAccess(actor, theatreId);
+    return this.versioningRepo.getVersionMetadata(versionId, theatreId);
+  }
+
+  public async updateVersionMetadata(
+    actor: SecurityActorContext,
+    versionId: string,
+    theatreId: string,
+    metadata: Partial<VersionMetadataItem>
+  ): Promise<VersionMetadataItem> {
+    this.assertTenantAccess(actor, theatreId);
+    this.assertAdminRole(actor);
+
+    const existing = this.versioningRepo.getVersionMetadata(versionId, theatreId) || {
+      id: `meta-${Date.now()}`,
+      versionId,
+      theatreId,
+      labels: [],
+      tags: [],
+      authorNotes: "",
+      approvalStatus: "PENDING",
+    };
+
+    const updated: VersionMetadataItem = {
+      ...existing,
+      ...metadata,
+      versionId,
+      theatreId,
+    };
+
+    const saved = this.versioningRepo.saveVersionMetadata(updated);
+
+    await this.auditService.recordAudit({
+      actor,
+      module: "LAYOUT_VERSIONING",
+      action: "UPDATE_METADATA",
+      description: `Version metadata updated for version '${versionId}'`,
+      metadata: { versionId, theatreId },
+    });
+
+    return saved;
   }
 
   // ----------------------------------------------------------------------------

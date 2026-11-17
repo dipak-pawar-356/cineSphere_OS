@@ -153,3 +153,35 @@ export const versionPolicies = pgTable(
     uniqueIndex("version_policies_theatre_idx").on(table.theatreId),
   ]
 );
+
+// 5. Version Metadata Store
+export const versionMetadata = pgTable(
+  "version_metadata",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    versionId: varchar("version_id", { length: 36 })
+      .notNull()
+      .references(() => layoutVersions.id, { onDelete: "cascade" }),
+    theatreId: varchar("theatre_id", { length: 36 })
+      .notNull()
+      .references(() => theatres.id, { onDelete: "cascade" }),
+    labels: jsonb("labels").$type<string[]>().notNull().default([]),
+    tags: jsonb("tags").$type<string[]>().notNull().default([]),
+    authorNotes: text("author_notes"),
+    approvalStatus: varchar("approval_status", { length: 30 })
+      .$type<"PENDING" | "APPROVED" | "REJECTED">()
+      .default("PENDING"),
+    approvedBy: varchar("approved_by", { length: 100 }),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    reviewRequestedAt: timestamp("review_requested_at", { withTimezone: true }),
+    reviewNotes: text("review_notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("version_metadata_version_idx").on(table.versionId),
+    index("version_metadata_theatre_idx").on(table.theatreId),
+  ]
+);

@@ -15,6 +15,8 @@ import {
   loadVersionPolicyAction,
   saveVersionPolicyAction,
   loadChangeEventsAction,
+  loadVersionMetadataAction,
+  updateVersionMetadataAction,
 } from "@/actions/layout-versioning-actions";
 
 export interface UseLayoutVersioningOptions {
@@ -187,6 +189,42 @@ export function useLayoutVersioning({ theatreId, layoutDefinitionId }: UseLayout
     [theatreId]
   );
 
+  const fetchVersionMetadata = useCallback(
+    async (versionId: string) => {
+      if (!theatreId || !versionId) return undefined;
+      try {
+        const res = await loadVersionMetadataAction({ theatreId, versionId });
+        if (res.success) {
+          return res.data;
+        }
+      } catch (err: any) {
+        setErrorMessage(err.message || "Failed to load version metadata.");
+      }
+      return undefined;
+    },
+    [theatreId]
+  );
+
+  const updateVersionMetadata = useCallback(
+    async (versionId: string, metadata: { labels?: string[]; tags?: string[]; authorNotes?: string }) => {
+      if (!theatreId || !versionId) return undefined;
+      try {
+        const res = await updateVersionMetadataAction({
+          theatreId,
+          versionId,
+          ...metadata,
+        });
+        if (res.success) {
+          return res.data;
+        }
+      } catch (err: any) {
+        setErrorMessage(err.message || "Failed to update version metadata.");
+      }
+      return undefined;
+    },
+    [theatreId]
+  );
+
   return {
     historyItems,
     currentPolicy,
@@ -203,6 +241,8 @@ export function useLayoutVersioning({ theatreId, layoutDefinitionId }: UseLayout
     fetchPolicy,
     updatePolicy,
     fetchChangeEvents,
+    fetchVersionMetadata,
+    updateVersionMetadata,
     setActiveComparison,
   };
 }

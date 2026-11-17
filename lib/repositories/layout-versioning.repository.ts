@@ -13,6 +13,7 @@ import {
   VersionComparisonDiff,
   VersionPolicy,
   VersionLifecycleStatus,
+  VersionMetadataItem,
 } from "@/types/layout-versioning.types";
 import { TenantAccessError, NotFoundError } from "@/lib/errors/app-error";
 
@@ -24,6 +25,7 @@ export class LayoutVersioningRepository {
   private comparisons: Map<string, VersionComparisonDiff> = new Map();
   private changeEvents: Map<string, VersionChangeEvent[]> = new Map();
   private policies: Map<string, VersionPolicy> = new Map();
+  private metadataItems: Map<string, VersionMetadataItem> = new Map();
 
   private constructor() {
     this.seedInitialData();
@@ -155,6 +157,24 @@ export class LayoutVersioningRepository {
     };
     this.policies.set(theatreId, updated);
     return updated;
+  }
+
+  // ----------------------------------------------------------------------------
+  // 5. Version Metadata Store
+  // ----------------------------------------------------------------------------
+
+  public getVersionMetadata(versionId: string, theatreId: string): VersionMetadataItem | undefined {
+    const item = this.metadataItems.get(versionId);
+    if (!item) return undefined;
+    if (item.theatreId !== theatreId) {
+      throw new TenantAccessError(`Version metadata '${versionId}' does not belong to theatre '${theatreId}'.`);
+    }
+    return item;
+  }
+
+  public saveVersionMetadata(metadata: VersionMetadataItem): VersionMetadataItem {
+    this.metadataItems.set(metadata.versionId, metadata);
+    return metadata;
   }
 
   // ----------------------------------------------------------------------------
